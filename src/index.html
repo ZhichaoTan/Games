@@ -323,6 +323,131 @@ svg.u{display:block;width:100%;height:100%}
 #toast{position:fixed;left:50%;top:calc(58px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;max-width:88%;padding:10px 16px;border-radius:14px;
   background:rgba(20,26,33,.95);box-shadow:inset 0 0 0 1px rgba(244,221,166,.25),0 12px 30px rgba(0,0,0,.5);font-weight:700;font-size:13.5px;text-align:center;animation:toastIn .3s cubic-bezier(.2,1.2,.4,1)}
 @keyframes toastIn{from{transform:translate(-50%,-10px);opacity:0}}
+/* ====================== 机器人智商 / 胜率辅助 ====================== */
+.iq{display:inline-block;font:800 8.5px/1 var(--ui);padding:2px 4px 2px;border-radius:5px;margin-right:4px;vertical-align:1px;letter-spacing:.02em}
+.iq.l0{background:#3b5735;color:#cdf3bb}.iq.l1{background:#33405a;color:#c6d6ee}.iq.l2{background:#123d59;color:#a3dfff}.iq.l3{background:linear-gradient(180deg,#f6e2b0,#c99a4a);color:#2a1a08}
+button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-align:0;flex:none}
+#odds{position:absolute;z-index:5;width:70px;padding:6px 8px 7px;border-radius:12px;background:rgba(6,10,14,.82);box-shadow:inset 0 0 0 1px rgba(244,221,166,.22),0 6px 14px rgba(0,0,0,.4);text-align:left;cursor:pointer;transition:opacity .3s}
+#odds .og-l{font:800 8.5px/1 var(--ui);letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+#odds .og-v{font:700 20px/1.05 var(--display);color:var(--brass-hi);margin-top:3px;transition:color .3s,opacity .3s}
+#odds .og-b{height:3px;border-radius:2px;background:rgba(255,255,255,.13);margin-top:5px;position:relative}
+#odds .og-b i{position:absolute;left:0;top:0;bottom:0;border-radius:inherit;background:currentColor;color:var(--brass);transition:width .45s cubic-bezier(.3,.8,.3,1)}
+#odds .og-b b{position:absolute;top:-3px;width:2px;height:9px;margin-left:-1px;border-radius:1px;background:#fff;box-shadow:0 0 4px rgba(0,0,0,.6)}
+#odds .og-n{font-size:9.5px;font-weight:700;color:var(--mute);margin-top:5px;white-space:nowrap}
+#odds.good .og-v{color:#93efb3}#odds.good .og-b i{color:#5fd590}
+#odds.bad .og-v{color:#ff9d9d}#odds.bad .og-b i{color:#e0646c}
+#odds.calc .og-v{opacity:.45}
+#odds.sm{width:80px;padding:0 7px;display:grid;grid-template-columns:auto 1fr;align-items:baseline;align-content:center;column-gap:4px}
+#odds.sm .og-l{font-size:8px;letter-spacing:.1em}
+#odds.sm .og-v{font-size:15px;margin:0;text-align:right}
+#odds.sm .og-b{grid-column:1/-1;margin-top:4px}
+#odds.sm .og-n{display:none}
+#myHand.og-good{color:#93efb3}#myHand.og-bad{color:#ffaaaa}
+.ib.on{background:linear-gradient(180deg,#f4ddA6,#d3ac63);color:#22180a;border-color:transparent}
+.stat2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat2>div{background:rgba(255,255,255,.05);border-radius:14px;padding:10px 12px}
+.stat2 span{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.stat2 b{display:block;font:700 28px/1.1 var(--display);color:var(--brass-hi)}
+.cats{display:flex;flex-direction:column;gap:6px}
+.cats>div{display:grid;grid-template-columns:7.5em 1fr 3.4em;align-items:center;gap:10px;font-size:13px}
+.cats span{color:var(--mute)}.cats em{font-style:normal;font-weight:800;text-align:right}
+.cats i{height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.cats i u{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--brass-lo),var(--brass-hi))}
+.cats .me span,.cats .me em{color:var(--brass-hi)}
+.hintx{font-size:12px;color:var(--faint);line-height:1.5}
+
+/* ====================== 积分 ====================== */
+.wallet-btn{position:absolute;left:max(16px,env(safe-area-inset-left,0px));top:14px;display:flex;align-items:center;gap:7px;padding:6px 13px 6px 7px;border-radius:999px;background:var(--glass-2);border:1px solid var(--line);font-weight:800;font-size:14px;color:var(--brass-hi);z-index:2}
+.wallet-btn svg{width:20px;height:20px;color:var(--crimson);filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+.rd{width:8px;height:8px;border-radius:50%;background:#ff6b6b;box-shadow:0 0 8px #ff6b6b;animation:blink 1.6s infinite}
+.seatbox{flex-direction:row;align-items:center;gap:12px;border-color:rgba(211,172,99,.35);background:linear-gradient(180deg,rgba(211,172,99,.12),rgba(211,172,99,.04))}
+.seatbox p{margin:0;flex:1;font-size:13.5px;line-height:1.45;color:var(--text)}
+.seatbox p b{color:var(--brass-hi)}
+.seatbox .bs{display:flex;flex-direction:column;gap:6px;flex:none}
+.tabs{grid-template-columns:repeat(3,1fr)}
+.tabs .pill{width:calc((100% - 8px)/3)}
+.tabs[data-i="1"] .pill{transform:translateX(100%)}.tabs[data-i="2"] .pill{transform:translateX(200%)}
+.lvdesc{font-size:12px;color:var(--mute);line-height:1.5;margin:-4px 0 0;min-height:1.5em}
+.lvdesc b{color:var(--brass-hi)}
+.mini-av{display:flex;justify-content:center;gap:6px;margin-top:-2px}
+.mini-av span{width:34px;height:34px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1.5px rgba(211,172,99,.55)}
+
+#hub{z-index:45;background:var(--night);overflow-y:auto;-webkit-overflow-scrolling:touch;align-items:center}
+#hub::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(90% 55% at 50% 0%,rgba(255,214,150,.11),transparent 62%),radial-gradient(140% 90% at 50% 40%,#16202a 0%,#0c1117 55%,#06080b 100%)}
+.hubin{width:100%;max-width:440px;padding:10px max(16px,env(safe-area-inset-left,0px)) 30px;display:flex;flex-direction:column;gap:14px;position:relative}
+.hub-top{display:flex;align-items:center;gap:10px;min-height:44px}
+.hub-top h2{margin:0;font:italic 600 23px/1.1 var(--display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hub-bal{display:flex;align-items:center;gap:6px;padding:6px 12px 6px 7px;border-radius:999px;background:var(--glass-2);border:1px solid var(--line);font-weight:800;color:var(--brass-hi);flex:none}
+.hub-bal svg{width:18px;height:18px;color:var(--crimson)}
+.hub-bal.bump{animation:bump .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes bump{40%{transform:scale(1.14)}}
+.bal{position:relative;overflow:hidden;border-radius:24px;padding:20px 20px 18px;background:radial-gradient(120% 140% at 0% 0%,rgba(244,221,166,.22),transparent 55%),linear-gradient(160deg,#1b2633,#0f151c);
+  border:1px solid rgba(211,172,99,.3);box-shadow:0 20px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:4px}
+.bal::after{content:"";position:absolute;right:-30px;top:-30px;width:150px;height:150px;background:var(--moon) center/70% no-repeat;opacity:.18;rotate:-12deg}
+.bal b{font:700 46px/1.05 var(--display);letter-spacing:-.01em;background:linear-gradient(180deg,#fff7e6 10%,#f0d9a0 55%,#c99a4a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;font-feature-settings:"tnum" 1}
+.bal .sub{font-size:12.5px;color:var(--mute)}
+.hcard{display:flex;align-items:center;gap:14px;padding:14px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.03));border:1px solid var(--line);text-align:left;width:100%}
+.hcard .hi{width:46px;height:46px;border-radius:14px;flex:none;display:grid;place-items:center;background:rgba(211,172,99,.14);color:var(--brass-hi)}
+.hcard .hi svg{width:24px;height:24px}
+.hcard .ht{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.hcard .ht b{font-size:15px}
+.hcard .ht span{font-size:12.5px;color:var(--mute);line-height:1.45}
+.hcard .btn{flex:none;min-width:96px}
+.btn:disabled{opacity:.45;filter:grayscale(.4)}
+.btn.gold:disabled{background:rgba(255,255,255,.06);color:var(--mute);box-shadow:inset 0 0 0 1px var(--line);opacity:1;filter:none;font-feature-settings:"tnum" 1}
+.switch{width:48px;height:29px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;transition:background .25s;flex:none}
+.switch::after{content:"";position:absolute;left:3px;top:3px;width:23px;height:23px;border-radius:50%;background:#efe8da;box-shadow:0 2px 5px rgba(0,0,0,.4);transition:transform .25s cubic-bezier(.3,.8,.3,1)}
+.switch.on{background:linear-gradient(180deg,#f4ddA6,#c99a4a)}.switch.on::after{transform:translateX(19px)}
+.gcard{display:flex;align-items:center;gap:14px;padding:12px 14px 12px 12px;border-radius:20px;text-align:left;width:100%;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025));border:1px solid var(--line);transition:transform .12s}
+.gcard:active{transform:scale(.98)}
+.gcard .art{width:78px;height:70px;flex:none;position:relative;border-radius:14px;background:radial-gradient(90% 90% at 50% 30%,var(--felt-hi),var(--felt-lo));box-shadow:inset 0 0 0 1px rgba(244,221,166,.18);overflow:hidden}
+.gcard .art .card{position:absolute;--w:26px}
+.gcard .ht{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.gcard b{font:italic 600 18px/1.15 var(--display)}
+.gcard span{font-size:12.5px;color:var(--mute);line-height:1.4}
+.gcard em{font-style:normal;color:var(--brass-hi);font-weight:800;font-size:11.5px;letter-spacing:.04em}
+.gcard .go{width:18px;height:18px;color:var(--faint);flex:none;rotate:180deg}
+
+/* ---- 小游戏 ---- */
+.mg-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:var(--mute)}
+.mg-head b{color:var(--brass-hi)}
+.felt-box{border-radius:22px;padding:16px 12px;background:var(--noise),radial-gradient(85% 70% at 50% 30%,var(--felt-hi) 0%,var(--felt) 50%,var(--felt-lo) 100%);
+  box-shadow:0 0 0 1.5px var(--brass-lo),0 0 0 2.5px rgba(244,221,166,.3),inset 0 10px 30px rgba(0,0,0,.3),0 18px 40px rgba(0,0,0,.35);position:relative}
+.lad{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.lad span{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 5px;border-radius:10px;background:rgba(0,0,0,.22);font-weight:800;font-size:12px;color:rgba(239,232,218,.55);transition:all .25s}
+.lad span i{font-style:normal;font-size:9.5px;letter-spacing:.1em;color:rgba(239,232,218,.35)}
+.lad span.done{background:rgba(211,172,99,.2);color:var(--brass-hi)}
+.lad span.next{box-shadow:inset 0 0 0 1.5px var(--brass);color:var(--text)}
+.hl-stage{display:flex;align-items:center;justify-content:center;gap:16px;padding:18px 0 8px}
+.hl-stage .arw{width:26px;height:26px;color:rgba(244,221,166,.55)}
+.mg-msg{min-height:26px;text-align:center;font:italic 600 18px/1.3 var(--display);color:var(--brass-hi);text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.mg-msg.bad{color:#ffb0b0}
+.mg-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mg-btns .btn{min-height:56px;flex-direction:column;gap:1px}
+.mg-btns .btn small{font-size:11.5px;font-weight:700;opacity:.75}
+.mg-btns .wide{grid-column:1/-1}
+.btn.up{background:linear-gradient(180deg,#2d6a4a,#1b4631);color:#d8f7e4;box-shadow:inset 0 0 0 1px rgba(150,240,190,.2)}
+.btn.dn{background:linear-gradient(180deg,#6a2d36,#46161f);color:#ffd5d9;box-shadow:inset 0 0 0 1px rgba(255,150,160,.2)}
+.qz-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
+.qz-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brass-lo),var(--brass-hi));transform-origin:left}
+.qz-bar i.run{animation:drain linear both}
+.qz-board{display:flex;justify-content:center;gap:6px}
+.qz-hands{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qz-hand{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 6px 10px;border-radius:18px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:box-shadow .2s,background .2s}
+.qz-hand .lbl{color:var(--mute)}
+.qz-hand .cs{display:flex;gap:5px}
+.qz-hand em{font:italic 600 14px/1.2 var(--display);color:var(--brass-hi);min-height:1.2em;font-style:italic}
+.qz-hand.win{background:rgba(211,172,99,.12);box-shadow:inset 0 0 0 1.5px var(--brass)}
+.qz-hand.pick.bad{box-shadow:inset 0 0 0 1.5px #e0646c}
+.mm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;justify-items:center}
+.mm-grid button{border-radius:9px}
+.mm-grid .card.hi{translate:none}
+.mm-grid .card.got .face{box-shadow:inset 0 0 0 .6px rgba(0,0,0,.18),0 0 0 2px var(--brass),0 0 14px rgba(244,221,166,.45)}
+.result{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0 4px;text-align:center}
+.result b{font:700 40px/1 var(--display);color:var(--brass-hi)}
+.result span{color:var(--mute);font-size:13.5px}
+.coinburst{position:fixed;width:18px;height:18px;margin:-9px 0 0 -9px;color:var(--brass);pointer-events:none;z-index:70}
+@media (max-width:359px){.top{gap:6px}.room [data-t]{display:none}.room{padding:0 12px}.hub-top{gap:8px}.hub-top h2{font-size:20px}}
 @media (max-height:720px){:root{--dock:156px}.acts button{height:52px}.sizes button{height:30px}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
@@ -331,6 +456,7 @@ svg.u{display:block;width:100%;height:100%}
 
 <section id="lobby" class="screen">
   <div class="lob">
+    <button class="wallet-btn" id="walletBtn"><svg viewBox="0 0 100 100"><use href="#chip"/></svg><b id="walletAmt">0</b><span class="rd" id="walletDot" hidden></span></button>
     <button class="lang-btn" id="langBtn"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg><span id="langLbl">中文</span></button>
     <div class="hero">
       <div class="fan" id="fan"><div class="glow"></div></div>
@@ -341,6 +467,7 @@ svg.u{display:block;width:100%;height:100%}
       <p class="tagline" data-t="tagline"></p>
     </div>
     <div id="wxTip" class="wx" hidden data-t="wx"></div>
+    <div class="box seatbox" id="seatBox" hidden></div>
 
     <div class="box">
       <div class="me-row">
@@ -351,7 +478,7 @@ svg.u{display:block;width:100%;height:100%}
     </div>
 
     <div class="box">
-      <div class="tabs" id="tabs"><span class="pill"></span><button data-tab="join" data-t="tabJoin"></button><button data-tab="host" data-t="tabHost"></button></div>
+      <div class="tabs" id="tabs"><span class="pill"></span><button data-tab="join" data-t="tabJoin"></button><button data-tab="host" data-t="tabHost"></button><button data-tab="solo" data-t="tabSolo"></button></div>
       <div id="paneJoin" style="display:flex;flex-direction:column;gap:12px">
         <div class="code-row"><input id="joinCode" class="inp code" maxlength="4" placeholder="····" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="btn gold" id="btnJoin" data-t="joinBtn"></button></div>
       </div>
@@ -364,10 +491,22 @@ svg.u{display:block;width:100%;height:100%}
         <button class="btn gold" id="btnCreate" data-t="hostBtn"></button>
         <button class="btn glass" id="btnResume" hidden></button>
       </div>
+      <div id="paneSolo" style="display:flex;flex-direction:column;gap:14px" hidden>
+        <div class="opts">
+          <span data-t="opps"></span><div class="seg" id="optOpp"></div>
+          <span data-t="botIq"></span><div class="seg" id="optIq"></div>
+        </div>
+        <div class="mini-av" id="soloAvs"></div>
+        <p class="lvdesc" id="lvDesc"></p>
+        <div class="opts">
+          <span data-t="blinds"></span><div class="seg" id="optBlind2"></div>
+          <span data-t="stack"></span><div class="seg" id="optChips2"></div>
+        </div>
+        <button class="btn gold" id="btnSolo"><svg viewBox="0 0 24 24"><use href="#i-bot"/></svg><span data-t="soloBtn"></span></button>
+      </div>
     </div>
-    <button class="btn ghost" id="btnSolo"><svg viewBox="0 0 24 24"><use href="#i-bot"/></svg><span data-t="practice"></span></button>
     <div class="err" id="lobErr"></div>
-    <p class="note" data-t="hostNote"></p>
+    <p class="note"><span data-t="hostNote"></span><span data-t="ptsNote"></span></p>
   </div>
 </section>
 
@@ -376,6 +515,7 @@ svg.u{display:block;width:100%;height:100%}
     <button class="ib" id="btnExit" aria-label="Leave"><svg viewBox="0 0 24 24"><use href="#i-back"/></svg></button>
     <button class="room" id="btnCode"><span class="dot" id="netDot"></span><span data-t="room"></span><b id="codeTxt">----</b></button>
     <span class="sp"></span>
+    <button class="ib" id="btnOdds" aria-label="Odds helper"><svg viewBox="0 0 24 24"><use href="#i-pct"/></svg></button>
     <button class="ib" id="btnChat" aria-label="Chat"><svg viewBox="0 0 24 24"><use href="#i-chat"/></svg></button>
     <button class="ib" id="btnMenu" aria-label="Menu"><svg viewBox="0 0 24 24"><use href="#i-menu"/></svg></button>
   </div>
@@ -389,11 +529,14 @@ svg.u{display:block;width:100%;height:100%}
     <div id="dealer" hidden>D</div>
     <div id="mine"></div>
     <div id="myHand" hidden></div>
+    <div id="odds" hidden><div class="og-l"></div><div class="og-v"></div><div class="og-b"><i></i><b hidden></b></div><div class="og-n" hidden></div></div>
     <div id="fx"></div>
     <div class="ov" id="overlay" hidden><div id="ovText"></div></div>
   </div>
   <div id="dock"></div>
 </section>
+
+<section id="hub" class="screen" hidden><div class="hubin" id="hubIn"></div></section>
 
 <div id="sheet" hidden></div>
 <div id="toast" hidden></div>
@@ -420,7 +563,7 @@ const STR = {
 en: {
   tagline:'Poker night with friends. No sign-up, just a four-letter room code.',
   wx:'WeChat can block the connection. Tap ··· in the corner and choose “Open in Browser”.',
-  yourName:'Your name', namePh:'Up to 10 letters', tabJoin:'Join a table', tabHost:'Host a table', joinBtn:'Sit down',
+  yourName:'Your name', namePh:'Up to 10 letters', tabJoin:'Join', tabHost:'Host', tabSolo:'Practice', joinBtn:'Sit down',
   blinds:'Blinds', stack:'Stack', clock:'Shot clock', hostBtn:'Open a table', resume:'Reopen table {c}', practice:'Practice against bots',
   hostNote:'The host’s phone deals the cards. Keep that page open with the screen on — if the host leaves, the table closes.',
   errName:'Pick a name first.', errCode:'Room codes are four letters or numbers.',
@@ -454,12 +597,40 @@ en: {
   rebuys:'{r} rebuys', rebuys1:'1 rebuy', away:'away', you:'you',
   leaveT:'Leave the table?', leaveHost:'You’re the host. Leaving closes the table for everyone. Chip counts stay on this phone, so you can reopen it later.', leavePlayer:'Your seat will be given up.', stay:'Stay', leave:'Leave',
   sayT:'Say something', ph:['Hurry up!','Nice hand!','I’m all in','Come at me','One more?','So lucky','Card dead…','Bluffing?'],
+  soloBtn:'Start practice', opps:'Opponents', botIq:'Bot IQ', mix:'Mixed', newBots:'New bots',
+  iqNames:['Rookie','Regular','Shark','Genius'],
+  iqDesc:['Plays far too many hands and calls almost anything.','Solid but predictable — bets when it has it.','Tight, aggressive, and reads what range you’re likely to hold.','Reads your betting, sets traps, and bluffs at the right moments.'],
+  mixDesc:'A blend of all four levels: from Rookie to Genius.',
+  iqTap:'Tap a bot’s IQ to change it.',
+  back:'Back',
+  ptsNote:' Buy-ins come out of your points, and your chips turn back into points when you leave.',
+  seatLeft:'You still have <b>{a}</b> chips at table <b>{c}</b>.', seatLeftSolo:'Your last practice game ended with <b>{a}</b> chips.',
+  rejoin:'Rejoin', reopen:'Reopen', cashOut:'Cash out', cashed:'{a} chips went back into your points.',
+  needPts:'You’re out of points. Play a mini-game, or switch on unlimited points.', autoClaim:'Claimed today’s {a} free points.',
+  hubT:'Points & games', balance:'Your points', infReal:'Unlimited is on. Your saved balance is {a}.',
+  daily:'Daily gift', dailySub:'{a} free points every day', claim:'Claim {a}', claimIn:'Back in {t}', claimedT:'+{a} points!',
+  inf:'Unlimited points', infSub:'Sit down and rebuy for free. Your saved points stay as they are.',
+  games:'Mini-games', upTo:'Win up to {a}', best:'Best: {a}', earned:'+{a} points',
+  g_hl:'Higher or Lower', g_hlSub:'Call the next card. Bank your streak before it breaks.',
+  g_qz:'Who Wins?', g_qzSub:'Read the board and pick the winning hand. Ten quick rounds.',
+  g_mm:'Memory Pairs', g_mmSub:'Flip two at a time and match all eight pairs.',
+  hl_hi:'Higher', hl_lo:'Lower', hl_take:'Take {a}', hl_pick:'Higher or lower than this card?', hl_prize:'Streak {n} · {a} on the line',
+  hl_same:'Same rank — free pass', hl_bust:'Missed — the streak is gone', hl_banked:'Banked {a} points', hl_again:'New run', hl_rule:'Aces are high. Same rank is a free pass. Ten in a row pays {a}.',
+  hl_pct:'{p} chance',
+  qz_q:'Round {i} of {n}', qz_a:'Hand A', qz_b:'Hand B', qz_split:'Split pot', qz_right:'Correct! +{a}', qz_wrong:'Not quite', qz_time:'Time’s up',
+  qz_tie:'It’s a split — same best five', qz_done:'{k} of {n} correct', qz_again:'Play again', qz_next:'Next',
+  mm_moves:'Moves: {n}', mm_pairs:'Pairs: {n}/8', mm_done:'Cleared in {n} moves', mm_again:'New board', mm_rule:'Fewer moves, bigger prize: clear it in 10 for {a}.',
+  outPts:'You’re out of points', playGames:'Mini-games', claimBtn:'Claim {a}', rebuyFrom:'From your points · {b} left', rebuyFree:'Unlimited points — free',
+  ptsBtn:'Points & games', myPts:'Your points: {a}', oddsOn:'Odds helper on', oddsOff:'Odds helper off',
+  o_win:'Win', o_need:'Need {p}', o_title:'Your odds', o_vs:'Against {n} opponents · {s}', o_vs1:'Against 1 opponent · {s}', o_tie:'Tie', preflop:'Preflop',
+  o_pot:'Calling {c} to win {w}: you need {p} to break even.', o_cats:'Your hand by the river', o_pre:'Your starting hand is in the top {p} of all hands.',
+  o_note:'Simulated against random hands. It can’t see anyone’s cards.', o_calc:'Working it out…',
   bots:['Mochi','Biscuit','Taro','Pudding','Sesame','Boba','Toffee','Dumpling'],
 },
 zh: {
   tagline:'和朋友的夜间牌局。不用注册，分享 4 位房间码就能一起打。',
   wx:'微信里可能连不上。点右上角「···」，选择「在浏览器打开」。',
-  yourName:'你的昵称', namePh:'最多 10 个字', tabJoin:'加入牌桌', tabHost:'自己开桌', joinBtn:'入座',
+  yourName:'你的昵称', namePh:'最多 10 个字', tabJoin:'加入', tabHost:'开桌', tabSolo:'练习', joinBtn:'入座',
   blinds:'盲注', stack:'初始筹码', clock:'思考时间', hostBtn:'开一桌', resume:'恢复上次的牌桌 {c}', practice:'和机器人练习',
   hostNote:'房主的手机负责发牌。房主的页面要一直开着、保持亮屏；房主一离开，整桌就会断开。',
   errName:'先起个昵称吧。', errCode:'房间码是 4 位字母或数字。',
@@ -493,6 +664,34 @@ zh: {
   rebuys:'补码 {r} 次', rebuys1:'补码 1 次', away:'离线', you:'我',
   leaveT:'离开牌桌？', leaveHost:'你是房主，离开后整桌都会断开。筹码会保存在这台手机上，之后可以恢复牌桌。', leavePlayer:'你的座位会被移除。', stay:'再玩会', leave:'离开',
   sayT:'说点什么', ph:['快点吧～','好牌！','我全下了','放马过来','再来一局？','运气真好','手气太差了','你在诈唬吧'],
+  soloBtn:'开始练习', opps:'对手', botIq:'机器人智商', mix:'混合', newBots:'新机器人',
+  iqNames:['新手','普通','高手','大师'],
+  iqDesc:['什么牌都玩，几乎什么都跟。','中规中矩，有牌才下注，比较好猜。','紧凶型打法，会根据你的打法推测你的牌。','会读你的下注、设陷阱，还会挑时机诈唬。'],
+  mixDesc:'四个档次混着来：从新手到大师。',
+  iqTap:'点机器人的智商可以修改。',
+  back:'返回',
+  ptsNote:'入座用积分买筹码，离开时筹码换回积分。',
+  seatLeft:'你在牌桌 <b>{c}</b> 还有 <b>{a}</b> 筹码。', seatLeftSolo:'上次练习结束时还有 <b>{a}</b> 筹码。',
+  rejoin:'回到牌桌', reopen:'恢复牌桌', cashOut:'换回积分', cashed:'{a} 筹码已换回积分。',
+  needPts:'积分不够了。玩个小游戏赚一点，或者打开无限积分。', autoClaim:'已领取今天的 {a} 免费积分。',
+  hubT:'积分与小游戏', balance:'我的积分', infReal:'已开启无限积分，原来的积分 {a} 保留着。',
+  daily:'每日礼包', dailySub:'每天免费领 {a} 积分', claim:'领取 {a}', claimIn:'{t} 后可领', claimedT:'+{a} 积分！',
+  inf:'无限积分', infSub:'入座、补码都不扣积分，原来的积分原样保留。',
+  games:'小游戏', upTo:'最多赢 {a}', best:'最佳：{a}', earned:'+{a} 积分',
+  g_hl:'比大小', g_hlSub:'猜下一张牌更大还是更小，连对越多奖励越高，随时收手。',
+  g_qz:'谁的牌大', g_qzSub:'看公共牌，选出赢的那手牌。每局 10 题。',
+  g_mm:'翻牌配对', g_mmSub:'一次翻两张，把 8 对牌全部配上。',
+  hl_hi:'更大', hl_lo:'更小', hl_take:'收下 {a}', hl_pick:'下一张比这张大还是小？', hl_prize:'连对 {n} 次 · 奖励 {a}',
+  hl_same:'一样大，这把不算', hl_bust:'猜错了，这一轮的奖励没了', hl_banked:'收下 {a} 积分', hl_again:'再来一轮', hl_rule:'A 最大；点数一样不算输；连对 10 次奖励 {a}。',
+  hl_pct:'概率 {p}',
+  qz_q:'第 {i} / {n} 题', qz_a:'甲', qz_b:'乙', qz_split:'平分底池', qz_right:'答对了 +{a}', qz_wrong:'答错了', qz_time:'时间到',
+  qz_tie:'平分：两手牌最好的五张一样大', qz_done:'答对 {k} / {n} 题', qz_again:'再玩一次', qz_next:'下一题',
+  mm_moves:'步数：{n}', mm_pairs:'配对：{n}/8', mm_done:'{n} 步完成', mm_again:'重新开始', mm_rule:'步数越少奖励越多：10 步内完成得 {a}。',
+  outPts:'积分用完了', playGames:'玩小游戏', claimBtn:'领取 {a}', rebuyFrom:'从积分扣除 · 剩 {b}', rebuyFree:'无限积分，不扣分',
+  ptsBtn:'积分与小游戏', myPts:'我的积分：{a}', oddsOn:'胜率辅助：开', oddsOff:'胜率辅助：关',
+  o_win:'胜率', o_need:'需 {p}', o_title:'我的胜率', o_vs:'对 {n} 个对手 · {s}', o_vs1:'对 1 个对手 · {s}', o_tie:'平局', preflop:'翻牌前',
+  o_pot:'跟 {c} 去争 {w}：胜率要到 {p} 才划算。', o_cats:'到河牌时我的牌型', o_pre:'你的起手牌在所有起手牌里排前 {p}。',
+  o_note:'按对手随机手牌模拟估算，看不到任何人的牌。', o_calc:'计算中…',
   bots:['团子','豆包','年糕','奶茶','布丁','芝麻','汤圆','可乐'],
 },
 };
@@ -514,7 +713,8 @@ document.body.insertAdjacentHTML('afterbegin', ART.sprite(/*@@SEAL@@*/''));
   const moon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="34" fill="none" stroke="#d3ac63" stroke-width="3" opacity=".9"/><circle cx="50" cy="50" r="40" fill="none" stroke="#d3ac63" stroke-width="1.2" opacity=".6"/><path transform="translate(22 22) scale(.56)" d="M62 14A38 38 0 1 0 86 62A30 30 0 1 1 62 14Z" fill="#e7c98a"/></svg>`;
   document.documentElement.style.setProperty('--moon', `url("data:image/svg+xml,${encodeURIComponent(moon)}")`);
 })();
-const avHTML = (i, bot) => `<svg class="u" viewBox="0 0 100 100"><use href="#${bot ? 'bot' + (i % 4) : 'av' + (i % 12)}"/></svg>`;
+const IQS = P.IQS, lvOf = iq => Math.max(0, IQS.indexOf(iq || 100));
+const avHTML = (i, bot, iq) => bot ? `<svg class="u" viewBox="0 0 100 100" style="color:${ART.BOT_EYES[i % 4]}"><use href="#bq${lvOf(iq)}"/></svg>` : `<svg class="u" viewBox="0 0 100 100"><use href="#av${i % 12}"/></svg>`;
 
 // 纸牌元件
 const RANK = r => r === 10 ? '10' : '??23456789TJQKA'[r];
@@ -589,6 +789,8 @@ function applyLang(){
   paintSegs();
   const sv = store.get('hostsave');
   if (sv && Date.now() - sv.savedAt < 12 * 3600e3) { $('btnResume').hidden = false; $('btnResume').textContent = t('resume', { c: sv.code }); }
+  paintWallet(); paintSeatBox(); paintSolo();
+  $('btnOdds').classList.toggle('on', oddsOn);
   if (S.view) { render(true); }
 }
 $('langBtn').onclick = () => { lang = lang === 'en' ? 'zh' : 'en'; store.set('lang', lang); applyLang(); };
@@ -603,23 +805,35 @@ function paintAv(){ [...avs.children].forEach((b, i) => b.classList.toggle('on',
 paintAv();
 const segDefs = {};
 function seg(id, list, key, def){
-  const el = $(id); let cur = store.get(key); if (!list.some(x => x.v === cur)) cur = def;
-  segDefs[id] = { list, get: () => cur };
-  list.forEach(x => { const b = document.createElement('button'); b.onclick = () => { cur = x.v; store.set(key, cur); paintSegs(); }; el.appendChild(b); });
-  return () => cur;
+  const el = $(id);
+  const get = () => { const v = store.get(key); return list.some(x => x.v === v) ? v : def; };
+  segDefs[id] = { list, get };
+  list.forEach(x => { const b = document.createElement('button'); b.onclick = () => { store.set(key, x.v); paintSegs(); }; el.appendChild(b); });
+  return get;
 }
 function paintSegs(){
   for (const id in segDefs) { const { list, get } = segDefs[id]; [...$(id).children].forEach((b, i) => { b.textContent = typeof list[i].t === 'function' ? list[i].t() : list[i].t; b.classList.toggle('on', list[i].v === get()); }); }
+  paintSolo();
 }
-const optBlind = seg('optBlind', [{t:'1/2',v:'1/2'},{t:'5/10',v:'5/10'},{t:'10/20',v:'10/20'},{t:'25/50',v:'25/50'}], 'blind', '5/10');
-const optChips = seg('optChips', [{t:'100 BB',v:100},{t:'200 BB',v:200},{t:'500 BB',v:500}], 'chipsbb', 100);
+const BLINDS = [{t:'1/2',v:'1/2'},{t:'5/10',v:'5/10'},{t:'10/20',v:'10/20'},{t:'25/50',v:'25/50'}], STACKS = [{t:'100 BB',v:100},{t:'200 BB',v:200},{t:'500 BB',v:500}];
+const optBlind = seg('optBlind', BLINDS, 'blind', '5/10'); seg('optBlind2', BLINDS, 'blind', '5/10');
+const optChips = seg('optChips', STACKS, 'chipsbb', 100); seg('optChips2', STACKS, 'chipsbb', 100);
+const optOpp = seg('optOpp', [1, 3, 5, 8].map(v => ({ t: String(v), v })), 'opp', 3);
+const optIq = seg('optIq', [{ t: () => t('mix'), v: 0 }].concat(IQS.map(v => ({ t: String(v), v }))), 'botiq', 0);
+// 练习：几个对手、什么水平（混合时四档轮着来）
+const soloPlan = (n, lv) => [...Array(n)].map((_, i) => lv || [100, 130, 70, 160][i % 4]);
+function paintSolo(){
+  const lv = optIq(), plan = soloPlan(optOpp(), lv).sort((a, b) => a - b);
+  $('soloAvs').innerHTML = plan.map((iq, i) => `<span>${avHTML(i, true, iq)}</span>`).join('');
+  $('lvDesc').innerHTML = lv ? `<b>${esc(t('iqNames')[lvOf(lv)])}</b> · ${esc(t('iqDesc')[lvOf(lv)])}` : esc(t('mixDesc'));
+}
 const optTime = seg('optTime', [{t:()=>lang==='zh'?'20 秒':'20s',v:20},{t:()=>lang==='zh'?'30 秒':'30s',v:30},{t:()=>lang==='zh'?'60 秒':'60s',v:60}], 'turn', 30);
 function settingsFromLobby(){ const [sb, bb] = optBlind().split('/').map(Number); return { sb, bb, startChips: bb * optChips(), turnTime: optTime() }; }
 function setTab(tab){
-  const host = tab === 'host';
-  $('tabs').classList.toggle('r', host);
+  const i = Math.max(0, ['join', 'host', 'solo'].indexOf(tab));
+  $('tabs').dataset.i = i;
   $('tabs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-  $('paneJoin').hidden = host; $('paneHost').hidden = !host;
+  $('paneJoin').hidden = i !== 0; $('paneHost').hidden = i !== 1; $('paneSolo').hidden = i !== 2;
   store.set('tab', tab);
 }
 $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
@@ -632,15 +846,64 @@ function needName(){
   if (!myName) { $('lobErr').textContent = t('errName'); $('nick').focus(); return false; }
   store.set('name', myName); $('lobErr').textContent = ''; return true;
 }
-$('btnCreate').onclick = () => { if (needName()) startHost({ code: rid(4), settings: settingsFromLobby() }); };
-$('btnResume').onclick = () => { if (needName()) startHost(store.get('hostsave')); };
-$('btnSolo').onclick = () => { if (needName()) startHost({ code: 'SOLO', settings: settingsFromLobby(), solo: true }); };
+$('btnCreate').onclick = () => { const code = rid(4); if (needName() && prepSeat(code)) startHost({ code, settings: settingsFromLobby() }); };
+$('btnResume').onclick = () => { const sv = store.get('hostsave'); if (sv && needName() && prepSeat(sv.code, true)) startHost(sv); };
+$('btnSolo').onclick = () => { if (needName() && prepSeat('SOLO')) startHost({ code: 'SOLO', settings: settingsFromLobby(), solo: true }); };
 $('btnJoin').onclick = () => {
   if (!needName()) return;
   const c = $('joinCode').value.trim().toUpperCase();
   if (!/^[A-Z2-9]{4}$/.test(c)) { $('lobErr').textContent = t('errCode'); return; }
-  startClient(c);
+  if (prepSeat(c)) startClient(c);
 };
+
+// ============================== 积分钱包 ==============================
+// 1 积分 = 1 筹码。入座时从积分里买筹码，离开时筹码换回积分；无限模式下入座不扣、离开也不退。
+// seat 记着"我在哪张桌上还有多少筹码"，页面意外关掉也能在大厅里回到牌桌或换回积分。
+const DAILY = 5000;
+const Wal = Object.assign({ bal: 0, day: '', inf: false, seat: null, best: {} }, store.get('wallet') || {});
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+const canClaim = () => Wal.day !== today();
+const balInner = () => `<svg viewBox="0 0 100 100"><use href="#chip"/></svg><b>${Wal.inf ? '∞' : fmt(Wal.bal)}</b>`;
+function wSave(){ store.set('wallet', Wal); paintWallet(); }
+function paintWallet(){
+  $('walletAmt').textContent = Wal.inf ? '∞' : fmt(Wal.bal);
+  $('walletDot').hidden = !canClaim();
+  const hb = $('hubBal'); if (hb) hb.innerHTML = balInner();
+}
+function claimDaily(){ if (!canClaim()) return 0; Wal.day = today(); Wal.bal += DAILY; wSave(); return DAILY; }
+function earn(n){ n = Math.max(0, Math.round(n)); if (n) { Wal.bal += n; wSave(); bumpBal(); } return n; }
+const buyInFor = want => Wal.inf ? want : Math.min(want, Wal.bal);
+function seatSettle(){ const s = Wal.seat; if (!s) return 0; Wal.seat = null; const a = s.paid ? Math.max(0, s.chips | 0) : 0; Wal.bal += a; wSave(); return a; }
+function seatStart(code, chips, kind){ seatSettle(); const paid = !Wal.inf; if (paid) Wal.bal = Math.max(0, Wal.bal - chips); Wal.seat = { code, chips, paid, kind, at: Date.now() }; wSave(); }
+function seatRebuy(a){ if (!Wal.seat) return; const paid = !Wal.inf; if (paid) Wal.bal = Math.max(0, Wal.bal - a); Wal.seat.paid = paid; Wal.seat.chips = a; wSave(); }
+function zeroHostSave(code){ const sv = store.get('hostsave'); const hp = sv && sv.code === code && sv.players.find(x => x.id === 'host'); if (hp) { hp.chips = 0; store.set('hostsave', sv); } }
+// 放弃某张桌子上的座位：筹码换回积分；客人换个身份，免得回去又拿到原来的座位
+function abandonSeat(){
+  const s = Wal.seat; if (!s) return 0;
+  const a = seatSettle();
+  if (s.kind === 'client') { token = rid(16); store.set('token', token); }
+  if (s.kind === 'host') zeroHostSave(s.code);
+  return a;
+}
+// 进桌前：别的桌上的筹码先结清；积分为零时自动领今天的礼包，领过了就引导去小游戏
+function prepSeat(code, noCheck){
+  if (Wal.seat && Wal.seat.code !== code) { const a = abandonSeat(); if (a) toast(t('cashed', { a: fmt(a) })); }
+  if (noCheck || Wal.inf || Wal.bal > 0 || (Wal.seat && Wal.seat.code === code)) return true;
+  const g = claimDaily(); if (g) { toast(t('autoClaim', { a: fmt(g) }), 3200); return true; }
+  $('lobErr').textContent = t('needPts'); openHub(); return false;
+}
+function paintSeatBox(){
+  const s = Wal.seat, el = $('seatBox');
+  if (!s || S.mode) { el.hidden = true; return; }
+  const sv = store.get('hostsave');
+  const back = s.kind === 'client' || (s.kind === 'host' && sv && sv.code === s.code);
+  el.hidden = false;
+  el.innerHTML = `<p>${s.kind === 'solo' ? t('seatLeftSolo', { a: fmt(s.chips) }) : t('seatLeft', { a: fmt(s.chips), c: esc(s.code) })}</p><div class="bs">
+    ${back ? `<button class="btn gold sm" id="sbBack">${esc(t(s.kind === 'host' ? 'reopen' : 'rejoin'))}</button>` : ''}<button class="btn glass sm" id="sbCash">${esc(t('cashOut'))}</button></div>`;
+  if ($('sbBack')) $('sbBack').onclick = () => { if (!needName()) return; if (s.kind === 'host') startHost(store.get('hostsave')); else startClient(s.code); };
+  $('sbCash').onclick = () => { const a = abandonSeat(); toast(t('cashed', { a: fmt(a) })); paintSeatBox(); };
+}
+$('walletBtn').onclick = () => openHub();
 $('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('btnJoin').click(); });
 $('nick').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
 
@@ -652,6 +915,7 @@ function enterGame(){
   $('lobby').hidden = true; $('game').hidden = false;
   $('codeTxt').textContent = S.solo ? t('practiceRoom') : S.code;
   $('btnCode').querySelector('[data-t]').hidden = S.solo;
+  $('btnChat').hidden = S.solo;
   try { if (S.mode === 'host' && !S.solo && location.hash !== '#' + S.code) history.replaceState(null, '', '#' + S.code); } catch(e){}
   keepAwake();
   requestAnimationFrame(() => { layout(true); render(true); });
@@ -681,23 +945,36 @@ function startHost(cfg){
   const conns = new Map(), seen = new Map();
   let peer = null, syncQueued = false, locked = false;
 
+  const kind = S.solo ? 'solo' : 'host';
   if (cfg.players) {
     game.handNum = cfg.handNum || 0; game.dealerSeat = cfg.dealerSeat ?? -1;
     for (const sp of cfg.players) {
-      const p = game.addPlayer({ id: sp.id, name: sp.name, isBot: sp.isBot, token: sp.token, avatar: sp.avatar });
+      const p = game.addPlayer({ id: sp.id, name: sp.name, isBot: sp.isBot, token: sp.token, avatar: sp.avatar, iq: sp.iq });
       if (!p) continue;
       p.seat = sp.seat; p.chips = sp.chips; p.rebuys = sp.rebuys || 0;
       if (!sp.isBot && sp.id !== 'host') p.connected = false;
     }
-    const me = game.byId('host'); if (me) { me.name = myName; me.avatar = myAv; me.token = token; }
+    let me = game.byId('host');
+    if (!me) me = game.addPlayer({ id: 'host', name: myName, token, avatar: myAv, chips: 0 });
+    me.name = myName; me.avatar = myAv; me.token = token;
+    // 没有这张桌的记录（之前已经换回积分了）：重新记一笔；筹码是零就自动买入
+    if (!(Wal.seat && Wal.seat.code === S.code && Wal.seat.kind === kind)) { seatSettle(); Wal.seat = { code: S.code, chips: me.chips, paid: !Wal.inf, kind, at: Date.now() }; wSave(); }
+    if (me.chips === 0) { const a = buyInFor(game.settings.startChips); if (a && game.rebuy('host', a)) seatRebuy(a); }
     game.log.length = 0; game.addLog({ k: 'restored' });
-  } else game.addPlayer({ id: 'host', name: myName, token, avatar: myAv });
+  } else {
+    seatSettle();
+    const buy = buyInFor(game.settings.startChips);
+    game.addPlayer({ id: 'host', name: myName, token, avatar: myAv, chips: buy });
+    seatStart(S.code, buy, kind);
+  }
+  // 机器人输光自己补码，头上冒个 💰
+  game.onBotRebuy = p => setTimeout(() => broadcastEmote(p.seat, 'e7'), 300);
 
   function save(){
-    if (S.solo) return;
+    if (S.solo || S.closing) return;
     const h = game.hand; if (h && h.street !== 'done') return; // 只在两手之间存，筹码才准
     store.set('hostsave', { code: S.code, settings: game.settings, handNum: game.handNum, dealerSeat: game.dealerSeat, savedAt: Date.now(),
-      players: game.players.filter(p => !p.leaving).map(p => ({ id: p.id, name: p.name, isBot: p.isBot, token: p.token, avatar: p.avatar, seat: p.seat, chips: p.chips, rebuys: p.rebuys })) });
+      players: game.players.filter(p => !p.leaving).map(p => ({ id: p.id, name: p.name, isBot: p.isBot, iq: p.iq, token: p.token, avatar: p.avatar, seat: p.seat, chips: p.chips, rebuys: p.rebuys })) });
   }
   function queueSync(){ if (syncQueued) return; syncQueued = true; Promise.resolve().then(() => { syncQueued = false; sync(); }); }
   function sync(){
@@ -716,16 +993,26 @@ function startHost(cfg){
 
   S.act = a => { const r = game.act('host', a); if (r !== 'ok') toast(t('cant')); };
   S.emote = e => broadcastEmote(game.byId('host').seat, e);
-  S.rebuy = () => game.rebuy('host');
+  S.rebuy = a => { if (game.rebuy('host', a)) seatRebuy(game.byId('host').chips); };
+  S.leave = () => {
+    S.closing = true;
+    const me = game.byId('host');
+    if (Wal.seat && Wal.seat.code === S.code) { Wal.seat.chips = me ? me.chips : 0; seatSettle(); }
+    if (!S.solo) zeroHostSave(S.code);
+  };
   hostApi = {
     game,
     get locked(){ return locked; },
-    addBot(){
+    addBot(iq){
+      const bots = game.players.filter(p => p.isBot);
+      if (!IQS.includes(iq)) { const lv = store.get('botiq'); iq = IQS.includes(lv) ? lv : IQS.map(q => [bots.filter(b => b.iq === q).length + Math.random() * 0.5, q]).sort((a, b) => a[0] - b[0])[0][1]; }
       const used = new Set(game.players.map(p => p.name));
       const nm = t('bots').find(n => !used.has(n)) || ('Bot ' + game.players.length);
-      if (!game.addPlayer({ id: 'bot' + rid(5), name: nm, isBot: true, avatar: Math.floor(Math.random() * 4) })) toast(t('full'));
+      const taken = bots.filter(b => b.iq === iq).map(b => b.avatar % 4), av = [0, 1, 2, 3].find(i => !taken.includes(i));
+      if (!game.addPlayer({ id: 'bot' + rid(5), name: nm, isBot: true, iq, avatar: av ?? Math.floor(Math.random() * 4) })) toast(t('full'));
     },
-    kick(pid){ const c = conns.get(pid); if (c) { try { c.send({ t: 'kicked' }); } catch(e){} setTimeout(() => { try { c.close(); } catch(e){} }, 300); conns.delete(pid); } game.removePlayer(pid); },
+    setIq(pid, iq){ game.setIq(pid, iq); },
+    kick(pid){ const c = conns.get(pid), p = game.byId(pid); if (c) { try { c.send({ t: 'kicked', chips: p ? p.chips : 0 }); } catch(e){} setTimeout(() => { try { c.close(); } catch(e){} }, 300); conns.delete(pid); } game.removePlayer(pid); },
     togglePause(){ game.setPaused(!game.paused); },
     toggleLock(){ locked = !locked; toast(t(locked ? 'lockedT' : 'unlockedT'), 3200); },
     start(){ game.start(); },
@@ -740,18 +1027,21 @@ function startHost(cfg){
       const name = String(msg.name || '').trim().slice(0, 10) || 'Guest';
       const tk = String(msg.token || '').slice(0, 40);
       const av = Math.max(0, Math.min(11, msg.av | 0));
-      let p = game.players.find(x => x.token === tk && !x.isBot && x.id !== 'host');
+      let p = game.players.find(x => x.token === tk && !x.isBot && x.id !== 'host'), fresh = false;
       if (p) { p.name = name; p.avatar = av; }
       else {
         if (locked) { conn.send({ t: 'err', code: 'locked' }); setTimeout(() => conn.close(), 600); return; }
-        p = game.addPlayer({ id: 'p' + rid(8), name, token: tk, avatar: av });
+        // 客人自己带多少积分来买筹码（-1 = 无限）；最多买到这桌的起始筹码
+        const want = msg.buyIn == null || msg.buyIn < 0 ? game.settings.startChips : Math.max(0, Math.floor(+msg.buyIn) || 0);
+        p = game.addPlayer({ id: 'p' + rid(8), name, token: tk, avatar: av, chips: want });
         if (!p) { conn.send({ t: 'err', code: 'full' }); setTimeout(() => conn.close(), 600); return; }
         if (game.hand && game.hand.street !== 'done') game.addLog({ k: 'late', n: name });
+        fresh = true;
       }
       const old = conns.get(p.id); if (old && old !== conn) { try { old.close(); } catch(e){} }
       conn._pid = p.id; conns.set(p.id, conn); seen.set(p.id, Date.now());
       game.setConnected(p.id, true);
-      conn.send({ t: 'welcome', id: p.id });
+      conn.send({ t: 'welcome', id: p.id, fresh, chips: p.chips });
       queueSync();
       return;
     }
@@ -761,7 +1051,7 @@ function startHost(cfg){
     if (msg.t === 'ping') { try { conn.send({ t: 'pong' }); } catch(e){} }
     else if (msg.t === 'act') { const r = game.act(pid, { type: String(msg.a), to: +msg.to }); if (r !== 'ok') conn.send({ t: 'err', code: 'cant' }); }
     else if (msg.t === 'emote') { const e = String(msg.e || ''); if (/^(e(1[01]|\d)|p[0-7])$/.test(e)) broadcastEmote(p.seat, e); }
-    else if (msg.t === 'rebuy') game.rebuy(pid);
+    else if (msg.t === 'rebuy') { const a = msg.a == null ? undefined : Math.max(1, Math.floor(+msg.a) || 0); if (game.rebuy(pid, a)) { try { conn.send({ t: 'rebought', a: p.chips }); } catch(e){} } }
     else if (msg.t === 'leave') { conns.delete(pid); game.removePlayer(pid); }
   }
   let tries = 0;
@@ -784,7 +1074,7 @@ function startHost(cfg){
     });
   }
   if (!S.solo) { setNet(false, 'connecting'); openPeer(); }
-  else { const nb = Math.max(1, Math.min(8, +qs.get('bots') || 4)); for (let i = 0; i < nb; i++) hostApi.addBot(); game.start(); }
+  else { const nb = Math.max(1, Math.min(8, +qs.get('bots') || optOpp())); soloPlan(nb, optIq()).forEach(iq => hostApi.addBot(iq)); game.start(); }
   enterGame();
   sync();
 }
@@ -810,8 +1100,11 @@ function startClient(code){
   const send = m => { if (conn && conn.open) { try { conn.send(m); return true; } catch(e){} } toast(t('netBadSub')); return false; };
   S.act = a => send({ t: 'act', a: a.type, to: a.to });
   S.emote = e => send({ t: 'emote', e });
-  S.rebuy = () => send({ t: 'rebuy' });
-  S.leave = () => { dead = true; try { conn && conn.open && conn.send({ t: 'leave' }); } catch(e){} setTimeout(() => { try { peer && peer.destroy(); } catch(e){} }, 300); };
+  S.rebuy = a => send({ t: 'rebuy', a });
+  S.leave = () => {
+    dead = true; try { conn && conn.open && conn.send({ t: 'leave' }); } catch(e){} setTimeout(() => { try { peer && peer.destroy(); } catch(e){} }, 300);
+    if (Wal.seat && Wal.seat.code === code) { const my = me(); if (my) Wal.seat.chips = my.chips; abandonSeat(); }
+  };
   function connect(){
     if (dead) return;
     try { conn && conn.close(); } catch(e){}
@@ -830,15 +1123,24 @@ function startClient(code){
     conn = peer.connect(PREFIX + code, { reliable: true, serialization: 'json' });
     const c = conn;
     const to = setTimeout(() => { if (c === conn && !c.open) { setNet(false, 'slow'); retry(500); } }, 12000);
-    c.on('open', () => { clearTimeout(to); lastMsg = Date.now(); c.send({ t: 'hello', name: myName, token, av: myAv }); });
+    c.on('open', () => {
+      clearTimeout(to); lastMsg = Date.now();
+      const rec = Wal.seat && Wal.seat.code === code && Wal.seat.paid ? Wal.seat.chips : 0; // 原座位没了的话，这些筹码先算回积分再买
+      c.send({ t: 'hello', name: myName, token, av: myAv, buyIn: Wal.inf ? -1 : Wal.bal + rec });
+    });
     c.on('data', m => {
       lastMsg = Date.now();
       if (!m) return;
-      if (m.t === 'welcome') { S.myId = m.id; everConnected = true; setNet(true); }
+      if (m.t === 'welcome') {
+        S.myId = m.id; everConnected = true; setNet(true);
+        if (m.fresh) seatStart(code, m.chips | 0, 'client');
+        else if (!Wal.seat || Wal.seat.code !== code) { Wal.seat = { code, chips: m.chips | 0, paid: !Wal.inf, kind: 'client', at: Date.now() }; wSave(); }
+      }
+      else if (m.t === 'rebought') seatRebuy(m.a | 0);
       else if (m.t === 'state') { if (S.myId) setNet(true); onView(m.v); }
       else if (m.t === 'emote') showBubble(m.seat, m.e);
       else if (m.t === 'err') toast(t(m.code) || t('cant'), 3200);
-      else if (m.t === 'kicked') { dead = true; setNet(false, 'kicked'); }
+      else if (m.t === 'kicked') { dead = true; if (Wal.seat && Wal.seat.code === code) { if (m.chips != null) Wal.seat.chips = m.chips | 0; seatSettle(); } setNet(false, 'kicked'); }
     });
     c.on('close', () => { if (c === conn && !dead) { setNet(false, 'netBad'); retry(1500); } });
     c.on('error', () => {});
@@ -864,10 +1166,13 @@ function inFelt(x, y, m){ const { cx, cy, r, L, Lh } = Gm; return Math.hypot(Mat
 function seatRects(p, i){
   const { A, pw, plH, mcw } = Gm, x = p.x, y = p.y;
   const R = [[x - A / 2 - 3, y - A / 2 - 14, x + A / 2 + 3, y + A / 2], [x - pw / 2, y + A / 2 - 6, x + pw / 2, y + A / 2 - 6 + plH]];
-  if (i === 0) R.push([x + A / 2 + 6, y - mcw * 0.87 - 4, x + A / 2 + 12 + 2 * mcw, y + mcw * 0.53 + 30], pill(x - A / 2 - 4, y + 2, 22, 22));
+  if (i === 0) { R.push([x + A / 2 + 6, y - mcw * 0.87 - 4, x + A / 2 + 12 + 2 * mcw, y + mcw * 0.53 + 30], pill(x - A / 2 - 4, y + 2, 22, 22)); if (oddsOn && Gm.oddsMode !== 'label') R.push((Gm.oddsMode === 'small' ? gaugeRectS : gaugeRect)(p)); }
   else R.push(x > Gm.cx + 8 ? [x - A / 2 - 13, y - A / 2 - 8, x - A / 2 + 16, y - A / 2 + 23] : [x + A / 2 - 16, y - A / 2 - 8, x + A / 2 + 13, y - A / 2 + 23]);
   return R;
 }
+const gaugeRect = p => [p.x - Gm.A / 2 - 92, p.y - 31, p.x - Gm.A / 2 - 22, p.y + 37];
+// 小号胜率：贴在自己名牌左边，跟名牌一样高（pw 是名牌实际宽度，排座位时按最宽算）
+const gaugeRectS = (p, pw) => { const x = p.x - (pw || Gm.pw) / 2 - 6, y = p.y + Gm.A / 2 - 6; return [x - 80, y, x, y + Gm.plH]; };
 function layout(force){
   const T = $('table'); const W = T.clientWidth, H = T.clientHeight;
   if (!W || !H) return;
@@ -886,6 +1191,9 @@ function layout(force){
   const rim = $('rim'), pad = 9;
   Object.assign(rim.style, { left: (cx - Lh / 2 - r - pad) + 'px', top: (cy - L / 2 - r - pad) + 'px', width: (Lh + 2 * r + 2 * pad) + 'px', height: (L + 2 * r + 2 * pad) + 'px' });
   const pts = Gm.pts = slotPoints(n);
+  // 胜率表盘放得下就放头像左边；挤了换小号贴名牌左边；再不行就跟在牌型后面
+  const fits = g => g[0] >= 3 && !pts.some((q, j) => j > 0 && seatRects(q, j).some(r => overlap(r, g) > 40));
+  Gm.oddsMode = fits(gaugeRect(pts[0])) ? 'full' : fits(gaugeRectS(pts[0])) ? 'small' : 'label';
   const Rs = pts.map(seatRects), R = Rs.flat();
   const rot = (p, deg) => { const a = deg * Math.PI / 180; return [p.nx * Math.cos(a) - p.ny * Math.sin(a), p.nx * Math.sin(a) + p.ny * Math.cos(a)]; };
   // 每个人可以放下注筹码的地方：在自己的地盘里（离自己比离别人都近），不压任何座位；越近、越正对桌心越好
@@ -984,6 +1292,8 @@ const bubbles = {};
 function onView(v){
   const prev = S.view;
   S.view = v; S.viewAt = performance.now();
+  const my = v.players.find(p => p.id === S.myId);
+  if (my && Wal.seat && Wal.seat.code === S.code && Wal.seat.chips !== my.chips) { Wal.seat.chips = my.chips; store.set('wallet', Wal); }
   if ($('game').hidden) return;
   render(false, prev);
 }
@@ -1018,8 +1328,10 @@ function render(full, prev){
     o.el.classList.toggle('folded', !!(p.inHand && p.folded && h && h.street !== 'done'));
     o.el.classList.toggle('off', !p.connected && !p.isBot);
     o.el.classList.toggle('win', winners.has(p.seat));
-    if (o.av !== p.avatar + (p.isBot ? 'b' : '')) { o.av = p.avatar + (p.isBot ? 'b' : ''); o.avEl.innerHTML = `<svg class="u" viewBox="0 0 100 100"><use href="#${p.isBot ? 'bot' + (p.avatar % 4) : 'av' + (p.avatar % 12)}"/></svg>`; }
-    o.nm.textContent = p.name;
+    const avKey = p.avatar + (p.isBot ? 'b' + p.iq : '');
+    if (o.av !== avKey) { o.av = avKey; o.avEl.innerHTML = avHTML(p.avatar, p.isBot, p.iq); }
+    const nmKey = p.name + (p.isBot ? '|' + p.iq : '');
+    if (o.nmKey !== nmKey) { o.nmKey = nmKey; o.nm.innerHTML = (p.isBot ? `<i class="iq l${lvOf(p.iq)}">${p.iq}</i>` : '') + esc(p.name); }
     o.stk.textContent = fmt(p.chips);
     // 状态标签
     let k = '', txt = '';
@@ -1067,6 +1379,7 @@ function render(full, prev){
   if (newHand && !full) dealAnim(v);
   renderBoard(prev, full);
   renderMine(prev, full, newHand);
+  renderOdds();
   renderBets(prev);
   renderPot(prev, full, flights);
   renderBanner(prev, full);
@@ -1170,7 +1483,7 @@ function renderMine(prev, full, newHand){
   });
   const cat = my.best ? my.best.cat : (v.me && v.me.handCat);
   const txt = my.folded ? t('t_fold') : (cat >= 0 ? t('cats')[cat] : '');
-  hand.hidden = !txt; hand.textContent = txt;
+  hand.hidden = !txt; hand.textContent = txt; hand.dataset.base = txt; hand.dataset.cx = x + cw * 0.9;
   hand.style.left = (x + cw * 0.9) + 'px'; hand.style.top = (y + cw * 1.4 + 6) + 'px';
 }
 
@@ -1320,8 +1633,13 @@ function renderDock(){
     } else { sig = 'cw' + lang; html = `<div class="wait"><div class="roomcode">${S.code}</div><div class="status">${esc(t('clientWait'))}</div></div>`; }
   }
   else if (my.chips === 0 && !(my.inHand && h && h.street !== 'done')) {
-    sig = 'broke' + lang + v.settings.startChips;
-    html = `<div class="wait"><div class="status">${esc(t('busted'))}</div><button class="btn gold" data-a="rebuy" style="min-width:220px">${esc(t('rebuy', { a: fmt(v.settings.startChips) }))}</button></div>`;
+    const a = buyInFor(v.settings.startChips), cc = canClaim();
+    sig = 'broke' + lang + v.settings.startChips + '|' + a + '|' + Wal.bal + Wal.inf + cc;
+    html = a > 0
+      ? `<div class="wait"><div class="status">${esc(t('busted'))}</div><button class="btn gold" data-a="rebuy" data-amt="${a}" style="min-width:220px">${esc(t('rebuy', { a: fmt(a) }))}</button>
+         <div class="hintx">${esc(Wal.inf ? t('rebuyFree') : t('rebuyFrom', { b: fmt(Wal.bal - a) }))}</div></div>`
+      : `<div class="wait"><div class="status">${esc(t('outPts'))}</div><div class="row" style="max-width:320px">${cc ? `<button class="btn gold sm" data-a="claim">${esc(t('claimBtn', { a: fmt(DAILY) }))}</button>` : ''}
+         <button class="btn glass sm" data-a="games">${esc(t('playGames'))}</button></div></div>`;
   }
   else if (!L) {
     let status = '', mav = '', bar = '';
@@ -1333,7 +1651,7 @@ function renderDock(){
       if (!v.paused && left > 0) bar = `<div class="nbar"><i style="animation-duration:${total}ms;animation-delay:-${Math.round(Math.max(0, total - left))}ms"></i></div>`;
     }
     else if (!my.inHand) status = esc(t('nextHand'));
-    else { const p = v.players.find(x => x.seat === h.toAct); if (p) { mav = `<span class="mav">${avHTML(p.avatar, p.isBot)}</span>`; status = t('thinking', { n: `<b>${esc(p.name)}</b>` }); } else status = esc(t('dealing')); }
+    else { const p = v.players.find(x => x.seat === h.toAct); if (p) { mav = `<span class="mav">${avHTML(p.avatar, p.isBot, p.iq)}</span>`; status = t('thinking', { n: `<b>${esc(p.name)}</b>` }); } else status = esc(t('dealing')); }
     const canPre = h && my.inHand && !my.folded && !my.allIn && h.street !== 'done';
     const toCall = canPre ? Math.min(h.curBet - my.bet, my.chips) : 0;
     if (canPre && preKey !== h.num + h.street + h.curBet && preAct === 'ck' && toCall > 0) preAct = ''; // 有人加注后“跟注”预选失效
@@ -1401,7 +1719,9 @@ $('dock').addEventListener('click', e => {
   if (a === 'invite') copyInvite();
   else if (a === 'bot') hostApi && hostApi.addBot();
   else if (a === 'start') { if (v.players.filter(p => p.chips > 0).length < 2) return toast(t('needTwo')); hostApi.start(); }
-  else if (a === 'rebuy') S.rebuy();
+  else if (a === 'rebuy') S.rebuy(+b.dataset.amt || undefined);
+  else if (a === 'claim') { const g = claimDaily(); if (g) toast(t('autoClaim', { a: fmt(g) })); lastPanelSig = ''; renderDock(); }
+  else if (a === 'games') openHub();
   else if (a === 'fold' && L) {
     if (L.canCheck && !b.dataset.sure) { b.dataset.sure = 1; b.textContent = t('sureFold'); return; }
     S.act({ type: 'fold' });
@@ -1468,17 +1788,26 @@ $('btnMenu').onclick = () => openMenu();
 function openMenu(){
   const v = S.view; if (!v) return;
   const host = S.mode === 'host';
-  const rows = v.players.slice().sort((a, b) => a.seat - b.seat).map(p => `<div class="prow"><span class="pav">${avHTML(p.avatar, p.isBot)}</span>
-    <span class="pi"><b>${esc(p.name)}${p.id === S.myId ? ` <span style="color:var(--brass);font-weight:700">· ${esc(t('you'))}</span>` : ''}</b><span>${p.rebuys ? esc(p.rebuys > 1 ? t('rebuys', { r: p.rebuys }) : t('rebuys1')) : ''}${!p.connected && !p.isBot ? (p.rebuys ? ' · ' : '') + esc(t('away')) : ''}</span></span>
-    <span class="pv">${fmt(p.chips)}</span>${host && p.id !== 'host' ? `<button class="btn glass sm" data-kick="${p.id}">${esc(t('remove'))}</button>` : ''}</div>`).join('');
+  const rows = v.players.slice().sort((a, b) => a.seat - b.seat).map(p => {
+    const sub = [p.isBot ? t('iqNames')[lvOf(p.iq)] : '', p.rebuys ? (p.rebuys > 1 ? t('rebuys', { r: p.rebuys }) : t('rebuys1')) : '', !p.connected && !p.isBot ? t('away') : ''].filter(Boolean).join(' · ');
+    const iq = p.isBot ? (host ? `<button class="iq l${lvOf(p.iq)}" data-iq="${p.id}">IQ ${p.iq}</button>` : `<span class="iq l${lvOf(p.iq)}" style="font-size:11px;padding:4px 6px;margin:0">IQ ${p.iq}</span>`) : '';
+    return `<div class="prow"><span class="pav">${avHTML(p.avatar, p.isBot, p.iq)}</span>
+    <span class="pi"><b>${esc(p.name)}${p.id === S.myId ? ` <span style="color:var(--brass);font-weight:700">· ${esc(t('you'))}</span>` : ''}</b><span>${esc(sub)}</span></span>
+    <span class="pv">${fmt(p.chips)}</span>${iq}${host && p.id !== 'host' ? `<button class="btn glass sm" data-kick="${p.id}" aria-label="${esc(t('remove'))}"><svg viewBox="0 0 24 24"><use href="#i-kick"/></svg></button>` : ''}</div>`;
+  }).join('');
+  const nb = store.get('botiq') || 0;
   const lines = v.log.map(logLine).join('<br>').replace(/<br><div/g, '<div').replace(/<\/div><br>/g, '</div>');
-  openSheet(`<div class="grab"></div><h3>${esc(t('menuTitle'))}</h3><p class="sub">${esc(t('menuSub', { b: v.settings.sb + '/' + v.settings.bb, s: fmt(v.settings.startChips) }))}</p>
+  openSheet(`<div class="grab"></div><h3>${esc(t('menuTitle'))}</h3><p class="sub">${esc(t('menuSub', { b: v.settings.sb + '/' + v.settings.bb, s: fmt(v.settings.startChips) }))} · ${esc(t('myPts', { a: Wal.inf ? '∞' : fmt(Wal.bal) }))}</p>
     <div class="plist">${rows}</div>
+    ${host ? `<div class="opts"><span>${esc(t('newBots'))}</span><div class="seg" id="mIq">${[0].concat(IQS).map(q => `<button data-lv="${q}" class="${nb === q ? 'on' : ''}">${q ? q : esc(t('mix'))}</button>`).join('')}</div></div>
+      ${v.players.some(p => p.isBot) ? `<p class="hintx" style="margin:-8px 0 0">${esc(t('iqTap'))}</p>` : ''}` : ''}
     ${host ? `<div class="grid2"><button class="btn glass sm" id="mBot"><svg viewBox="0 0 24 24"><use href="#i-bot"/></svg>${esc(t('addBot'))}</button>
       <button class="btn glass sm" id="mPause"><svg viewBox="0 0 24 24"><use href="#i-${v.paused || !v.started ? 'play' : 'pause'}"/></svg>${esc(!v.started ? t('deal') : v.paused ? t('resumeG') : t('pause'))}</button>
       ${S.solo ? '' : `<button class="btn glass sm" id="mLock"><svg viewBox="0 0 24 24"><use href="#i-${hostApi.locked ? 'lock' : 'unlock'}"/></svg>${esc(hostApi.locked ? t('unlock') : t('lock'))}</button>
       <button class="btn glass sm" id="mCopy"><svg viewBox="0 0 24 24"><use href="#i-copy"/></svg>${esc(t('inviteBtn'))}</button>`}</div>` : ''}
-    <div class="grid2"><button class="btn glass sm" id="mSound"><svg viewBox="0 0 24 24"><use href="#i-${Snd.on ? 'sound' : 'mute'}"/></svg>${esc(Snd.on ? t('soundOn') : t('soundOff'))}</button>
+    <div class="grid2"><button class="btn glass sm" id="mOdds"><svg viewBox="0 0 24 24"><use href="#i-pct"/></svg>${esc(oddsOn ? t('oddsOn') : t('oddsOff'))}</button>
+      <button class="btn glass sm" id="mPts"><svg viewBox="0 0 24 24"><use href="#i-gift"/></svg>${esc(t('ptsBtn'))}</button>
+      <button class="btn glass sm" id="mSound"><svg viewBox="0 0 24 24"><use href="#i-${Snd.on ? 'sound' : 'mute'}"/></svg>${esc(Snd.on ? t('soundOn') : t('soundOff'))}</button>
       <button class="btn glass sm" id="mLang"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg>${esc(t('lang'))}</button></div>
     <div class="lbl">${esc(t('history'))}</div><div class="log" id="mLog">${lines}</div>
     <div class="lbl">${esc(t('rankings'))}</div>
@@ -1487,6 +1816,8 @@ function openMenu(){
   const lg = $('mLog'); lg.scrollTop = lg.scrollHeight;
   $('mClose').onclick = closeSheet;
   $('mSound').onclick = () => { Snd.on = !Snd.on; store.set('sound', Snd.on); openMenu(); };
+  $('mOdds').onclick = () => { setOdds(!oddsOn); openMenu(); };
+  $('mPts').onclick = () => { closeSheet(); openHub(); };
   $('mLang').onclick = () => { lang = lang === 'en' ? 'zh' : 'en'; store.set('lang', lang); applyLang(); openMenu(); };
   if (host) {
     $('mBot').onclick = () => { hostApi.addBot(); closeSheet(); };
@@ -1497,6 +1828,12 @@ function openMenu(){
       if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = t('sure'); return; }
       hostApi.kick(b.dataset.kick); closeSheet();
     });
+    document.querySelectorAll('#mIq [data-lv]').forEach(b => b.onclick = () => { store.set('botiq', +b.dataset.lv); openMenu(); });
+    document.querySelectorAll('[data-iq]').forEach(b => b.onclick = () => {
+      const p = v.players.find(x => x.id === b.dataset.iq); if (!p) return;
+      hostApi.setIq(p.id, IQS[(IQS.indexOf(p.iq) + 1) % IQS.length]);
+      setTimeout(() => { const sh = document.querySelector('#sheet .sheet'), y = sh ? sh.scrollTop : 0; openMenu(); const n = document.querySelector('#sheet .sheet'); if (n) n.scrollTop = y; }, 30);
+    });
   }
 }
 function openSheet(inner){
@@ -1506,8 +1843,312 @@ function openSheet(inner){
 }
 function closeSheet(){ $('sheet').hidden = true; $('sheet').innerHTML = ''; }
 
+// ============================== 胜率辅助 ==============================
+// 打开后在自己头像左边显示胜率（按对手随机手牌模拟），面对下注时标出跟注需要的胜率；点开看到河牌时各牌型的概率
+let oddsOn = store.get('odds') === true;
+const OD = { key: '', res: null, timer: 0 };
+const pctStr = p => { const x = p * 100; return (x > 0 && x < 9.95 ? x.toFixed(1) : Math.round(x)) + '%'; };
+function setOdds(on){
+  oddsOn = on; store.set('odds', on); $('btnOdds').classList.toggle('on', on); toast(t(on ? 'oddsOn' : 'oddsOff'), 1600);
+  if (!$('game').hidden && S.view) { layout(true); render(true); }
+}
+$('btnOdds').onclick = () => setOdds(!oddsOn);
+function oddsCtx(){
+  const v = S.view, h = v && v.hand, my = me();
+  if (!oddsOn || !h || !my || !my.inHand || my.folded || my.hole.length !== 2 || my.hole[0] < 0 || h.street === 'done' || h.street === 'showdown') return null;
+  const opp = v.players.filter(p => p.id !== my.id && p.inHand && !p.folded).length;
+  if (!opp) return null;
+  const pot = h.pot + v.players.reduce((s, p) => s + p.bet, 0), toCall = Math.max(0, Math.min(h.curBet - my.bet, my.chips));
+  return { hole: my.hole, board: h.board, opp, pot, toCall, need: toCall > 0 ? toCall / (pot + toCall) : 0,
+    street: h.board.length ? h.street : 'preflop', key: my.hole.join(',') + '|' + h.board.join(',') + '|' + opp };
+}
+const runOdds = c => P.odds(c.hole, c.board, c.opp, c.opp <= 2 ? 2600 : c.opp <= 5 ? 1700 : 1200);
+function renderOdds(){
+  const el = $('odds'), c = Gm && oddsCtx(), my = me(), o = my && seatMap.get(my.id), hand = $('myHand');
+  hand.classList.remove('og-good', 'og-bad');
+  if (!c || !o) { el.hidden = true; if (hand.dataset.base != null && hand.textContent !== hand.dataset.base) { hand.textContent = hand.dataset.base; hand.hidden = !hand.dataset.base; hand.style.left = hand.dataset.cx + 'px'; } return; }
+  if (OD.key !== c.key) {   // 换了牌面才重算；放到下一拍，不卡动画
+    OD.key = c.key; OD.res = null; clearTimeout(OD.timer);
+    OD.timer = setTimeout(() => { const r = runOdds(c); if (OD.key === c.key) { OD.res = r; renderOdds(); } }, 140);
+  }
+  const r = OD.res, eq = r ? r.win + r.tie / 2 : 0;
+  const pl = o.el.querySelector('.plate');
+  if (Gm.oddsMode === 'label') {   // 实在没地方：胜率跟在牌型后面，标签往右挪开，别压住名牌
+    el.hidden = true;
+    const base = hand.dataset.base || '', pc = r ? pctStr(eq) : '…';
+    hand.textContent = base ? base + ' · ' + pc : t('o_win') + ' ' + pc; hand.hidden = false;
+    if (r && c.need) hand.classList.add(eq >= c.need ? 'og-good' : 'og-bad');
+    const w = hand.offsetWidth;
+    hand.style.left = Math.min(Math.max(+hand.dataset.cx, o.pos.x + pl.offsetWidth / 2 + 4 + w / 2), Gm.W - 6 - w / 2) + 'px';
+    return;
+  }
+  const sm = Gm.oddsMode === 'small', g = sm ? gaugeRectS(o.pos, pl.offsetWidth) : gaugeRect(o.pos);
+  el.classList.toggle('sm', sm);
+  el.style.left = g[0] + 'px'; el.style.top = g[1] + 'px'; el.style.height = sm ? pl.offsetHeight + 'px' : '';
+  el.hidden = false;
+  el.classList.toggle('calc', !r);
+  el.classList.toggle('good', !!(r && c.need && eq >= c.need));
+  el.classList.toggle('bad', !!(r && c.need && eq < c.need));
+  el.querySelector('.og-l').textContent = t('o_win');
+  el.querySelector('.og-v').textContent = r ? pctStr(eq) : '…';
+  el.querySelector('.og-b i').style.width = (eq * 100).toFixed(1) + '%';
+  const mk = el.querySelector('.og-b b'), nd = el.querySelector('.og-n');
+  mk.hidden = nd.hidden = !c.need;
+  if (c.need) { mk.style.left = (c.need * 100).toFixed(1) + '%'; nd.textContent = t('o_need', { p: pctStr(c.need) }); }
+}
+$('myHand').onclick = () => { if (oddsCtx()) $('odds').onclick(); };
+$('odds').onclick = () => {
+  const c = oddsCtx(); if (!c) return;
+  const r = OD.key === c.key && OD.res ? OD.res : runOdds(c), eq = r.win + r.tie / 2;
+  const cur = c.board.length ? P.score(c.hole.concat(c.board)) : -1, curCat = cur < 0 ? -1 : Math.floor(cur / 1048576);
+  const cats = t('cats');
+  const list = r.cats.map((p, i) => [i, p]).filter(([, p]) => p >= 0.0005).reverse().map(([i, p]) =>
+    `<div class="${i === curCat || (curCat === 8 && i === 9) ? 'me' : ''}"><span>${esc(cats[i])}</span><i><u style="width:${Math.max(1.5, p * 100).toFixed(1)}%"></u></i><em>${pctStr(p)}</em></div>`).join('');
+  const r1 = P.rankOf(c.hole[0]), r2 = P.rankOf(c.hole[1]);
+  const top = P.pfPct(c.hole[0], c.hole[1]) + (r1 === r2 ? 6 : P.suitOf(c.hole[0]) === P.suitOf(c.hole[1]) ? 4 : 12) / 2 / 1326;
+  openSheet(`<div class="grab"></div><h3>${esc(t('o_title'))}</h3>
+    <p class="sub">${esc(t(c.opp === 1 ? 'o_vs1' : 'o_vs', { n: c.opp, s: c.street === 'preflop' ? t('preflop') : t('streets')[c.street] }))}</p>
+    <div class="stat2"><div><span>${esc(t('o_win'))}</span><b>${pctStr(eq)}</b></div><div><span>${esc(t('o_tie'))}</span><b>${pctStr(r.tie)}</b></div></div>
+    ${c.toCall ? `<p class="hintx" style="font-size:13.5px;color:var(--text);margin:0">${esc(t('o_pot', { c: fmt(c.toCall), w: fmt(c.pot), p: pctStr(c.need) }))}</p>` : ''}
+    ${c.board.length ? '' : `<p class="hintx" style="font-size:13.5px;color:var(--text);margin:0">${esc(t('o_pre', { p: pctStr(Math.min(1, top)) }))}</p>`}
+    <div class="lbl">${esc(t('o_cats'))}</div><div class="cats">${list}</div>
+    <p class="hintx" style="margin:0">${esc(t('o_note'))}</p>
+    <button class="btn glass" id="oClose">${esc(t('close'))}</button>`);
+  $('oClose').onclick = closeSheet;
+};
+
+// ============================== 积分中心 ==============================
+let hubTimer = 0, hubOff = null;
+function openHub(page){ hubStop(); $('hub').hidden = false; $('hub').scrollTop = 0; (page || hubHome)(); }
+function closeHub(){
+  hubStop(); $('hub').hidden = true; $('hubIn').innerHTML = '';
+  paintWallet(); paintSeatBox();
+  if (S.view && !$('game').hidden) { lastPanelSig = ''; renderDock(); }
+}
+function hubStop(){ clearInterval(hubTimer); hubTimer = 0; if (hubOff) { const f = hubOff; hubOff = null; f(); } }
+$('hubIn').addEventListener('click', e => { const b = e.target.closest('[data-hub]'); if (!b) return; if (b.dataset.hub === 'home') openHub(); else closeHub(); });
+function hubTop(title, inGame){
+  return `<div class="hub-top"><button class="ib" data-hub="${inGame ? 'home' : 'close'}" aria-label="${esc(t('back'))}"><svg viewBox="0 0 24 24"><use href="#i-back"/></svg></button>
+    <h2>${esc(title)}</h2><span class="sp"></span><span class="hub-bal" id="hubBal">${balInner()}</span></div>`;
+}
+function bumpBal(){ const b = $('hubBal'); if (b) { b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } }
+function countUp(el, from, to){
+  if (!el || REDUCED) { if (el) el.textContent = fmt(to); return; }
+  const t0 = performance.now();
+  const step = now => { const k = Math.min(1, (now - t0) / 900), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(from + (to - from) * e); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+// 一把筹码从按钮飞到右上角的余额上
+function coinBurst(fromEl){
+  const to = $('hubBal'); if (REDUCED || !fromEl || !to) return;
+  const a = fromEl.getBoundingClientRect(), b = to.getBoundingClientRect();
+  const x0 = a.left + a.width / 2, y0 = a.top + a.height / 2, x1 = b.left + 16, y1 = b.top + b.height / 2;
+  for (let i = 0; i < 9; i++) {
+    const c = document.createElement('div'); c.className = 'coinburst';
+    c.innerHTML = '<svg class="u" viewBox="0 0 100 100"><use href="#chip"/></svg>';
+    c.style.left = x0 + 'px'; c.style.top = y0 + 'px'; c.style.color = ['#c33641', '#d3ac63', '#1f5b52'][i % 3];
+    document.body.appendChild(c);
+    const sx = (Math.random() - .5) * 90, sy = -30 - Math.random() * 50;
+    const an = c.animate([{ transform: 'translate(0,0) scale(.6)', opacity: 0 }, { transform: `translate(${sx}px,${sy}px) scale(1.1)`, opacity: 1, offset: .35 }, { transform: `translate(${x1 - x0}px,${y1 - y0}px) scale(.5)`, opacity: .9 }],
+      { duration: 820, delay: i * 45, easing: 'cubic-bezier(.3,.1,.3,1)', fill: 'both' });
+    an.onfinish = () => c.remove();
+  }
+  setTimeout(bumpBal, 800);
+}
+const untilMidnight = () => {
+  const n = new Date(), m = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1), s = Math.max(0, Math.floor((m - n) / 1000));
+  return Math.floor(s / 3600) + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+};
+const cardOf = s => ('23456789TJQKA'.indexOf(s[0]) << 2) | 'shdc'.indexOf(s[1]);
+function newDeck(){ const d = [...Array(52).keys()]; for (let i = 51; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; } return d; }
+function mkCard(c, w, down){ const e = cardEl(''); e.style.setProperty('--w', w + 'px'); if (c != null && c >= 0) setFace(e, c); snapDown(e, !!down); return e; }
+const GAME_MAX = { hl: 1200, qz: 550, mm: 400 };
+function paintArt(box, k){
+  const put = (c, x, y, r, w, down) => { const e = mkCard(c, w, down); Object.assign(e.style, { left: x + 'px', top: y + 'px', rotate: r + 'deg' }); box.appendChild(e); };
+  if (k === 'hl') { put(cardOf('7h'), 9, 15, -9, 27); put(-1, 41, 13, 8, 27, true); }
+  else if (k === 'qz') { put(cardOf('As'), 6, 5, -10, 24); put(cardOf('Ks'), 20, 8, 4, 24); put(cardOf('Qh'), 34, 26, -5, 24); put(cardOf('Qd'), 48, 28, 9, 24); }
+  else { put(cardOf('Ac'), 13, 3, 0, 22); put(-1, 43, 3, 0, 22, true); put(-1, 13, 36, 0, 22, true); put(cardOf('Ac'), 43, 36, 0, 22); }
+}
+function hubHome(){
+  const el = $('hubIn');
+  const tag = k => `<em>${esc(Wal.best[k] ? t('best', { a: fmt(Wal.best[k]) }) : t('upTo', { a: fmt(GAME_MAX[k]) }))}</em>`;
+  el.innerHTML = hubTop(t('hubT')) +
+    `<div class="bal"><span class="lbl">${esc(t('balance'))}</span><b id="balBig">${Wal.inf ? '∞' : fmt(Wal.bal)}</b>${Wal.inf ? `<span class="sub">${esc(t('infReal', { a: fmt(Wal.bal) }))}</span>` : ''}</div>
+    <div class="hcard"><span class="hi"><svg viewBox="0 0 24 24"><use href="#i-gift"/></svg></span><span class="ht"><b>${esc(t('daily'))}</b><span>${esc(t('dailySub', { a: fmt(DAILY) }))}</span></span><button class="btn gold sm" id="hClaim"></button></div>
+    <div class="hcard"><span class="hi"><svg viewBox="0 0 24 24"><use href="#i-inf"/></svg></span><span class="ht"><b>${esc(t('inf'))}</b><span>${esc(t('infSub'))}</span></span>
+      <button class="switch${Wal.inf ? ' on' : ''}" id="hInf" role="switch" aria-checked="${Wal.inf}" aria-label="${esc(t('inf'))}"></button></div>
+    <div class="lbl" style="margin-top:6px">${esc(t('games'))}</div>
+    ${['hl', 'qz', 'mm'].map(k => `<button class="gcard" data-game="${k}"><span class="art"></span><span class="ht"><b>${esc(t('g_' + k))}</b><span>${esc(t('g_' + k + 'Sub'))}</span>${tag(k)}</span><svg class="go" viewBox="0 0 24 24"><use href="#i-back"/></svg></button>`).join('')}`;
+  el.querySelectorAll('[data-game]').forEach(b => { paintArt(b.querySelector('.art'), b.dataset.game); b.onclick = () => ({ hl: gameHL, qz: gameQZ, mm: gameMM })[b.dataset.game](); });
+  const paintClaim = () => { const b = $('hClaim'); if (!b) return; const ok = canClaim(); b.disabled = !ok; b.textContent = ok ? t('claim', { a: fmt(DAILY) }) : t('claimIn', { t: untilMidnight() }); };
+  paintClaim(); hubTimer = setInterval(paintClaim, 1000);
+  $('hClaim').onclick = e => { const from = Wal.bal, g = claimDaily(); if (!g) return; coinBurst(e.currentTarget); countUp($('balBig'), from, Wal.bal); Snd.win(); paintClaim(); };
+  $('hInf').onclick = () => { Wal.inf = !Wal.inf; wSave(); hubHome(); };
+}
+
+// ---- 小游戏一：比大小 ----
+function gameHL(){
+  hubStop();
+  const LAD = [10, 25, 50, 90, 150, 240, 380, 560, 800, 1200];
+  const el = $('hubIn');
+  el.innerHTML = hubTop(t('g_hl'), true) +
+    `<div class="felt-box"><div class="lad" id="hlLad">${LAD.map((a, i) => `<span><i>${i + 1}</i>${fmt(a)}</span>`).join('')}</div>
+      <div class="hl-stage"><div id="hlA"></div><svg class="arw" viewBox="0 0 24 24"><use href="#i-next"/></svg><div id="hlB"></div></div>
+      <div class="mg-msg" id="hlMsg"></div></div>
+    <div class="mg-btns" id="hlBtns"></div><p class="note">${esc(t('hl_rule', { a: fmt(LAD[LAD.length - 1]) }))}</p>`;
+  const cw = Math.min(92, Math.floor((el.clientWidth - 110) / 2));
+  const A = mkCard(null, cw, true), B = mkCard(null, cw, true); $('hlA').appendChild(A); $('hlB').appendChild(B);
+  let deck = newDeck(), cur = 0, streak = 0, busy = false, over = false, msg = '', bad = false, tm = [];
+  hubOff = () => tm.forEach(clearTimeout);
+  const later = (f, ms) => tm.push(setTimeout(f, ms));
+  const draw = () => { if (deck.length < 5) deck = newDeck().filter(c => c !== cur); return deck.pop(); };
+  const chance = dir => { const r = P.rankOf(cur); return deck.filter(c => dir > 0 ? P.rankOf(c) > r : P.rankOf(c) < r).length / Math.max(1, deck.length); };
+  function paint(){
+    [...$('hlLad').children].forEach((s, i) => { s.className = i < streak ? 'done' : (i === streak && !over ? 'next' : ''); });
+    const m = $('hlMsg'); m.textContent = msg; m.classList.toggle('bad', bad);
+    $('hlBtns').innerHTML = over ? `<button class="btn gold wide" data-g="new">${esc(t('hl_again'))}</button>`
+      : `<button class="btn up" data-g="1" ${busy ? 'disabled' : ''}><span>▲ ${esc(t('hl_hi'))}</span><small>${esc(t('hl_pct', { p: pctStr(chance(1)) }))}</small></button>
+         <button class="btn dn" data-g="-1" ${busy ? 'disabled' : ''}><span>▼ ${esc(t('hl_lo'))}</span><small>${esc(t('hl_pct', { p: pctStr(chance(-1)) }))}</small></button>
+         ${streak ? `<button class="btn gold wide" data-g="take" ${busy ? 'disabled' : ''}>${esc(t('hl_take', { a: fmt(LAD[streak - 1]) }))}</button>` : ''}`;
+  }
+  function start(){
+    streak = 0; over = false; bad = false; busy = false; msg = t('hl_pick');
+    cur = draw(); setFace(A, cur); snapDown(A, true); snapDown(B, true);
+    later(() => { A.classList.remove('down'); Snd.flip(); }, 90);
+    paint();
+  }
+  function bank(){
+    const a = LAD[streak - 1]; earn(a); Wal.best.hl = Math.max(Wal.best.hl || 0, a); wSave();
+    over = true; busy = false; bad = false; msg = t('hl_banked', { a: fmt(a) }); paint(); Snd.win(); coinBurst($('hlMsg'));
+  }
+  function guess(dir){
+    if (busy || over) return;
+    busy = true; paint();
+    const nx = draw(), a = P.rankOf(cur), b = P.rankOf(nx);
+    setFace(B, nx); B.classList.remove('down'); Snd.flip();
+    later(() => {
+      if (a !== b && (b > a) !== (dir > 0)) { over = true; busy = false; bad = true; msg = t('hl_bust'); Snd.fold(); paint(); return; }
+      if (a === b) { msg = t('hl_same'); bad = false; }
+      else { streak++; bad = false; msg = t('hl_prize', { n: streak, a: fmt(LAD[streak - 1]) }); Snd.chip(2); }
+      paint();
+      if (streak >= LAD.length) return later(bank, 500);
+      // 翻开的这张滑到左边，成为新的"这一张"
+      later(() => {
+        const dx = A.getBoundingClientRect().left - B.getBoundingClientRect().left;
+        const an = REDUCED ? null : B.animate([{ transform: 'none' }, { transform: `translateX(${dx}px)` }], { duration: 300, easing: 'cubic-bezier(.3,.8,.3,1)' });
+        const done = () => { cur = nx; setFace(A, cur); snapDown(A, false); snapDown(B, true); busy = false; paint(); };
+        if (an) an.onfinish = done; else done();
+      }, 650);
+    }, 480);
+  }
+  $('hlBtns').onclick = e => { const b = e.target.closest('[data-g]'); if (!b || b.disabled) return; const g = b.dataset.g; if (g === 'new') start(); else if (g === 'take') { if (!busy && streak) bank(); } else guess(+g); };
+  start();
+}
+
+// ---- 小游戏二：谁的牌大 ----
+function gameQZ(){
+  hubStop();
+  const N = 10, TL = 12000;
+  const el = $('hubIn');
+  el.innerHTML = hubTop(t('g_qz'), true) +
+    `<div class="mg-head"><span id="qzN"></span><span class="sp"></span><b id="qzPts">+0</b></div><div class="qz-bar"><i id="qzBar"></i></div>
+    <div class="felt-box"><div class="qz-board" id="qzBoard"></div></div>
+    <div class="qz-hands">${['a', 'b'].map(k => `<button class="qz-hand" data-q="${k}"><span class="lbl">${esc(t('qz_' + k))}</span><span class="cs"></span><em></em></button>`).join('')}</div>
+    <button class="btn glass" data-q="s" id="qzSplit">${esc(t('qz_split'))}</button><div class="mg-msg" id="qzMsg"></div><div id="qzEnd"></div>`;
+  const bw = Math.min(58, Math.floor((el.clientWidth - 24 - 24 - 4 * 6) / 5)), hw = Math.min(54, Math.floor((el.clientWidth - 32 - 10 - 40) / 4));
+  const boardEls = [...Array(5)].map(() => { const c = mkCard(null, bw, true); $('qzBoard').appendChild(c); return c; });
+  const handEls = ['a', 'b'].map(k => [0, 1].map(() => { const c = mkCard(null, hw, true); el.querySelector(`[data-q="${k}"] .cs`).appendChild(c); return c; }));
+  let i = 0, right = 0, streak = 0, total = 0, Q = null, answered = true, tm = [];
+  hubOff = () => tm.forEach(clearTimeout);
+  const later = (f, ms) => tm.push(setTimeout(f, ms));
+  function deal(){
+    let tries = 0;
+    do {
+      const d = newDeck(); Q = { board: d.slice(0, 5), a: d.slice(5, 7), b: d.slice(7, 9) };
+      Q.sa = P.score(Q.a.concat(Q.board)); Q.sb = P.score(Q.b.concat(Q.board));
+    } while (Math.abs(Math.floor(Q.sa / 1048576) - Math.floor(Q.sb / 1048576)) >= 3 && Math.random() < 0.75 && ++tries < 30); // 多出些势均力敌的题
+    Q.ans = Q.sa > Q.sb ? 'a' : Q.sb > Q.sa ? 'b' : 's';
+    i++; answered = false;
+    $('qzN').textContent = t('qz_q', { i, n: N }); $('qzMsg').textContent = ''; $('qzMsg').classList.remove('bad');
+    el.querySelectorAll('.qz-hand').forEach(h => { h.classList.remove('win', 'pick', 'bad'); h.querySelector('em').textContent = ''; });
+    const all = boardEls.concat(handEls[0], handEls[1]), cards = Q.board.concat(Q.a, Q.b);
+    all.forEach((e, k) => { e.classList.remove('hi', 'dim'); setFace(e, cards[k]); snapDown(e, true); later(() => e.classList.remove('down'), 60 + k * 45); });
+    Snd.card(); Snd.card(0.12);
+    const bar = $('qzBar'); bar.classList.remove('run'); bar.style.animationPlayState = ''; void bar.offsetWidth; bar.style.animationDuration = TL + 'ms'; bar.classList.add('run');
+    later(() => { if (!answered) answer(null); }, TL + 500);
+  }
+  function answer(k){
+    if (answered) return; answered = true;
+    $('qzBar').style.animationPlayState = 'paused';
+    const ok = k === Q.ans, msg = $('qzMsg');
+    const best = { a: P.bestHand(Q.a.concat(Q.board)), b: P.bestHand(Q.b.concat(Q.board)) };
+    ['a', 'b'].forEach((x, j) => {
+      const h = el.querySelector(`[data-q="${x}"]`);
+      h.querySelector('em').textContent = t('cats')[best[x].cat];
+      h.classList.toggle('win', Q.ans === x || Q.ans === 's');
+      h.classList.toggle('pick', k === x); h.classList.toggle('bad', k === x && !ok);
+    });
+    const win = Q.ans === 'b' ? best.b.cards : best.a.cards;
+    boardEls.forEach((e, j) => { e.classList.toggle('hi', win.includes(Q.board[j])); e.classList.toggle('dim', !win.includes(Q.board[j])); });
+    handEls.forEach((hs, j) => hs.forEach((e, q) => { const c = (j ? Q.b : Q.a)[q]; const w = (Q.ans === 's' || Q.ans === (j ? 'b' : 'a')) && (j ? best.b : best.a).cards.includes(c); e.classList.toggle('hi', w); }));
+    if (ok) { const g = 20 + 10 * Math.min(5, streak); streak++; right++; total += g; msg.textContent = t('qz_right', { a: g }) + (Q.ans === 's' ? ' · ' + t('qz_tie') : ''); Snd.chip(3); }
+    else { streak = 0; msg.textContent = (k ? t('qz_wrong') : t('qz_time')) + (Q.ans === 's' ? ' · ' + t('qz_tie') : ''); msg.classList.add('bad'); Snd.fold(); }
+    $('qzPts').textContent = '+' + fmt(total);
+    later(() => { if (i < N) deal(); else finish(); }, ok ? 1500 : 2300);
+  }
+  function finish(){
+    earn(total); Wal.best.qz = Math.max(Wal.best.qz || 0, total); wSave();
+    $('qzMsg').textContent = '';
+    $('qzEnd').innerHTML = `<div class="result"><b>+${fmt(total)}</b><span>${esc(t('qz_done', { k: right, n: N }))}</span></div><div class="mg-btns"><button class="btn glass" data-hub="home">${esc(t('back'))}</button><button class="btn gold" id="qzAgain">${esc(t('qz_again'))}</button></div>`;
+    $('qzAgain').onclick = gameQZ;
+    if (total) { Snd.win(); coinBurst($('qzEnd').querySelector('b')); }
+    $('qzEnd').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'end' });
+  }
+  el.querySelectorAll('[data-q]').forEach(b => b.onclick = () => answer(b.dataset.q));
+  deal();
+}
+
+// ---- 小游戏三：翻牌配对 ----
+function gameMM(){
+  hubStop();
+  const el = $('hubIn');
+  el.innerHTML = hubTop(t('g_mm'), true) +
+    `<div class="mg-head"><span id="mmMoves"></span><span class="sp"></span><b id="mmPairs"></b></div><div class="felt-box"><div class="mm-grid" id="mmGrid"></div></div>
+    <div id="mmEnd"></div><p class="note">${esc(t('mm_rule', { a: fmt(GAME_MAX.mm) }))}</p>`;
+  const cw = Math.min(64, Math.floor((el.clientWidth - 32 - 24 - 3 * 9) / 4), Math.floor((innerHeight - 250) / 4 / 1.4 - 2));
+  const pick = newDeck().slice(0, 8), cards = pick.concat(pick);
+  for (let k = cards.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [cards[k], cards[j]] = [cards[j], cards[k]]; }
+  let open = [], moves = 0, pairs = 0, lock = false, tm = [];
+  hubOff = () => tm.forEach(clearTimeout);
+  const paint = () => { $('mmMoves').textContent = t('mm_moves', { n: moves }); $('mmPairs').textContent = t('mm_pairs', { n: pairs }); };
+  const grid = $('mmGrid');
+  cards.forEach((c, k) => {
+    const b = document.createElement('button'), e = mkCard(c, cw, true); b.appendChild(e); grid.appendChild(b);
+    b.onclick = () => {
+      if (lock || e._got || !e.classList.contains('down')) return;
+      e.classList.remove('down'); Snd.flip(); open.push({ k, e });
+      if (open.length < 2) return;
+      moves++; const [x, y] = open; open = [];
+      if (cards[x.k] === cards[y.k]) {
+        x.e._got = y.e._got = true; pairs++;
+        tm.push(setTimeout(() => { x.e.classList.add('got'); y.e.classList.add('got'); Snd.chip(2); }, 260));
+        if (pairs === 8) tm.push(setTimeout(finish, 700));
+      } else { lock = true; tm.push(setTimeout(() => { x.e.classList.add('down'); y.e.classList.add('down'); lock = false; }, 820)); }
+      paint();
+    };
+  });
+  function finish(){
+    const a = Math.max(40, GAME_MAX.mm - 20 * Math.max(0, moves - 10));
+    earn(a); Wal.best.mm = Math.max(Wal.best.mm || 0, a); wSave(); Snd.win();
+    $('mmEnd').innerHTML = `<div class="result"><b>+${fmt(a)}</b><span>${esc(t('mm_done', { n: moves }))}</span></div><div class="mg-btns"><button class="btn glass" data-hub="home">${esc(t('back'))}</button><button class="btn gold" id="mmAgain">${esc(t('mm_again'))}</button></div>`;
+    $('mmAgain').onclick = gameMM; coinBurst($('mmEnd').querySelector('b'));
+    $('mmEnd').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'end' });
+  }
+  paint();
+}
+
 window.addEventListener('resize', () => { if (!$('game').hidden) { layout(); render(true); } });
-window.addEventListener('beforeunload', e => { if (S.mode === 'host' && !S.solo && S.view && S.view.players.length > 1) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', e => { if (S.mode === 'host' && !S.solo && !S.closing && S.view && S.view.players.length > 1) { e.preventDefault(); e.returnValue = ''; } });
 applyLang();
 })();
 </script>

@@ -202,12 +202,14 @@
     160: { it: 520, noise: 0,    open: 0.30, call: 0.14, agg: 0.85, bluff: 0.14, loose: 0,    model: 2, pos: 1 },
   };
   const IQS = [70, 100, 130, 160];
+  // 机器人思考快慢：在默认的思考时间上乘这个倍数（秒出、快、正常、慢）
+  const PACES = [0.12, 0.4, 1, 2.2];
 
   const SEATS = 9;
 
   class Game {
     constructor(opts) {
-      this.settings = Object.assign({ sb: 5, bb: 10, startChips: 1000, turnTime: 30, autoNext: true }, opts.settings || {});
+      this.settings = Object.assign({ sb: 5, bb: 10, startChips: 1000, turnTime: 30, botPace: 1, autoNext: true }, opts.settings || {});
       this.now = opts.now || (() => Date.now());
       this.rnd = opts.rnd || Math.random;
       this.schedule = opts.schedule || ((fn, ms) => setTimeout(fn, ms));
@@ -263,6 +265,7 @@
       return true;
     }
     setIq(id, iq) { const p = this.byId(id); if (p && p.isBot && IQ[iq]) { p.iq = iq; this.changed(); } }
+    setPace(k) { if (PACES.includes(k)) { this.settings.botPace = k; this.changed(); } }
     setConnected(id, on) {
       const p = this.byId(id); if (!p) return;
       if (p.connected === on) return;
@@ -300,7 +303,8 @@
     start() { this.started = true; this.paused = false; this.maybeAutoStart(); this.changed(); }
     setPaused(v) {
       this.paused = v;
-      if (v) { this._timerGen++; this.nextAt = 0; }
+      // 暂停只拦下一手：正在打的这手照常打完（这时取消计时会让轮到的机器人永远不出手）
+      if (v) { if (!this.hand || this.hand.street === 'done') { this._timerGen++; this.nextAt = 0; } }
       else this.maybeAutoStart();
       this.changed();
     }
@@ -438,7 +442,7 @@
       const gen = ++this._timerGen;
       h.deadline = p.isBot ? 0 : this.now() + t;
       if (p.isBot) {
-        this.schedule(() => { if (gen === this._timerGen && h === this.hand && h.toAct === p.seat) this.botAct(p); }, 650 + (p.iq - 70) * 3 + this.rnd() * 1100);
+        this.schedule(() => { if (gen === this._timerGen && h === this.hand && h.toAct === p.seat) this.botAct(p); }, (650 + (p.iq - 70) * 3 + this.rnd() * 1100) * (PACES.includes(this.settings.botPace) ? this.settings.botPace : 1));
       } else {
         this.schedule(() => {
           if (gen === this._timerGen && h === this.hand && h.toAct === p.seat && h.street !== 'done') {
@@ -648,5 +652,5 @@
 
   function cardStr(c) { return RANK_CH[rankOf(c)].replace('T', '10') + SUIT_CH[suitOf(c)]; }
 
-  G.Poker = { Game, bestHand, eval5, score, equity, equityR, odds, pfPct, cardStr, rankOf, suitOf, RANK_CH, SUIT_CH, CAT_NAME, SEATS, IQS };
+  G.Poker = { Game, bestHand, eval5, score, equity, equityR, odds, pfPct, cardStr, rankOf, suitOf, RANK_CH, SUIT_CH, CAT_NAME, SEATS, IQS, PACES };
 })(typeof window !== 'undefined' ? window : globalThis);

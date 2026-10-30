@@ -506,6 +506,7 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
         <div class="opts">
           <span data-t="blinds"></span><div class="seg" id="optBlind2"></div>
           <span data-t="stack"></span><div class="seg" id="optChips2"></div>
+          <span data-t="botPace"></span><div class="seg" id="optPace"></div>
         </div>
         <button class="btn gold" id="btnSolo"><svg viewBox="0 0 24 24"><use href="#i-bot"/></svg><span data-t="soloBtn"></span></button>
       </div>
@@ -759,12 +760,14 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
     160: { it: 520, noise: 0,    open: 0.30, call: 0.14, agg: 0.85, bluff: 0.14, loose: 0,    model: 2, pos: 1 },
   };
   const IQS = [70, 100, 130, 160];
+  // 机器人思考快慢：在默认的思考时间上乘这个倍数（秒出、快、正常、慢）
+  const PACES = [0.12, 0.4, 1, 2.2];
 
   const SEATS = 9;
 
   class Game {
     constructor(opts) {
-      this.settings = Object.assign({ sb: 5, bb: 10, startChips: 1000, turnTime: 30, autoNext: true }, opts.settings || {});
+      this.settings = Object.assign({ sb: 5, bb: 10, startChips: 1000, turnTime: 30, botPace: 1, autoNext: true }, opts.settings || {});
       this.now = opts.now || (() => Date.now());
       this.rnd = opts.rnd || Math.random;
       this.schedule = opts.schedule || ((fn, ms) => setTimeout(fn, ms));
@@ -820,6 +823,7 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
       return true;
     }
     setIq(id, iq) { const p = this.byId(id); if (p && p.isBot && IQ[iq]) { p.iq = iq; this.changed(); } }
+    setPace(k) { if (PACES.includes(k)) { this.settings.botPace = k; this.changed(); } }
     setConnected(id, on) {
       const p = this.byId(id); if (!p) return;
       if (p.connected === on) return;
@@ -857,7 +861,8 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
     start() { this.started = true; this.paused = false; this.maybeAutoStart(); this.changed(); }
     setPaused(v) {
       this.paused = v;
-      if (v) { this._timerGen++; this.nextAt = 0; }
+      // 暂停只拦下一手：正在打的这手照常打完（这时取消计时会让轮到的机器人永远不出手）
+      if (v) { if (!this.hand || this.hand.street === 'done') { this._timerGen++; this.nextAt = 0; } }
       else this.maybeAutoStart();
       this.changed();
     }
@@ -995,7 +1000,7 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
       const gen = ++this._timerGen;
       h.deadline = p.isBot ? 0 : this.now() + t;
       if (p.isBot) {
-        this.schedule(() => { if (gen === this._timerGen && h === this.hand && h.toAct === p.seat) this.botAct(p); }, 650 + (p.iq - 70) * 3 + this.rnd() * 1100);
+        this.schedule(() => { if (gen === this._timerGen && h === this.hand && h.toAct === p.seat) this.botAct(p); }, (650 + (p.iq - 70) * 3 + this.rnd() * 1100) * (PACES.includes(this.settings.botPace) ? this.settings.botPace : 1));
       } else {
         this.schedule(() => {
           if (gen === this._timerGen && h === this.hand && h.toAct === p.seat && h.street !== 'done') {
@@ -1205,7 +1210,7 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
 
   function cardStr(c) { return RANK_CH[rankOf(c)].replace('T', '10') + SUIT_CH[suitOf(c)]; }
 
-  G.Poker = { Game, bestHand, eval5, score, equity, equityR, odds, pfPct, cardStr, rankOf, suitOf, RANK_CH, SUIT_CH, CAT_NAME, SEATS, IQS };
+  G.Poker = { Game, bestHand, eval5, score, equity, equityR, odds, pfPct, cardStr, rankOf, suitOf, RANK_CH, SUIT_CH, CAT_NAME, SEATS, IQS, PACES };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>// ===== 美术素材：花色、头像、筹码、印章（全部是矢量，组成一个全局 SVG sprite） =====
@@ -1543,7 +1548,7 @@ en: {
   rebuys:'{r} rebuys', rebuys1:'1 rebuy', away:'away', you:'you',
   leaveT:'Leave the table?', leaveHost:'You’re the host. Leaving closes the table for everyone. Chip counts stay on this phone, so you can reopen it later.', leavePlayer:'Your seat will be given up.', stay:'Stay', leave:'Leave',
   sayT:'Say something', ph:['Hurry up!','Nice hand!','I’m all in','Come at me','One more?','So lucky','Card dead…','Bluffing?'],
-  soloBtn:'Start practice', opps:'Opponents', botIq:'Bot IQ', mix:'Mixed', newBots:'New bots',
+  soloBtn:'Start practice', opps:'Opponents', botIq:'Bot IQ', mix:'Mixed', newBots:'New bots', botPace:'Bot speed', paceNames:['Instant','Fast','Normal','Slow'],
   iqNames:['Rookie','Regular','Shark','Genius'],
   iqDesc:['Plays far too many hands and calls almost anything.','Solid but predictable — bets when it has it.','Tight, aggressive, and reads what range you’re likely to hold.','Reads your betting, sets traps, and bluffs at the right moments.'],
   mixDesc:'A blend of all four levels: from Rookie to Genius.',
@@ -1610,7 +1615,7 @@ zh: {
   rebuys:'补码 {r} 次', rebuys1:'补码 1 次', away:'离线', you:'我',
   leaveT:'离开牌桌？', leaveHost:'你是房主，离开后整桌都会断开。筹码会保存在这台手机上，之后可以恢复牌桌。', leavePlayer:'你的座位会被移除。', stay:'再玩会', leave:'离开',
   sayT:'说点什么', ph:['快点吧～','好牌！','我全下了','放马过来','再来一局？','运气真好','手气太差了','你在诈唬吧'],
-  soloBtn:'开始练习', opps:'对手', botIq:'机器人智商', mix:'混合', newBots:'新机器人',
+  soloBtn:'开始练习', opps:'对手', botIq:'机器人智商', mix:'混合', newBots:'新机器人', botPace:'机器人速度', paceNames:['秒出','快','正常','慢'],
   iqNames:['新手','普通','高手','大师'],
   iqDesc:['什么牌都玩，几乎什么都跟。','中规中矩，有牌才下注，比较好猜。','紧凶型打法，会根据你的打法推测你的牌。','会读你的下注、设陷阱，还会挑时机诈唬。'],
   mixDesc:'四个档次混着来：从新手到大师。',
@@ -1766,6 +1771,7 @@ const optBlind = seg('optBlind', BLINDS, 'blind', '5/10'); seg('optBlind2', BLIN
 const optChips = seg('optChips', STACKS, 'chipsbb', 100); seg('optChips2', STACKS, 'chipsbb', 100);
 const optOpp = seg('optOpp', [1, 3, 5, 8].map(v => ({ t: String(v), v })), 'opp', 3);
 const optIq = seg('optIq', [{ t: () => t('mix'), v: 0 }].concat(IQS.map(v => ({ t: String(v), v }))), 'botiq', 0);
+const optPace = seg('optPace', P.PACES.map((v, i) => ({ t: () => t('paceNames')[i], v })), 'botpace', 1);
 // 练习：几个对手、什么水平（混合时四档轮着来）
 const soloPlan = (n, lv) => [...Array(n)].map((_, i) => lv || [100, 130, 70, 160][i % 4]);
 function paintSolo(){
@@ -1774,7 +1780,7 @@ function paintSolo(){
   $('lvDesc').innerHTML = lv ? `<b>${esc(t('iqNames')[lvOf(lv)])}</b> · ${esc(t('iqDesc')[lvOf(lv)])}` : esc(t('mixDesc'));
 }
 const optTime = seg('optTime', [{t:()=>lang==='zh'?'20 秒':'20s',v:20},{t:()=>lang==='zh'?'30 秒':'30s',v:30},{t:()=>lang==='zh'?'60 秒':'60s',v:60}], 'turn', 30);
-function settingsFromLobby(){ const [sb, bb] = optBlind().split('/').map(Number); return { sb, bb, startChips: bb * optChips(), turnTime: optTime() }; }
+function settingsFromLobby(){ const [sb, bb] = optBlind().split('/').map(Number); return { sb, bb, startChips: bb * optChips(), turnTime: optTime(), botPace: optPace() }; }
 function setTab(tab){
   const i = Math.max(0, ['join', 'host', 'solo'].indexOf(tab));
   $('tabs').dataset.i = i;
@@ -1854,7 +1860,7 @@ $('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('btnJo
 $('nick').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
 
 // ============================== 公共状态 ==============================
-const S = { mode: null, code: '', solo: false, view: null, viewAt: 0, myId: null, act: null, emote: null, rebuy: null, leave: null };
+const S = { mode: null, code: '', solo: false, view: null, viewAt: 0, myId: null, act: null, emote: null, rebuy: null, leave: null, onBye: null };
 let hostApi = null;
 
 function enterGame(){
@@ -1958,6 +1964,7 @@ function startHost(cfg){
       if (!game.addPlayer({ id: 'bot' + rid(5), name: nm, isBot: true, iq, avatar: av ?? Math.floor(Math.random() * 4) })) toast(t('full'));
     },
     setIq(pid, iq){ game.setIq(pid, iq); },
+    setPace(k){ game.setPace(k); },
     kick(pid){ const c = conns.get(pid), p = game.byId(pid); if (c) { try { c.send({ t: 'kicked', chips: p ? p.chips : 0 }); } catch(e){} setTimeout(() => { try { c.close(); } catch(e){} }, 300); conns.delete(pid); } game.removePlayer(pid); },
     togglePause(){ game.setPaused(!game.paused); },
     toggleLock(){ locked = !locked; toast(t(locked ? 'lockedT' : 'unlockedT'), 3200); },
@@ -1998,7 +2005,7 @@ function startHost(cfg){
     else if (msg.t === 'act') { const r = game.act(pid, { type: String(msg.a), to: +msg.to }); if (r !== 'ok') conn.send({ t: 'err', code: 'cant' }); }
     else if (msg.t === 'emote') { const e = String(msg.e || ''); if (/^(e(1[01]|\d)|p[0-7])$/.test(e)) broadcastEmote(p.seat, e); }
     else if (msg.t === 'rebuy') { const a = msg.a == null ? undefined : Math.max(1, Math.floor(+msg.a) || 0); if (game.rebuy(pid, a)) { try { conn.send({ t: 'rebought', a: p.chips }); } catch(e){} } }
-    else if (msg.t === 'leave') { conns.delete(pid); game.removePlayer(pid); }
+    else if (msg.t === 'leave') { conns.delete(pid); game.removePlayer(pid); try { conn.send({ t: 'bye' }); } catch(e){} }
   }
   let tries = 0;
   function openPeer(){
@@ -2048,8 +2055,16 @@ function startClient(code){
   S.emote = e => send({ t: 'emote', e });
   S.rebuy = a => send({ t: 'rebuy', a });
   S.leave = () => {
-    dead = true; try { conn && conn.open && conn.send({ t: 'leave' }); } catch(e){} setTimeout(() => { try { peer && peer.destroy(); } catch(e){} }, 300);
+    dead = true;
     if (Wal.seat && Wal.seat.code === code) { const my = me(); if (my) Wal.seat.chips = my.chips; abandonSeat(); }
+    // 等房主回一声再断开（最多 1.5 秒），免得“离桌”还没发出去页面就刷新了，桌上留个空座
+    return new Promise(res => {
+      const done = () => { clearTimeout(tm); S.onBye = null; setTimeout(() => { try { peer && peer.destroy(); } catch(e){} }, 100); res(); };
+      const tm = setTimeout(done, 1500);
+      if (!conn || !conn.open) return done();
+      S.onBye = done;
+      try { conn.send({ t: 'leave' }); } catch(e){ done(); }
+    });
   };
   function connect(){
     if (dead) return;
@@ -2086,6 +2101,7 @@ function startClient(code){
       else if (m.t === 'state') { if (S.myId) setNet(true); onView(m.v); }
       else if (m.t === 'emote') showBubble(m.seat, m.e);
       else if (m.t === 'err') toast(t(m.code) || t('cant'), 3200);
+      else if (m.t === 'bye') { if (S.onBye) S.onBye(); }
       else if (m.t === 'kicked') { dead = true; if (Wal.seat && Wal.seat.code === code) { if (m.chips != null) Wal.seat.chips = m.chips | 0; seatSettle(); } setNet(false, 'kicked'); }
     });
     c.on('close', () => { if (c === conn && !dead) { setNet(false, 'netBad'); retry(1500); } });
@@ -2713,7 +2729,7 @@ $('btnExit').onclick = () => {
   openSheet(`<h3>${esc(t('leaveT'))}</h3><p class="sub">${esc(S.mode === 'host' && !S.solo ? t('leaveHost') : t('leavePlayer'))}</p>
     <div class="grid2"><button class="btn glass" id="sNo">${esc(t('stay'))}</button><button class="btn" style="background:linear-gradient(180deg,#5b1e25,#3d1218);color:#ffc9cd" id="sYes">${esc(t('leave'))}</button></div>`);
   $('sNo').onclick = closeSheet;
-  $('sYes').onclick = () => { if (S.leave) S.leave(); setTimeout(() => { try { history.replaceState(null, '', location.pathname + location.search); } catch(e){} location.reload(); }, 350); };
+  $('sYes').onclick = () => { $('sYes').disabled = true; Promise.resolve(S.leave && S.leave()).then(() => setTimeout(() => { try { history.replaceState(null, '', location.pathname + location.search); } catch(e){} location.reload(); }, 350)); };
 };
 $('btnChat').onclick = () => {
   openSheet(`<h3>${esc(t('sayT'))}</h3><div class="emos">${EMOS.map((e, i) => `<button data-e="e${i}">${e}</button>`).join('')}</div><div class="phr">${t('ph').map((p, i) => `<button data-e="p${i}">${esc(p)}</button>`).join('')}</div>`);
@@ -2731,6 +2747,8 @@ function logLine(e){
   }
 }
 $('btnMenu').onclick = () => openMenu();
+// 改完设置后重画菜单，停在原来的滚动位置
+const reMenu = () => setTimeout(() => { const sh = document.querySelector('#sheet .sheet'), y = sh ? sh.scrollTop : 0; openMenu(); const n = document.querySelector('#sheet .sheet'); if (n) n.scrollTop = y; }, 30);
 function openMenu(){
   const v = S.view; if (!v) return;
   const host = S.mode === 'host';
@@ -2745,7 +2763,8 @@ function openMenu(){
   const lines = v.log.map(logLine).join('<br>').replace(/<br><div/g, '<div').replace(/<\/div><br>/g, '</div>');
   openSheet(`<div class="grab"></div><h3>${esc(t('menuTitle'))}</h3><p class="sub">${esc(t('menuSub', { b: v.settings.sb + '/' + v.settings.bb, s: fmt(v.settings.startChips) }))} · ${esc(t('myPts', { a: Wal.inf ? '∞' : fmt(Wal.bal) }))}</p>
     <div class="plist">${rows}</div>
-    ${host ? `<div class="opts"><span>${esc(t('newBots'))}</span><div class="seg" id="mIq">${[0].concat(IQS).map(q => `<button data-lv="${q}" class="${nb === q ? 'on' : ''}">${q ? q : esc(t('mix'))}</button>`).join('')}</div></div>
+    ${host ? `<div class="opts"><span>${esc(t('newBots'))}</span><div class="seg" id="mIq">${[0].concat(IQS).map(q => `<button data-lv="${q}" class="${nb === q ? 'on' : ''}">${q ? q : esc(t('mix'))}</button>`).join('')}</div>
+      <span>${esc(t('botPace'))}</span><div class="seg" id="mPace">${P.PACES.map((k, i) => `<button data-pace="${k}" class="${v.settings.botPace === k ? 'on' : ''}">${esc(t('paceNames')[i])}</button>`).join('')}</div></div>
       ${v.players.some(p => p.isBot) ? `<p class="hintx" style="margin:-8px 0 0">${esc(t('iqTap'))}</p>` : ''}` : ''}
     ${host ? `<div class="grid2"><button class="btn glass sm" id="mBot"><svg viewBox="0 0 24 24"><use href="#i-bot"/></svg>${esc(t('addBot'))}</button>
       <button class="btn glass sm" id="mPause"><svg viewBox="0 0 24 24"><use href="#i-${v.paused || !v.started ? 'play' : 'pause'}"/></svg>${esc(!v.started ? t('deal') : v.paused ? t('resumeG') : t('pause'))}</button>
@@ -2777,9 +2796,9 @@ function openMenu(){
     document.querySelectorAll('#mIq [data-lv]').forEach(b => b.onclick = () => { store.set('botiq', +b.dataset.lv); openMenu(); });
     document.querySelectorAll('[data-iq]').forEach(b => b.onclick = () => {
       const p = v.players.find(x => x.id === b.dataset.iq); if (!p) return;
-      hostApi.setIq(p.id, IQS[(IQS.indexOf(p.iq) + 1) % IQS.length]);
-      setTimeout(() => { const sh = document.querySelector('#sheet .sheet'), y = sh ? sh.scrollTop : 0; openMenu(); const n = document.querySelector('#sheet .sheet'); if (n) n.scrollTop = y; }, 30);
+      hostApi.setIq(p.id, IQS[(IQS.indexOf(p.iq) + 1) % IQS.length]); reMenu();
     });
+    document.querySelectorAll('#mPace [data-pace]').forEach(b => b.onclick = () => { const k = +b.dataset.pace; store.set('botpace', k); hostApi.setPace(k); reMenu(); });
   }
 }
 function openSheet(inner){

@@ -129,6 +129,7 @@
       this.paused = false;
       this.nextAt = 0;
       this._timerGen = 0;
+      this.actSeq = 0;
     }
 
     // ---------- 座位 ----------
@@ -139,9 +140,9 @@
       let seat = 0; while (this.bySeat(seat)) seat++;
       const p = { id, name, isBot: !!isBot, token, avatar: avatar || 0, seat, chips: this.settings.startChips, rebuys: 0,
         connected: true, inHand: false, folded: false, allIn: false, bet: 0, committed: 0, acted: false, canRaise: true,
-        hole: [], lastAction: '', showCards: false, net: 0 };
+        hole: [], lastAction: '', actSeq: 0, showCards: false, net: 0 };
       this.players.push(p);
-      this.addLog(`${name} 入座`);
+      this.addLog({ k: 'join', n: name });
       this.changed();
       this.maybeAutoStart();
       return p;
@@ -150,31 +151,33 @@
       const p = this.byId(id); if (!p) return;
       if (p.inHand && !p.folded && this.hand && this.hand.street !== 'done') {
         if (this.hand.toAct === p.seat) { this.act(p.id, { type: 'fold' }); }
-        else { p.folded = true; p.lastAction = '弃牌'; }
+        else { p.folded = true; p.lastAction = 'fold'; p.actSeq = ++this.actSeq; }
       }
       // 已投入的筹码留在底池里：把玩家留到这手结束再删
       if (p.inHand && this.hand && this.hand.street !== 'done') { p.leaving = true; this.afterExternalFold(); }
       else this.players = this.players.filter(x => x !== p);
-      this.addLog(`${p.name} 离开了牌桌`);
+      this.addLog({ k: 'leave', n: p.name });
       this.changed();
     }
     rebuy(id) {
       const p = this.byId(id);
       if (!p || p.chips > 0 || (p.inHand && this.hand && this.hand.street !== 'done')) return false;
       p.chips = this.settings.startChips; p.rebuys++;
-      this.addLog(`${p.name} 补充了 ${this.settings.startChips} 筹码`);
+      this.addLog({ k: 'rebuy', n: p.name, a: this.settings.startChips });
       this.changed(); this.maybeAutoStart();
       return true;
     }
     setConnected(id, on) {
       const p = this.byId(id); if (!p) return;
+      if (p.connected === on) return;
       p.connected = on;
-      if (!on && this.hand && this.hand.toAct === p.seat) this.setDeadline(p);
+      // 掉线时缩短等待；连回来时重新给满时间
+      if (this.hand && this.hand.street !== 'done' && this.hand.toAct === p.seat) this.setDeadline(p);
       this.changed();
       if (on) this.maybeAutoStart();
     }
 
-    addLog(s) { this.log.push(s); if (this.log.length > 60) this.log.shift(); }
+    addLog(e) { this.log.push(e); if (this.log.length > 80) this.log.shift(); }
     changed() { this.onChange(); }
 
     eligible() {
@@ -214,7 +217,7 @@
       if (el.length < 2 || this.paused) { this.hand = null; this.changed(); return; }
       this.handNum++;
       for (const p of this.players) {
-        Object.assign(p, { inHand: false, folded: false, allIn: false, bet: 0, committed: 0, acted: false, canRaise: true, hole: [], lastAction: '', showCards: false, net: 0, won: 0, best: null });
+        Object.assign(p, { inHand: false, folded: false, allIn: false, bet: 0, committed: 0, acted: false, canRaise: true, hole: [], lastAction: '', actSeq: 0, showCards: false, net: 0, won: 0, best: null });
       }
       el.forEach(p => p.inHand = true);
       this.dealerSeat = this.nextSeat(this.dealerSeat, el);
@@ -228,9 +231,9 @@
       const order = [];
       let s = sbSeat; for (let i = 0; i < el.length; i++) { order.push(this.bySeat(s)); s = this.nextSeat(s, el); }
       for (let r = 0; r < 2; r++) for (const p of order) p.hole.push(deck.pop());
-      this.addLog(`—— 第 ${this.handNum} 手 ——`);
-      this.post(this.bySeat(sbSeat), this.settings.sb, '小盲');
-      this.post(this.bySeat(bbSeat), this.settings.bb, '大盲');
+      this.addLog({ k: 'hand', h: this.handNum });
+      this.post(this.bySeat(sbSeat), this.settings.sb, 'sb');
+      this.post(this.bySeat(bbSeat), this.settings.bb, 'bb');
       this.hand.curBet = this.settings.bb;
       this.hand.minRaise = this.settings.bb;
       this.hand.toAct = bbSeat;
@@ -240,7 +243,7 @@
       const a = Math.min(amt, p.chips);
       p.chips -= a; p.bet += a; p.committed += a;
       if (p.chips === 0) p.allIn = true;
-      p.lastAction = label;
+      p.lastAction = label; p.actSeq = ++this.actSeq;
     }
 
     inHand() { return this.players.filter(p => p.inHand && !p.folded); }
@@ -268,15 +271,15 @@
       if (type === 'call' && L.toCall === 0) type = 'check';
       if (type === 'raise' && !L.canRaise) type = L.toCall ? 'call' : 'check';
       if (type === 'fold') {
-        p.folded = true; p.lastAction = '弃牌';
-        this.addLog(`${p.name} 弃牌`);
+        p.folded = true; p.lastAction = 'fold';
+        this.addLog({ k: 'fold', n: p.name });
       } else if (type === 'check') {
-        p.lastAction = '过牌'; this.addLog(`${p.name} 过牌`);
+        p.lastAction = 'check'; this.addLog({ k: 'check', n: p.name });
       } else if (type === 'call') {
         const c = L.toCall;
         p.chips -= c; p.bet += c; p.committed += c;
-        if (p.chips === 0) { p.allIn = true; p.lastAction = '全押'; } else p.lastAction = '跟注';
-        this.addLog(`${p.name} ${p.allIn ? '全押跟注' : '跟注'} ${c}`);
+        if (p.chips === 0) { p.allIn = true; p.lastAction = 'allin'; } else p.lastAction = 'call';
+        this.addLog({ k: p.allIn ? 'callAllin' : 'call', n: p.name, a: c });
       } else if (type === 'raise') {
         let to = Math.floor(Number(a.to) || 0);
         to = Math.max(L.minTo, Math.min(L.maxTo, to));
@@ -292,10 +295,10 @@
           for (const o of this.players) if (o !== p && o.inHand) { if (o.acted) o.canRaise = false; o.acted = false; }
         }
         h.curBet = to;
-        p.lastAction = p.allIn ? '全押' : (wasBet ? '下注' : '加注');
-        this.addLog(`${p.name} ${p.lastAction} 到 ${to}`);
+        p.lastAction = p.allIn ? 'allin' : (wasBet ? 'bet' : 'raise');
+        this.addLog({ k: p.lastAction, n: p.name, a: to });
       } else return 'bad-action';
-      p.acted = true;
+      p.acted = true; p.actSeq = ++this.actSeq;
       this.advance(p.seat);
       return 'ok';
     }
@@ -334,7 +337,7 @@
         this.schedule(() => {
           if (gen === this._timerGen && h === this.hand && h.toAct === p.seat && h.street !== 'done') {
             const L = this.legal(p);
-            this.addLog(`${p.name} 超时`);
+            this.addLog({ k: 'timeout', n: p.name });
             this.act(p.id, { type: L && L.canCheck ? 'check' : 'fold' });
           }
         }, t);
@@ -354,10 +357,10 @@
       this.changed();
       const gen = ++this._timerGen;
       if (runout) {
-        this.schedule(() => { if (gen === this._timerGen) this.endStreet(); }, 1400);
+        this.schedule(() => { if (gen === this._timerGen) this.endStreet(); }, 1700);
       } else {
         for (const p of this.players) if (p.inHand && !p.folded && !p.allIn) p.lastAction = '';
-        this.schedule(() => { if (gen === this._timerGen) this.advance(h.dealer); }, 500);
+        this.schedule(() => { if (gen === this._timerGen) this.advance(h.dealer); }, 750);
       }
     }
     dealNext() {
@@ -366,15 +369,15 @@
       if (h.street === 'preflop') { h.board.push(d.pop(), d.pop(), d.pop()); h.street = 'flop'; }
       else if (h.street === 'flop') { h.board.push(d.pop()); h.street = 'turn'; }
       else if (h.street === 'turn') { h.board.push(d.pop()); h.street = 'river'; }
-      this.addLog(`${{ flop: '翻牌', turn: '转牌', river: '河牌' }[h.street]}：${h.board.map(cardStr).join(' ')}`);
+      this.addLog({ k: 'street', s: h.street, b: h.board.slice() });
     }
 
     finishUncontested(w) {
       const h = this.hand;
       const total = this.players.reduce((s, p) => s + p.committed, 0);
       w.chips += total; w.won = total;
-      h.results = [{ amount: total, winners: [w.seat], name: '' }];
-      this.addLog(`${w.name} 赢得 ${total}（其他人弃牌）`);
+      h.results = [{ amount: total, winners: [w.seat], cat: -1 }];
+      this.addLog({ k: 'winFold', n: w.name, a: total });
       this.endHand();
     }
 
@@ -410,8 +413,8 @@
         const ws = pt.elig.filter(p => p.best.score === top).sort((a, b) => orderFromDealer(a) - orderFromDealer(b));
         const share = Math.floor(pt.amount / ws.length); let odd = pt.amount - share * ws.length;
         for (const w of ws) { const g = share + (odd > 0 ? 1 : 0); odd--; w.chips += g; w.won = (w.won || 0) + g; }
-        h.results.push({ amount: pt.amount, winners: ws.map(w => w.seat), name: ws[0].best.name, side: i > 0 });
-        this.addLog(`${i ? '边池' : '主池'} ${pt.amount}：${ws.map(w => w.name).join('、')} 以${ws[0].best.name}获胜`);
+        h.results.push({ amount: pt.amount, winners: ws.map(w => w.seat), cat: ws[0].best.cat, side: i > 0 });
+        this.addLog({ k: 'pot', side: i > 0, ns: ws.map(w => w.name), a: pt.amount, cat: ws[0].best.cat });
       });
       this.endHand();
     }
@@ -424,7 +427,7 @@
       this.changed();
       if (this.settings.autoNext && !this.paused) {
         const gen = ++this._timerGen;
-        const wait = h.results && h.results.some(r => r.name) ? 6500 : 3500;
+        const wait = h.results && h.results.some(r => r.cat >= 0) ? 7000 : 4000;
         this.nextAt = this.now() + wait;
         this.schedule(() => { if (gen === this._timerGen) { this.nextAt = 0; this.startHand(); } }, wait);
       }
@@ -464,17 +467,17 @@
       return {
         settings: this.settings, started: !!this.started, paused: this.paused, handNum: this.handNum,
         nextIn: this.nextAt ? Math.max(0, this.nextAt - this.now()) : 0,
-        hand: h && { street: h.street, board: h.board, dealer: h.dealer, sb: h.sbSeat, bb: h.bbSeat, toAct: h.toAct,
+        hand: h && { num: this.handNum, street: h.street, board: h.board, dealer: h.dealer, sb: h.sbSeat, bb: h.bbSeat, toAct: h.toAct,
           curBet: h.curBet, pot: h.pot, results: h.results, deadlineIn: h.deadline ? Math.max(0, h.deadline - this.now()) : 0 },
         players: this.players.map(p => ({
           id: p.id, seat: p.seat, name: p.name, avatar: p.avatar, chips: p.chips, bet: p.bet, isBot: p.isBot, connected: p.connected,
-          inHand: p.inHand, folded: p.folded, allIn: p.allIn, lastAction: p.lastAction, rebuys: p.rebuys,
+          inHand: p.inHand, folded: p.folded, allIn: p.allIn, lastAction: p.lastAction, actSeq: p.actSeq, rebuys: p.rebuys,
           won: p.won || 0, net: done ? p.net : 0,
           hole: (p.id === id || (p.showCards && !p.folded)) ? p.hole : (p.inHand && p.hole.length ? [-1, -1] : []),
-          best: (p.showCards && !p.folded && p.best) ? { name: p.best.name, cards: p.best.cards } : null,
+          best: (p.showCards && !p.folded && p.best) ? { cat: p.best.cat, cards: p.best.cards } : null,
         })),
         me: me ? { seat: me.seat, legal: me && h ? this.legal(me) : null,
-          handName: h && me.hole.length && h.board.length ? bestHand(me.hole.concat(h.board)).name : '' } : null,
+          handCat: h && me.hole.length && h.board.length ? bestHand(me.hole.concat(h.board)).cat : -1 } : null,
         log: this.log.slice(-30),
       };
     }

@@ -245,7 +245,7 @@
     removePlayer(id) {
       const p = this.byId(id); if (!p) return;
       if (p.inHand && !p.folded && this.hand && this.hand.street !== 'done') {
-        if (this.hand.toAct === p.seat) { this.act(p.id, { type: 'fold' }); }
+        if (this.hand.toAct === p.seat) { this.act(p.id, { type: 'fold' }, true); }
         else { p.folded = true; p.lastAction = 'fold'; p.actSeq = ++this.actSeq; }
       }
       // 已投入的筹码留在底池里：把玩家留到这手结束再删
@@ -295,17 +295,38 @@
       if (this.nextAt) return;
       if (this.eligible().length >= 2) {
         this.nextAt = this.now() + 1500;
-        const gen = ++this._timerGen;
-        this.schedule(() => { if (gen === this._timerGen) { this.nextAt = 0; this.startHand(); } }, 1500);
+        this.later(() => { this.nextAt = 0; this.startHand(); }, 1500);
       }
     }
 
     start() { this.started = true; this.paused = false; this.maybeAutoStart(); this.changed(); }
+    // 所有计时都走这里。同一时刻只有一个有效计时（新的作废旧的），暂停时把它冻住，恢复后按剩下的时间接着走
+    later(fn, ms) {
+      const gen = ++this._timerGen;
+      if (this.paused) { this._live = null; this._frozen = { fn, left: ms }; return; }
+      this._live = { gen, fn, due: this.now() + ms };
+      this.schedule(() => { if (gen === this._timerGen) { this._live = null; fn(); } }, ms);
+    }
+    // 暂停：整桌原地冻住，谁的倒计时都不走、机器人不出手、没人会被超时弃牌；恢复后从停下的地方接着来
     setPaused(v) {
-      this.paused = v;
-      // 暂停只拦下一手：正在打的这手照常打完（这时取消计时会让轮到的机器人永远不出手）
-      if (v) { if (!this.hand || this.hand.street === 'done') { this._timerGen++; this.nextAt = 0; } }
-      else this.maybeAutoStart();
+      v = !!v; if (v === this.paused) return;
+      const h = this.hand, live = !!(h && h.street !== 'done');
+      if (v) {
+        const L = this._live;
+        this._frozen = live && L && L.gen === this._timerGen ? { fn: L.fn, left: Math.max(0, L.due - this.now()) } : null;
+        this._timerGen++; this._live = null; this.nextAt = 0;
+        if (live && h.deadline) { h.left = Math.max(0, h.deadline - this.now()); h.deadline = 0; }
+        this.paused = true;
+      } else {
+        this.paused = false;
+        const f = this._frozen; this._frozen = null;
+        if (live && f) {
+          const ms = Math.max(f.left, 600);   // 刚恢复时留一点反应时间
+          if (h.left) { h.deadline = this.now() + Math.max(h.left, 600); h.left = 0; }
+          this.later(f.fn, ms);
+        } else if (live) { const p = h.toAct >= 0 && this.bySeat(h.toAct); if (p) this.setDeadline(p); }
+        else this.maybeAutoStart();
+      }
       this.changed();
     }
 
@@ -368,7 +389,8 @@
       return { toCall, canCheck: toCall === 0, canRaise, minTo, maxTo, curBet: h.curBet, myBet: p.bet };
     }
 
-    act(id, a) {
+    act(id, a, force) {
+      if (this.paused && !force) return 'paused';
       const p = this.byId(id), h = this.hand;
       if (!p || !h || h.street === 'done' || h.toAct !== p.seat) return 'not-your-turn';
       const L = this.legal(p);
@@ -439,16 +461,16 @@
     setDeadline(p) {
       const h = this.hand;
       const t = p.isBot ? 0 : (p.connected ? this.settings.turnTime * 1000 : 6000);
-      const gen = ++this._timerGen;
-      h.deadline = p.isBot ? 0 : this.now() + t;
+      h.deadline = p.isBot || this.paused ? 0 : this.now() + t;
+      h.left = p.isBot || !this.paused ? 0 : t;
       if (p.isBot) {
-        this.schedule(() => { if (gen === this._timerGen && h === this.hand && h.toAct === p.seat) this.botAct(p); }, (650 + (p.iq - 70) * 3 + this.rnd() * 1100) * (PACES.includes(this.settings.botPace) ? this.settings.botPace : 1));
+        this.later(() => { if (h === this.hand && h.toAct === p.seat) this.botAct(p); }, (650 + (p.iq - 70) * 3 + this.rnd() * 1100) * (PACES.includes(this.settings.botPace) ? this.settings.botPace : 1));
       } else {
-        this.schedule(() => {
-          if (gen === this._timerGen && h === this.hand && h.toAct === p.seat && h.street !== 'done') {
+        this.later(() => {
+          if (h === this.hand && h.toAct === p.seat && h.street !== 'done') {
             const L = this.legal(p);
             this.addLog({ k: 'timeout', n: p.name });
-            this.act(p.id, { type: L && L.canCheck ? 'check' : 'fold' });
+            this.act(p.id, { type: L && L.canCheck ? 'check' : 'fold' }, true);
           }
         }, t);
       }
@@ -458,19 +480,18 @@
       const h = this.hand;
       for (const p of this.players) { p.bet = 0; p.acted = false; p.canRaise = true; }
       h.pot = this.players.reduce((s, p) => s + p.committed, 0);
-      h.curBet = 0; h.minRaise = this.settings.bb; h.nr = 0; h.toAct = -1; h.deadline = 0;
+      h.curBet = 0; h.minRaise = this.settings.bb; h.nr = 0; h.toAct = -1; h.deadline = 0; h.left = 0;
       const canAct = this.inHand().filter(p => !p.allIn);
       if (h.street === 'river') return this.showdown();
       const runout = canAct.length <= 1;
       if (runout) for (const p of this.inHand()) p.showCards = true; // 全押摊牌：亮牌发完
       this.dealNext();
       this.changed();
-      const gen = ++this._timerGen;
       if (runout) {
-        this.schedule(() => { if (gen === this._timerGen) this.endStreet(); }, 1700);
+        this.later(() => this.endStreet(), 1700);
       } else {
         for (const p of this.players) if (p.inHand && !p.folded && !p.allIn) p.lastAction = '';
-        this.schedule(() => { if (gen === this._timerGen) this.advance(h.dealer); }, 750);
+        this.later(() => this.advance(h.dealer), 750);
       }
     }
     dealNext() {
@@ -531,15 +552,14 @@
 
     endHand() {
       const h = this.hand;
-      h.street = 'done'; h.toAct = -1; h.deadline = 0;
+      h.street = 'done'; h.toAct = -1; h.deadline = 0; h.left = 0;
       for (const p of this.players) { p.net = (p.won || 0) - p.committed; p.bet = 0; }
       h.pot = 0;
       this.changed();
       if (this.settings.autoNext && !this.paused) {
-        const gen = ++this._timerGen;
         const wait = h.results && h.results.some(r => r.cat >= 0) ? 7000 : 4000;
         this.nextAt = this.now() + wait;
-        this.schedule(() => { if (gen === this._timerGen) { this.nextAt = 0; this.startHand(); } }, wait);
+        this.later(() => { this.nextAt = 0; this.startHand(); }, wait);
       }
     }
 
@@ -549,7 +569,7 @@
       if (!L) return;
       let a;
       try { a = this.botDecide(p, L); } catch (e) { a = { type: L.canCheck ? 'check' : 'fold' }; }
-      return this.act(p.id, a);
+      return this.act(p.id, a, true);
     }
     botDecide(p, L) {
       const h = this.hand, lv = IQ[p.iq] || IQ[100], r = this.rnd(), bb = this.settings.bb, sb = this.settings.sb;
@@ -635,7 +655,7 @@
         settings: this.settings, started: !!this.started, paused: this.paused, handNum: this.handNum,
         nextIn: this.nextAt ? Math.max(0, this.nextAt - this.now()) : 0,
         hand: h && { num: this.handNum, street: h.street, board: h.board, dealer: h.dealer, sb: h.sbSeat, bb: h.bbSeat, toAct: h.toAct,
-          curBet: h.curBet, pot: h.pot, results: h.results, deadlineIn: h.deadline ? Math.max(0, h.deadline - this.now()) : 0 },
+          curBet: h.curBet, pot: h.pot, results: h.results, deadlineIn: h.deadline ? Math.max(0, h.deadline - this.now()) : 0, frozenIn: h.left || 0 },
         players: this.players.map(p => ({
           id: p.id, seat: p.seat, name: p.name, avatar: p.avatar, chips: p.chips, bet: p.bet, isBot: p.isBot, iq: p.iq, connected: p.connected,
           inHand: p.inHand, folded: p.folded, allIn: p.allIn, lastAction: p.lastAction, actSeq: p.actSeq, rebuys: p.rebuys,
@@ -643,7 +663,7 @@
           hole: (p.id === id || (p.showCards && !p.folded)) ? p.hole : (p.inHand && p.hole.length ? [-1, -1] : []),
           best: (p.showCards && !p.folded && p.best) ? { cat: p.best.cat, cards: p.best.cards } : null,
         })),
-        me: me ? { seat: me.seat, legal: me && h ? this.legal(me) : null,
+        me: me ? { seat: me.seat, legal: me && h && !this.paused ? this.legal(me) : null,
           handCat: h && me.hole.length && h.board.length ? bestHand(me.hole.concat(h.board)).cat : -1 } : null,
         log: this.log.slice(-30),
       };

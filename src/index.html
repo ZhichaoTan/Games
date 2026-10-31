@@ -579,7 +579,7 @@ en: {
   opened:'Table {c} is open — share the code!',
   hostWait:'Share the code, add bots if you like, then deal.', clientWait:'Waiting for the host to deal…',
   deal:'Deal', addBot:'Add bot', inviteBtn:'Invite', needTwo:'You need two players — add a bot?',
-  paused:'Paused by the host', thinking:'{n} is thinking…', dealing:'Dealing…', nextIn:'Next hand in {s}s', nextSoon:'Next hand coming up',
+  paused:'Paused by the host', pausedMe:'Paused', thinking:'{n} is thinking…', dealing:'Dealing…', nextIn:'Next hand in {s}s', nextSoon:'Next hand coming up',
   nextHand:'You’re in from the next hand', busted:'You’re out of chips', rebuy:'Rebuy {a}', yourTurn:'Your turn',
   fold:'Fold', check:'Check', call:'Call', allin:'All-in', bet:'Bet', raiseTo:'Raise to', sureFold:'Fold?',
   preCF:'Check / Fold', preFold:'Fold', preCheck:'Check', preCall:'Call {a}',
@@ -646,7 +646,7 @@ zh: {
   opened:'牌桌 {c} 已开好，把房间码发给朋友吧！',
   hostWait:'分享房间码，想加机器人也可以，然后开始发牌。', clientWait:'等房主开始发牌…',
   deal:'发牌', addBot:'加机器人', inviteBtn:'邀请', needTwo:'至少要 2 个人，加个机器人？',
-  paused:'房主暂停了牌局', thinking:'{n} 正在思考…', dealing:'发牌中…', nextIn:'下一手 {s} 秒后开始', nextSoon:'下一手马上开始',
+  paused:'房主暂停了牌局', pausedMe:'已暂停', thinking:'{n} 正在思考…', dealing:'发牌中…', nextIn:'下一手 {s} 秒后开始', nextSoon:'下一手马上开始',
   nextHand:'下一手开始加入', busted:'筹码输光了', rebuy:'补充 {a} 筹码', yourTurn:'轮到你了',
   fold:'弃牌', check:'过牌', call:'跟注', allin:'全押', bet:'下注', raiseTo:'加注到', sureFold:'确定弃牌？',
   preCF:'过牌/弃牌', preFold:'弃牌', preCheck:'过牌', preCall:'跟注 {a}',
@@ -993,7 +993,7 @@ function startHost(cfg){
     sync();
   }, 3000);
 
-  S.act = a => { const r = game.act('host', a); if (r !== 'ok') toast(t('cant')); };
+  S.act = a => { const r = game.act('host', a); if (r !== 'ok') toast(r === 'paused' ? pausedTxt() : t('cant')); };
   S.emote = e => broadcastEmote(game.byId('host').seat, e);
   S.rebuy = a => { if (game.rebuy('host', a)) seatRebuy(game.byId('host').chips); };
   S.leave = () => {
@@ -1052,7 +1052,7 @@ function startHost(cfg){
     seen.set(pid, Date.now());
     const p = game.byId(pid); if (!p) return;
     if (msg.t === 'ping') { try { conn.send({ t: 'pong' }); } catch(e){} }
-    else if (msg.t === 'act') { const r = game.act(pid, { type: String(msg.a), to: +msg.to }); if (r !== 'ok') conn.send({ t: 'err', code: 'cant' }); }
+    else if (msg.t === 'act') { const r = game.act(pid, { type: String(msg.a), to: +msg.to }); if (r !== 'ok') conn.send({ t: 'err', code: r === 'paused' ? 'paused' : 'cant' }); }
     else if (msg.t === 'emote') { const e = String(msg.e || ''); if (/^(e(1[01]|\d)|p[0-7])$/.test(e)) broadcastEmote(p.seat, e); }
     else if (msg.t === 'rebuy') { const a = msg.a == null ? undefined : Math.max(1, Math.floor(+msg.a) || 0); if (game.rebuy(pid, a)) { try { conn.send({ t: 'rebought', a: p.chips }); } catch(e){} } }
     else if (msg.t === 'leave') { conns.delete(pid); game.removePlayer(pid); try { conn.send({ t: 'bye' }); } catch(e){} }
@@ -1602,7 +1602,7 @@ function renderBanner(prev, full){
     }).join('');
     key = 'r' + h.num;
   } else if (!v.started) { html = `<div class="b0">${esc(t(S.mode === 'host' ? 'hostWait' : 'clientWait'))}</div>`; key = 'w' + lang; }
-  else if (v.paused) { html = `<div class="b0">${esc(t('paused'))}</div>`; key = 'p' + lang; }
+  else if (v.paused && !(h && h.street !== 'done')) { html = `<div class="b0">${esc(pausedTxt())}</div>`; key = 'p' + S.mode + lang; }   // 打到一半暂停时只在操作台提示，免得压住桌上的筹码
   else if (!h && v.players.filter(p => p.chips > 0 && (p.connected || p.isBot)).length < 2) { html = `<div class="b0">${esc(t('needTwo'))}</div>`; key = 'n' + lang; }
   if (el._key !== key + lang) {
     el._key = key + lang; el.innerHTML = html;
@@ -1618,8 +1618,8 @@ function tick(){
   const h = v.hand;
   for (const p of v.players) {
     const o = seatMap.get(p.id); if (!o) continue;
-    if (h.street !== 'done' && h.toAct === p.seat && h.deadlineIn) {
-      const left = h.deadlineIn - (performance.now() - S.viewAt), total = v.settings.turnTime * 1000;
+    if (h.street !== 'done' && h.toAct === p.seat && (h.deadlineIn || h.frozenIn)) {
+      const left = h.frozenIn || h.deadlineIn - (performance.now() - S.viewAt), total = v.settings.turnTime * 1000;   // 暂停时倒计时停在原处
       const k = Math.max(0, Math.min(1, left / total));
       o.bar.style.strokeDashoffset = (188.5 * (1 - k)).toFixed(1);
       o.timer.classList.toggle('low', left < 8000);
@@ -1630,10 +1630,14 @@ requestAnimationFrame(tick);
 setInterval(() => { const v = S.view; if (v && v.hand && v.hand.street === 'done') renderDock(); }, 500);
 
 // ============================== 操作台 ==============================
+// 房主自己看到“已暂停”，其他人看到“房主暂停了牌局”
+const pausedTxt = () => t(S.mode === 'host' ? 'pausedMe' : 'paused');
 function renderDock(){
   const v = S.view, dock = $('dock'); if (!v) return;
   const h = v.hand, my = me(), L = v.me && v.me.legal;
   let sig, html;
+  // 暂停时房主在操作台上就能点“继续”
+  const rb = v.paused && v.started && S.mode === 'host' ? `<button class="btn gold sm" data-a="resume" style="min-width:160px"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg>${esc(t('resumeG'))}</button>` : '';
   if (!my) { sig = 'seat' + lang; html = `<div class="wait"><div class="spin"></div></div>`; }
   else if (!v.started) {
     if (S.mode === 'host') {
@@ -1646,32 +1650,33 @@ function renderDock(){
   }
   else if (my.chips === 0 && !(my.inHand && h && h.street !== 'done')) {
     const a = buyInFor(v.settings.startChips), cc = canClaim();
-    sig = 'broke' + lang + v.settings.startChips + '|' + a + '|' + Wal.bal + Wal.inf + cc;
+    sig = 'broke' + lang + v.settings.startChips + '|' + a + '|' + Wal.bal + Wal.inf + cc + (rb ? '|r' : '');
     html = a > 0
-      ? `<div class="wait"><div class="status">${esc(t('busted'))}</div><button class="btn gold" data-a="rebuy" data-amt="${a}" style="min-width:220px">${esc(t('rebuy', { a: fmt(a) }))}</button>
+      ? `<div class="wait">${rb}<div class="status">${esc(t('busted'))}</div><button class="btn gold" data-a="rebuy" data-amt="${a}" style="min-width:220px">${esc(t('rebuy', { a: fmt(a) }))}</button>
          <div class="hintx">${esc(Wal.inf ? t('rebuyFree') : t('rebuyFrom', { b: fmt(Wal.bal - a) }))}</div></div>`
-      : `<div class="wait"><div class="status">${esc(t('outPts'))}</div><div class="row" style="max-width:320px">${cc ? `<button class="btn gold sm" data-a="claim">${esc(t('claimBtn', { a: fmt(DAILY) }))}</button>` : ''}
+      : `<div class="wait">${rb}<div class="status">${esc(t('outPts'))}</div><div class="row" style="max-width:320px">${cc ? `<button class="btn gold sm" data-a="claim">${esc(t('claimBtn', { a: fmt(DAILY) }))}</button>` : ''}
          <button class="btn glass sm" data-a="games">${esc(t('playGames'))}</button></div></div>`;
   }
   else if (!L) {
     let status = '', mav = '', bar = '';
-    if (!h) status = esc(t(v.paused ? 'paused' : 'nextSoon'));
+    if (!h) status = esc(v.paused ? pausedTxt() : t('nextSoon'));
     else if (h.street === 'done') {
       const left = v.nextIn - (performance.now() - S.viewAt), s = Math.ceil(left / 1000);
-      status = esc(v.paused ? t('paused') : s > 0 ? t('nextIn', { s }) : t('nextSoon'));
+      status = esc(v.paused ? pausedTxt() : s > 0 ? t('nextIn', { s }) : t('nextSoon'));
       const total = h.results && h.results.some(r => r.cat >= 0) ? 7000 : 4000;
       if (!v.paused && left > 0) bar = `<div class="nbar"><i style="animation-duration:${total}ms;animation-delay:-${Math.round(Math.max(0, total - left))}ms"></i></div>`;
     }
+    else if (v.paused) status = esc(pausedTxt());
     else if (!my.inHand) status = esc(t('nextHand'));
     else { const p = v.players.find(x => x.seat === h.toAct); if (p) { mav = `<span class="mav">${avHTML(p.avatar, p.isBot, p.iq)}</span>`; status = t('thinking', { n: `<b>${esc(p.name)}</b>` }); } else status = esc(t('dealing')); }
-    const canPre = h && my.inHand && !my.folded && !my.allIn && h.street !== 'done';
+    const canPre = h && my.inHand && !my.folded && !my.allIn && h.street !== 'done' && !v.paused;
     const toCall = canPre ? Math.min(h.curBet - my.bet, my.chips) : 0;
     if (canPre && preKey !== h.num + h.street + h.curBet && preAct === 'ck' && toCall > 0) preAct = ''; // 有人加注后“跟注”预选失效
     const pre = canPre ? `<div class="pre"><button data-pre="cf" class="${preAct === 'cf' ? 'on' : ''}"><i>✓</i>${esc(toCall > 0 ? t('preFold') : t('preCF'))}</button>
       <button data-pre="ck" class="${preAct === 'ck' ? 'on' : ''}"><i>✓</i>${esc(toCall > 0 ? t('preCall', { a: fmt(toCall) }) : t('preCheck'))}</button></div>` : '';
     const qe = S.solo ? '' : `<div class="qemo">${[0, 3, 5, 8, 9, 11].map(i => `<button data-e="e${i}">${EMOS[i]}</button>`).join('')}</div>`;
-    sig = 'w|' + status + '|' + pre + (bar ? '|b' : '');
-    html = `<div class="wait"><div class="status">${mav}<span>${status}</span></div>${bar}${pre}${qe}</div>`;
+    sig = 'w|' + status + '|' + pre + (bar ? '|b' : '') + (rb ? '|r' + lang : '');
+    html = `<div class="wait"><div class="status">${mav}<span>${status}</span></div>${bar}${rb}${pre}${qe}</div>`;
   }
   else {
     // 预选动作
@@ -1734,6 +1739,7 @@ $('dock').addEventListener('click', e => {
   else if (a === 'rebuy') S.rebuy(+b.dataset.amt || undefined);
   else if (a === 'claim') { const g = claimDaily(); if (g) toast(t('autoClaim', { a: fmt(g) })); lastPanelSig = ''; renderDock(); }
   else if (a === 'games') openHub();
+  else if (a === 'resume') { if (hostApi && v.paused) hostApi.togglePause(); }
   else if (a === 'fold' && L) {
     if (L.canCheck && !b.dataset.sure) { b.dataset.sure = 1; b.textContent = t('sureFold'); return; }
     S.act({ type: 'fold' });

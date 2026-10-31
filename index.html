@@ -803,7 +803,7 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
     removePlayer(id) {
       const p = this.byId(id); if (!p) return;
       if (p.inHand && !p.folded && this.hand && this.hand.street !== 'done') {
-        if (this.hand.toAct === p.seat) { this.act(p.id, { type: 'fold' }); }
+        if (this.hand.toAct === p.seat) { this.act(p.id, { type: 'fold' }, true); }
         else { p.folded = true; p.lastAction = 'fold'; p.actSeq = ++this.actSeq; }
       }
       // 已投入的筹码留在底池里：把玩家留到这手结束再删
@@ -853,17 +853,38 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
       if (this.nextAt) return;
       if (this.eligible().length >= 2) {
         this.nextAt = this.now() + 1500;
-        const gen = ++this._timerGen;
-        this.schedule(() => { if (gen === this._timerGen) { this.nextAt = 0; this.startHand(); } }, 1500);
+        this.later(() => { this.nextAt = 0; this.startHand(); }, 1500);
       }
     }
 
     start() { this.started = true; this.paused = false; this.maybeAutoStart(); this.changed(); }
+    // 所有计时都走这里。同一时刻只有一个有效计时（新的作废旧的），暂停时把它冻住，恢复后按剩下的时间接着走
+    later(fn, ms) {
+      const gen = ++this._timerGen;
+      if (this.paused) { this._live = null; this._frozen = { fn, left: ms }; return; }
+      this._live = { gen, fn, due: this.now() + ms };
+      this.schedule(() => { if (gen === this._timerGen) { this._live = null; fn(); } }, ms);
+    }
+    // 暂停：整桌原地冻住，谁的倒计时都不走、机器人不出手、没人会被超时弃牌；恢复后从停下的地方接着来
     setPaused(v) {
-      this.paused = v;
-      // 暂停只拦下一手：正在打的这手照常打完（这时取消计时会让轮到的机器人永远不出手）
-      if (v) { if (!this.hand || this.hand.street === 'done') { this._timerGen++; this.nextAt = 0; } }
-      else this.maybeAutoStart();
+      v = !!v; if (v === this.paused) return;
+      const h = this.hand, live = !!(h && h.street !== 'done');
+      if (v) {
+        const L = this._live;
+        this._frozen = live && L && L.gen === this._timerGen ? { fn: L.fn, left: Math.max(0, L.due - this.now()) } : null;
+        this._timerGen++; this._live = null; this.nextAt = 0;
+        if (live && h.deadline) { h.left = Math.max(0, h.deadline - this.now()); h.deadline = 0; }
+        this.paused = true;
+      } else {
+        this.paused = false;
+        const f = this._frozen; this._frozen = null;
+        if (live && f) {
+          const ms = Math.max(f.left, 600);   // 刚恢复时留一点反应时间
+          if (h.left) { h.deadline = this.now() + Math.max(h.left, 600); h.left = 0; }
+          this.later(f.fn, ms);
+        } else if (live) { const p = h.toAct >= 0 && this.bySeat(h.toAct); if (p) this.setDeadline(p); }
+        else this.maybeAutoStart();
+      }
       this.changed();
     }
 
@@ -926,7 +947,8 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
       return { toCall, canCheck: toCall === 0, canRaise, minTo, maxTo, curBet: h.curBet, myBet: p.bet };
     }
 
-    act(id, a) {
+    act(id, a, force) {
+      if (this.paused && !force) return 'paused';
       const p = this.byId(id), h = this.hand;
       if (!p || !h || h.street === 'done' || h.toAct !== p.seat) return 'not-your-turn';
       const L = this.legal(p);
@@ -997,16 +1019,16 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
     setDeadline(p) {
       const h = this.hand;
       const t = p.isBot ? 0 : (p.connected ? this.settings.turnTime * 1000 : 6000);
-      const gen = ++this._timerGen;
-      h.deadline = p.isBot ? 0 : this.now() + t;
+      h.deadline = p.isBot || this.paused ? 0 : this.now() + t;
+      h.left = p.isBot || !this.paused ? 0 : t;
       if (p.isBot) {
-        this.schedule(() => { if (gen === this._timerGen && h === this.hand && h.toAct === p.seat) this.botAct(p); }, (650 + (p.iq - 70) * 3 + this.rnd() * 1100) * (PACES.includes(this.settings.botPace) ? this.settings.botPace : 1));
+        this.later(() => { if (h === this.hand && h.toAct === p.seat) this.botAct(p); }, (650 + (p.iq - 70) * 3 + this.rnd() * 1100) * (PACES.includes(this.settings.botPace) ? this.settings.botPace : 1));
       } else {
-        this.schedule(() => {
-          if (gen === this._timerGen && h === this.hand && h.toAct === p.seat && h.street !== 'done') {
+        this.later(() => {
+          if (h === this.hand && h.toAct === p.seat && h.street !== 'done') {
             const L = this.legal(p);
             this.addLog({ k: 'timeout', n: p.name });
-            this.act(p.id, { type: L && L.canCheck ? 'check' : 'fold' });
+            this.act(p.id, { type: L && L.canCheck ? 'check' : 'fold' }, true);
           }
         }, t);
       }
@@ -1016,19 +1038,18 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
       const h = this.hand;
       for (const p of this.players) { p.bet = 0; p.acted = false; p.canRaise = true; }
       h.pot = this.players.reduce((s, p) => s + p.committed, 0);
-      h.curBet = 0; h.minRaise = this.settings.bb; h.nr = 0; h.toAct = -1; h.deadline = 0;
+      h.curBet = 0; h.minRaise = this.settings.bb; h.nr = 0; h.toAct = -1; h.deadline = 0; h.left = 0;
       const canAct = this.inHand().filter(p => !p.allIn);
       if (h.street === 'river') return this.showdown();
       const runout = canAct.length <= 1;
       if (runout) for (const p of this.inHand()) p.showCards = true; // 全押摊牌：亮牌发完
       this.dealNext();
       this.changed();
-      const gen = ++this._timerGen;
       if (runout) {
-        this.schedule(() => { if (gen === this._timerGen) this.endStreet(); }, 1700);
+        this.later(() => this.endStreet(), 1700);
       } else {
         for (const p of this.players) if (p.inHand && !p.folded && !p.allIn) p.lastAction = '';
-        this.schedule(() => { if (gen === this._timerGen) this.advance(h.dealer); }, 750);
+        this.later(() => this.advance(h.dealer), 750);
       }
     }
     dealNext() {
@@ -1089,15 +1110,14 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
 
     endHand() {
       const h = this.hand;
-      h.street = 'done'; h.toAct = -1; h.deadline = 0;
+      h.street = 'done'; h.toAct = -1; h.deadline = 0; h.left = 0;
       for (const p of this.players) { p.net = (p.won || 0) - p.committed; p.bet = 0; }
       h.pot = 0;
       this.changed();
       if (this.settings.autoNext && !this.paused) {
-        const gen = ++this._timerGen;
         const wait = h.results && h.results.some(r => r.cat >= 0) ? 7000 : 4000;
         this.nextAt = this.now() + wait;
-        this.schedule(() => { if (gen === this._timerGen) { this.nextAt = 0; this.startHand(); } }, wait);
+        this.later(() => { this.nextAt = 0; this.startHand(); }, wait);
       }
     }
 
@@ -1107,7 +1127,7 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
       if (!L) return;
       let a;
       try { a = this.botDecide(p, L); } catch (e) { a = { type: L.canCheck ? 'check' : 'fold' }; }
-      return this.act(p.id, a);
+      return this.act(p.id, a, true);
     }
     botDecide(p, L) {
       const h = this.hand, lv = IQ[p.iq] || IQ[100], r = this.rnd(), bb = this.settings.bb, sb = this.settings.sb;
@@ -1193,7 +1213,7 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
         settings: this.settings, started: !!this.started, paused: this.paused, handNum: this.handNum,
         nextIn: this.nextAt ? Math.max(0, this.nextAt - this.now()) : 0,
         hand: h && { num: this.handNum, street: h.street, board: h.board, dealer: h.dealer, sb: h.sbSeat, bb: h.bbSeat, toAct: h.toAct,
-          curBet: h.curBet, pot: h.pot, results: h.results, deadlineIn: h.deadline ? Math.max(0, h.deadline - this.now()) : 0 },
+          curBet: h.curBet, pot: h.pot, results: h.results, deadlineIn: h.deadline ? Math.max(0, h.deadline - this.now()) : 0, frozenIn: h.left || 0 },
         players: this.players.map(p => ({
           id: p.id, seat: p.seat, name: p.name, avatar: p.avatar, chips: p.chips, bet: p.bet, isBot: p.isBot, iq: p.iq, connected: p.connected,
           inHand: p.inHand, folded: p.folded, allIn: p.allIn, lastAction: p.lastAction, actSeq: p.actSeq, rebuys: p.rebuys,
@@ -1201,7 +1221,7 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
           hole: (p.id === id || (p.showCards && !p.folded)) ? p.hole : (p.inHand && p.hole.length ? [-1, -1] : []),
           best: (p.showCards && !p.folded && p.best) ? { cat: p.best.cat, cards: p.best.cards } : null,
         })),
-        me: me ? { seat: me.seat, legal: me && h ? this.legal(me) : null,
+        me: me ? { seat: me.seat, legal: me && h && !this.paused ? this.legal(me) : null,
           handCat: h && me.hole.length && h.board.length ? bestHand(me.hole.concat(h.board)).cat : -1 } : null,
         log: this.log.slice(-30),
       };
@@ -1529,7 +1549,7 @@ en: {
   opened:'Table {c} is open — share the code!',
   hostWait:'Share the code, add bots if you like, then deal.', clientWait:'Waiting for the host to deal…',
   deal:'Deal', addBot:'Add bot', inviteBtn:'Invite', needTwo:'You need two players — add a bot?',
-  paused:'Paused by the host', thinking:'{n} is thinking…', dealing:'Dealing…', nextIn:'Next hand in {s}s', nextSoon:'Next hand coming up',
+  paused:'Paused by the host', pausedMe:'Paused', thinking:'{n} is thinking…', dealing:'Dealing…', nextIn:'Next hand in {s}s', nextSoon:'Next hand coming up',
   nextHand:'You’re in from the next hand', busted:'You’re out of chips', rebuy:'Rebuy {a}', yourTurn:'Your turn',
   fold:'Fold', check:'Check', call:'Call', allin:'All-in', bet:'Bet', raiseTo:'Raise to', sureFold:'Fold?',
   preCF:'Check / Fold', preFold:'Fold', preCheck:'Check', preCall:'Call {a}',
@@ -1596,7 +1616,7 @@ zh: {
   opened:'牌桌 {c} 已开好，把房间码发给朋友吧！',
   hostWait:'分享房间码，想加机器人也可以，然后开始发牌。', clientWait:'等房主开始发牌…',
   deal:'发牌', addBot:'加机器人', inviteBtn:'邀请', needTwo:'至少要 2 个人，加个机器人？',
-  paused:'房主暂停了牌局', thinking:'{n} 正在思考…', dealing:'发牌中…', nextIn:'下一手 {s} 秒后开始', nextSoon:'下一手马上开始',
+  paused:'房主暂停了牌局', pausedMe:'已暂停', thinking:'{n} 正在思考…', dealing:'发牌中…', nextIn:'下一手 {s} 秒后开始', nextSoon:'下一手马上开始',
   nextHand:'下一手开始加入', busted:'筹码输光了', rebuy:'补充 {a} 筹码', yourTurn:'轮到你了',
   fold:'弃牌', check:'过牌', call:'跟注', allin:'全押', bet:'下注', raiseTo:'加注到', sureFold:'确定弃牌？',
   preCF:'过牌/弃牌', preFold:'弃牌', preCheck:'过牌', preCall:'跟注 {a}',
@@ -1943,7 +1963,7 @@ function startHost(cfg){
     sync();
   }, 3000);
 
-  S.act = a => { const r = game.act('host', a); if (r !== 'ok') toast(t('cant')); };
+  S.act = a => { const r = game.act('host', a); if (r !== 'ok') toast(r === 'paused' ? pausedTxt() : t('cant')); };
   S.emote = e => broadcastEmote(game.byId('host').seat, e);
   S.rebuy = a => { if (game.rebuy('host', a)) seatRebuy(game.byId('host').chips); };
   S.leave = () => {
@@ -2002,7 +2022,7 @@ function startHost(cfg){
     seen.set(pid, Date.now());
     const p = game.byId(pid); if (!p) return;
     if (msg.t === 'ping') { try { conn.send({ t: 'pong' }); } catch(e){} }
-    else if (msg.t === 'act') { const r = game.act(pid, { type: String(msg.a), to: +msg.to }); if (r !== 'ok') conn.send({ t: 'err', code: 'cant' }); }
+    else if (msg.t === 'act') { const r = game.act(pid, { type: String(msg.a), to: +msg.to }); if (r !== 'ok') conn.send({ t: 'err', code: r === 'paused' ? 'paused' : 'cant' }); }
     else if (msg.t === 'emote') { const e = String(msg.e || ''); if (/^(e(1[01]|\d)|p[0-7])$/.test(e)) broadcastEmote(p.seat, e); }
     else if (msg.t === 'rebuy') { const a = msg.a == null ? undefined : Math.max(1, Math.floor(+msg.a) || 0); if (game.rebuy(pid, a)) { try { conn.send({ t: 'rebought', a: p.chips }); } catch(e){} } }
     else if (msg.t === 'leave') { conns.delete(pid); game.removePlayer(pid); try { conn.send({ t: 'bye' }); } catch(e){} }
@@ -2552,7 +2572,7 @@ function renderBanner(prev, full){
     }).join('');
     key = 'r' + h.num;
   } else if (!v.started) { html = `<div class="b0">${esc(t(S.mode === 'host' ? 'hostWait' : 'clientWait'))}</div>`; key = 'w' + lang; }
-  else if (v.paused) { html = `<div class="b0">${esc(t('paused'))}</div>`; key = 'p' + lang; }
+  else if (v.paused && !(h && h.street !== 'done')) { html = `<div class="b0">${esc(pausedTxt())}</div>`; key = 'p' + S.mode + lang; }   // 打到一半暂停时只在操作台提示，免得压住桌上的筹码
   else if (!h && v.players.filter(p => p.chips > 0 && (p.connected || p.isBot)).length < 2) { html = `<div class="b0">${esc(t('needTwo'))}</div>`; key = 'n' + lang; }
   if (el._key !== key + lang) {
     el._key = key + lang; el.innerHTML = html;
@@ -2568,8 +2588,8 @@ function tick(){
   const h = v.hand;
   for (const p of v.players) {
     const o = seatMap.get(p.id); if (!o) continue;
-    if (h.street !== 'done' && h.toAct === p.seat && h.deadlineIn) {
-      const left = h.deadlineIn - (performance.now() - S.viewAt), total = v.settings.turnTime * 1000;
+    if (h.street !== 'done' && h.toAct === p.seat && (h.deadlineIn || h.frozenIn)) {
+      const left = h.frozenIn || h.deadlineIn - (performance.now() - S.viewAt), total = v.settings.turnTime * 1000;   // 暂停时倒计时停在原处
       const k = Math.max(0, Math.min(1, left / total));
       o.bar.style.strokeDashoffset = (188.5 * (1 - k)).toFixed(1);
       o.timer.classList.toggle('low', left < 8000);
@@ -2580,10 +2600,14 @@ requestAnimationFrame(tick);
 setInterval(() => { const v = S.view; if (v && v.hand && v.hand.street === 'done') renderDock(); }, 500);
 
 // ============================== 操作台 ==============================
+// 房主自己看到“已暂停”，其他人看到“房主暂停了牌局”
+const pausedTxt = () => t(S.mode === 'host' ? 'pausedMe' : 'paused');
 function renderDock(){
   const v = S.view, dock = $('dock'); if (!v) return;
   const h = v.hand, my = me(), L = v.me && v.me.legal;
   let sig, html;
+  // 暂停时房主在操作台上就能点“继续”
+  const rb = v.paused && v.started && S.mode === 'host' ? `<button class="btn gold sm" data-a="resume" style="min-width:160px"><svg viewBox="0 0 24 24"><use href="#i-play"/></svg>${esc(t('resumeG'))}</button>` : '';
   if (!my) { sig = 'seat' + lang; html = `<div class="wait"><div class="spin"></div></div>`; }
   else if (!v.started) {
     if (S.mode === 'host') {
@@ -2596,32 +2620,33 @@ function renderDock(){
   }
   else if (my.chips === 0 && !(my.inHand && h && h.street !== 'done')) {
     const a = buyInFor(v.settings.startChips), cc = canClaim();
-    sig = 'broke' + lang + v.settings.startChips + '|' + a + '|' + Wal.bal + Wal.inf + cc;
+    sig = 'broke' + lang + v.settings.startChips + '|' + a + '|' + Wal.bal + Wal.inf + cc + (rb ? '|r' : '');
     html = a > 0
-      ? `<div class="wait"><div class="status">${esc(t('busted'))}</div><button class="btn gold" data-a="rebuy" data-amt="${a}" style="min-width:220px">${esc(t('rebuy', { a: fmt(a) }))}</button>
+      ? `<div class="wait">${rb}<div class="status">${esc(t('busted'))}</div><button class="btn gold" data-a="rebuy" data-amt="${a}" style="min-width:220px">${esc(t('rebuy', { a: fmt(a) }))}</button>
          <div class="hintx">${esc(Wal.inf ? t('rebuyFree') : t('rebuyFrom', { b: fmt(Wal.bal - a) }))}</div></div>`
-      : `<div class="wait"><div class="status">${esc(t('outPts'))}</div><div class="row" style="max-width:320px">${cc ? `<button class="btn gold sm" data-a="claim">${esc(t('claimBtn', { a: fmt(DAILY) }))}</button>` : ''}
+      : `<div class="wait">${rb}<div class="status">${esc(t('outPts'))}</div><div class="row" style="max-width:320px">${cc ? `<button class="btn gold sm" data-a="claim">${esc(t('claimBtn', { a: fmt(DAILY) }))}</button>` : ''}
          <button class="btn glass sm" data-a="games">${esc(t('playGames'))}</button></div></div>`;
   }
   else if (!L) {
     let status = '', mav = '', bar = '';
-    if (!h) status = esc(t(v.paused ? 'paused' : 'nextSoon'));
+    if (!h) status = esc(v.paused ? pausedTxt() : t('nextSoon'));
     else if (h.street === 'done') {
       const left = v.nextIn - (performance.now() - S.viewAt), s = Math.ceil(left / 1000);
-      status = esc(v.paused ? t('paused') : s > 0 ? t('nextIn', { s }) : t('nextSoon'));
+      status = esc(v.paused ? pausedTxt() : s > 0 ? t('nextIn', { s }) : t('nextSoon'));
       const total = h.results && h.results.some(r => r.cat >= 0) ? 7000 : 4000;
       if (!v.paused && left > 0) bar = `<div class="nbar"><i style="animation-duration:${total}ms;animation-delay:-${Math.round(Math.max(0, total - left))}ms"></i></div>`;
     }
+    else if (v.paused) status = esc(pausedTxt());
     else if (!my.inHand) status = esc(t('nextHand'));
     else { const p = v.players.find(x => x.seat === h.toAct); if (p) { mav = `<span class="mav">${avHTML(p.avatar, p.isBot, p.iq)}</span>`; status = t('thinking', { n: `<b>${esc(p.name)}</b>` }); } else status = esc(t('dealing')); }
-    const canPre = h && my.inHand && !my.folded && !my.allIn && h.street !== 'done';
+    const canPre = h && my.inHand && !my.folded && !my.allIn && h.street !== 'done' && !v.paused;
     const toCall = canPre ? Math.min(h.curBet - my.bet, my.chips) : 0;
     if (canPre && preKey !== h.num + h.street + h.curBet && preAct === 'ck' && toCall > 0) preAct = ''; // 有人加注后“跟注”预选失效
     const pre = canPre ? `<div class="pre"><button data-pre="cf" class="${preAct === 'cf' ? 'on' : ''}"><i>✓</i>${esc(toCall > 0 ? t('preFold') : t('preCF'))}</button>
       <button data-pre="ck" class="${preAct === 'ck' ? 'on' : ''}"><i>✓</i>${esc(toCall > 0 ? t('preCall', { a: fmt(toCall) }) : t('preCheck'))}</button></div>` : '';
     const qe = S.solo ? '' : `<div class="qemo">${[0, 3, 5, 8, 9, 11].map(i => `<button data-e="e${i}">${EMOS[i]}</button>`).join('')}</div>`;
-    sig = 'w|' + status + '|' + pre + (bar ? '|b' : '');
-    html = `<div class="wait"><div class="status">${mav}<span>${status}</span></div>${bar}${pre}${qe}</div>`;
+    sig = 'w|' + status + '|' + pre + (bar ? '|b' : '') + (rb ? '|r' + lang : '');
+    html = `<div class="wait"><div class="status">${mav}<span>${status}</span></div>${bar}${rb}${pre}${qe}</div>`;
   }
   else {
     // 预选动作
@@ -2684,6 +2709,7 @@ $('dock').addEventListener('click', e => {
   else if (a === 'rebuy') S.rebuy(+b.dataset.amt || undefined);
   else if (a === 'claim') { const g = claimDaily(); if (g) toast(t('autoClaim', { a: fmt(g) })); lastPanelSig = ''; renderDock(); }
   else if (a === 'games') openHub();
+  else if (a === 'resume') { if (hostApi && v.paused) hostApi.togglePause(); }
   else if (a === 'fold' && L) {
     if (L.canCheck && !b.dataset.sure) { b.dataset.sure = 1; b.textContent = t('sureFold'); return; }
     S.act({ type: 'fold' });

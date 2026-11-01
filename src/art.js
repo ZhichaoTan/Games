@@ -273,6 +273,8 @@
     sym += I('gift', '<rect x="4" y="9.5" width="16" height="10.5" rx="2"/><path d="M4 13.5h16M12 9.5V20"/><path d="M12 9.5C10.6 6 6.5 5.4 6.5 7.6c0 1.6 2.6 1.9 5.5 1.9zM12 9.5c1.4-3.5 5.5-4.1 5.5-1.9 0 1.6-2.6 1.9-5.5 1.9z"/>');
     sym += I('inf', '<path d="M7.6 15.4C5.6 15.4 4 13.9 4 12s1.6-3.4 3.6-3.4c3.6 0 5.2 6.8 8.8 6.8 2 0 3.6-1.5 3.6-3.4s-1.6-3.4-3.6-3.4c-3.6 0-5.2 6.8-8.8 6.8z"/>');
     sym += I('next', '<path d="M5 12h13.5M13 6.5l5.5 5.5-5.5 5.5"/>');
+    sym += I('save', '<path d="M7.5 4.5h9a1.5 1.5 0 0 1 1.5 1.5v14l-6-4-6 4V6a1.5 1.5 0 0 1 1.5-1.5z"/>');
+    sym += I('flag', '<path d="M6 20.5V4.5"/><path d="M6 5h11.5l-2.6 4 2.6 4H6"/>');
     sym += I('history', '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 9"/><path d="M4.5 4.5V9H9"/><path d="M12 8.5V12l2.5 2"/>');
     return `<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"><defs>${defs}</defs>${sym}</svg>`;
   }

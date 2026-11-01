@@ -7,8 +7,18 @@
   const rankOf = c => (c >> 2) + 2, suitOf = c => c & 3;
   const CAT_NAME = ['高牌', '一对', '两对', '三条', '顺子', '同花', '葫芦', '四条', '同花顺', '皇家同花顺'];
 
-  function shuffle(a, rnd) {
-    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  // 洗牌用的随机数：浏览器自带的密码学随机数（crypto.getRandomValues），拒绝采样，没有取模偏差；
+  // 和机器人做决定用的随机数分开，谁坐哪个位置、谁先谁后都影响不到发到的牌
+  const CR = G.crypto && G.crypto.getRandomValues ? G.crypto : null;
+  const RB = new Uint32Array(64); let rbi = 64;
+  function randInt(n) {                     // 0..n-1 均匀
+    if (!CR) return Math.floor(Math.random() * n);
+    const lim = 4294967296 - 4294967296 % n;
+    for (;;) { if (rbi >= 64) { CR.getRandomValues(RB); rbi = 0; } const x = RB[rbi++]; if (x < lim) return x % n; }
+  }
+  // Fisher–Yates：52! 种排列每种机会相同
+  function shuffle(a, int) {
+    for (let i = a.length - 1; i > 0; i--) { const j = int(i + 1); [a[i], a[j]] = [a[j], a[i]]; }
     return a;
   }
 
@@ -212,6 +222,8 @@
       this.settings = Object.assign({ sb: 5, bb: 10, startChips: 1000, turnTime: 30, botPace: 1, autoNext: true }, opts.settings || {});
       this.now = opts.now || (() => Date.now());
       this.rnd = opts.rnd || Math.random;
+      // 洗牌和抽庄用的随机整数；测试时传入 rnd 就用它（可复现），平时用密码学随机数
+      this.int = opts.rnd ? (n => Math.floor(opts.rnd() * n)) : randInt;
       this.schedule = opts.schedule || ((fn, ms) => setTimeout(fn, ms));
       this.onChange = opts.onChange || (() => {});
       this.players = []; // {id,name,seat,chips,...}
@@ -232,7 +244,7 @@
       if (this.players.length >= SEATS) return null;
       let seat = 0; while (this.bySeat(seat)) seat++;
       const buyIn = chips == null ? this.settings.startChips : Math.max(0, Math.min(this.settings.startChips, Math.floor(chips)));
-      const p = { id, name, isBot: !!isBot, token, avatar: avatar || 0, seat, chips: buyIn, rebuys: 0, iq: isBot ? (IQ[iq] ? iq : 100) : 0,
+      const p = { id, name, isBot: !!isBot, token, avatar: avatar || 0, seat, chips: buyIn, buyin: buyIn, loan: 0, rebuys: 0, iq: isBot ? (IQ[iq] ? iq : 100) : 0,
         st: { h: 0, vpip: 0, pfr: 0, agg: 0, pas: 0 },
         connected: true, inHand: false, folded: false, allIn: false, bet: 0, committed: 0, acted: false, canRaise: true,
         hole: [], lastAction: '', actSeq: 0, showCards: false, net: 0 };
@@ -259,10 +271,24 @@
       if (!p || p.chips > 0 || (p.inHand && this.hand && this.hand.street !== 'done')) return false;
       const a = amount == null ? this.settings.startChips : Math.max(0, Math.min(this.settings.startChips, Math.floor(amount)));
       if (!a) return false;
-      p.chips = a; p.rebuys++;
+      p.chips = a; p.rebuys++; p.loan += a;   // 输光后借的筹码记在账上
       this.addLog({ k: 'rebuy', n: p.name, a });
       this.changed(); this.maybeAutoStart();
       return true;
+    }
+    // 中途收桌（保存进度、结束牌局）：这一手作废，每人拿回这手下的注；庄家按钮退回去，下次接着玩时这一手重发
+    voidHand() {
+      const h = this.hand;
+      this._timerGen++; this._live = null; this._frozen = null; this.nextAt = 0;
+      if (h && h.street !== 'done') {
+        for (const p of this.players) if (p.inHand && !p.leaving) p.chips += p.committed;
+        this.dealerSeat = h.prevDealer; this.handNum--;
+        this.addLog({ k: 'void' });
+      }
+      for (const p of this.players) Object.assign(p, { inHand: false, folded: false, allIn: false, bet: 0, committed: 0, hole: [], lastAction: '', showCards: false, best: null, net: 0, won: 0 });
+      this.players = this.players.filter(p => !p.leaving);
+      this.hand = null;
+      this.changed();
     }
     setIq(id, iq) { const p = this.byId(id); if (p && p.isBot && IQ[iq]) { p.iq = iq; this.changed(); } }
     setPace(k) { if (PACES.includes(k)) { this.settings.botPace = k; this.changed(); } }
@@ -335,7 +361,7 @@
       // 清理离桌；输光的机器人自己补码复活
       this.players = this.players.filter(p => !p.leaving);
       for (const p of this.players) if (p.isBot && p.chips === 0) {
-        p.chips = this.settings.startChips; p.rebuys++;
+        p.chips = this.settings.startChips; p.rebuys++; p.loan += p.chips;
         this.addLog({ k: 'rebuy', n: p.name, a: p.chips });
         if (this.onBotRebuy) this.onBotRebuy(p);
       }
@@ -347,12 +373,14 @@
           vp: false, pr: false, aggSt: '', trap: '' });
       }
       el.forEach(p => { p.inHand = true; p.st.h++; });
-      this.dealerSeat = this.nextSeat(this.dealerSeat, el);
+      // 庄家按钮每手顺时针移一位；开局第一手抽签定庄（以前总是房主先当庄）
+      const prevDealer = this.dealerSeat;
+      this.dealerSeat = prevDealer < 0 ? el[this.int(el.length)].seat : this.nextSeat(prevDealer, el);
       let sbSeat, bbSeat;
       if (el.length === 2) { sbSeat = this.dealerSeat; bbSeat = this.nextSeat(sbSeat, el); }
       else { sbSeat = this.nextSeat(this.dealerSeat, el); bbSeat = this.nextSeat(sbSeat, el); }
-      const deck = shuffle([...Array(52).keys()], this.rnd);
-      this.hand = { num: this.handNum, street: 'preflop', deck, board: [], dealer: this.dealerSeat, sbSeat, bbSeat,
+      const deck = shuffle([...Array(52).keys()], this.int);
+      this.hand = { num: this.handNum, street: 'preflop', deck, board: [], dealer: this.dealerSeat, prevDealer, sbSeat, bbSeat,
         curBet: 0, minRaise: this.settings.bb, nr: 0, toAct: -1, deadline: 0, results: null, pot: 0 };
       // 从小盲开始发两轮
       const order = [];
@@ -658,7 +686,7 @@
           curBet: h.curBet, pot: h.pot, results: h.results, deadlineIn: h.deadline ? Math.max(0, h.deadline - this.now()) : 0, frozenIn: h.left || 0 },
         players: this.players.map(p => ({
           id: p.id, seat: p.seat, name: p.name, avatar: p.avatar, chips: p.chips, bet: p.bet, isBot: p.isBot, iq: p.iq, connected: p.connected,
-          inHand: p.inHand, folded: p.folded, allIn: p.allIn, lastAction: p.lastAction, actSeq: p.actSeq, rebuys: p.rebuys,
+          inHand: p.inHand, folded: p.folded, allIn: p.allIn, lastAction: p.lastAction, actSeq: p.actSeq, rebuys: p.rebuys, loan: p.loan || 0, buyin: p.buyin || 0, cm: h && h.street !== 'done' && p.inHand ? p.committed : 0,
           won: p.won || 0, net: done ? p.net : 0,
           hole: (p.id === id || (p.showCards && !p.folded)) ? p.hole : (p.inHand && p.hole.length ? [-1, -1] : []),
           best: (p.showCards && !p.folded && p.best) ? { cat: p.best.cat, cards: p.best.cards } : null,
@@ -672,5 +700,5 @@
 
   function cardStr(c) { return RANK_CH[rankOf(c)].replace('T', '10') + SUIT_CH[suitOf(c)]; }
 
-  G.Poker = { Game, bestHand, eval5, score, equity, equityR, odds, pfPct, cardStr, rankOf, suitOf, RANK_CH, SUIT_CH, CAT_NAME, SEATS, IQS, PACES };
+  G.Poker = { Game, bestHand, eval5, score, equity, equityR, odds, pfPct, cardStr, rankOf, suitOf, RANK_CH, SUIT_CH, CAT_NAME, SEATS, IQS, PACES, shuffle, randInt };
 })(typeof window !== 'undefined' ? window : globalThis);

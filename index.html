@@ -103,7 +103,7 @@ svg.u{display:block;width:100%;height:100%}
   transition:border-color .2s,background .2s}
 .inp:focus{outline:none;border-color:rgba(211,172,99,.6);background:rgba(0,0,0,.4)}
 .inp::placeholder{color:var(--faint);font-weight:600}
-.avs{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.avs{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
 .avs button{aspect-ratio:1;border-radius:50%;overflow:hidden;position:relative;transition:transform .15s,box-shadow .2s;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
 .avs button:active{transform:scale(.92)}
 .avs button.on{box-shadow:0 0 0 2px var(--brass),0 0 14px rgba(211,172,99,.45)}
@@ -856,6 +856,17 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
       this.changed(); this.maybeAutoStart();
       return true;
     }
+    // 还钱：不在打的这一手里时，从筹码里还一笔（最多一次借的数）
+    repay(id) {
+      const p = this.byId(id), h = this.hand;
+      if (!p || !(p.loan > 0) || !(p.chips > 0) || (p.inHand && !p.folded && h && h.street !== 'done')) return 0;
+      const a = Math.min(p.loan, p.chips, this.settings.startChips);
+      p.chips -= a; p.loan -= a;
+      p.rebuys = p.loan ? Math.max(1, Math.ceil(p.loan / this.settings.startChips)) : 0;
+      this.addLog({ k: 'repay', n: p.name, a });
+      this.changed();
+      return a;
+    }
     // 中途收桌（保存进度、结束牌局）：这一手作废，每人拿回这手下的注；庄家按钮退回去，下次接着玩时这一手重发
     voidHand() {
       const h = this.hand;
@@ -1441,6 +1452,39 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
         `<circle cx="38.5" cy="56.4" r="3.1" fill="#fff"/><circle cx="61.5" cy="56.4" r="3.1" fill="#fff"/><circle cx="39" cy="56.8" r="1.8" fill="#151619"/><circle cx="61" cy="56.8" r="1.8" fill="#151619"/>` +
         `<ellipse cx="50" cy="65.6" rx="4.2" ry="3" fill="#1d1f24"/>` + MOUTH(68.8, '#1d1f24', 1.4) + BLUSH(68, 21, '#ff7b8a', .3);
     } },
+    { key: 'croc', en: 'Crocodile', zh: '鳄鱼', bg: ['#e9905c', '#a24a2a'], draw: () => {
+      const g = '#5fae5a', d = '#3f8a43', l = '#cfe8a0';
+      return BODY(d, 106, 34, 24) +
+        `<ellipse cx="50" cy="58" rx="27" ry="21" fill="${g}"/>` +
+        `<circle cx="36" cy="40" r="10.5" fill="${g}"/><circle cx="64" cy="40" r="10.5" fill="${g}"/>` +
+        `<path d="M24 64C24 58 32 56 50 56C68 56 76 58 76 64C76 76 66 83 50 83C34 83 24 76 24 64Z" fill="${g}"/>` +
+        `<path d="M27 70Q50 78 73 70" stroke="${d}" stroke-width="2.2" fill="none" stroke-linecap="round"/>` +
+        `<path d="M33 71.6l2.4 3.4 2.4-2.6M43 73.6l2.2 3.4 2.2-3M52.6 73.6l2.2 3.4 2.2-3.4M62.2 72.4l2.4 3 2.4-3.4" fill="#fff" stroke="#fff" stroke-width="1" stroke-linejoin="round"/>` +
+        `<ellipse cx="50" cy="78.5" rx="14" ry="3.6" fill="${l}" opacity=".7"/>` +
+        `<ellipse cx="43.5" cy="61" rx="2.2" ry="1.5" fill="${d}"/><ellipse cx="56.5" cy="61" rx="2.2" ry="1.5" fill="${d}"/>` +
+        `<path d="M40 48l3-3 3 3 3-3 3 3 3-3 3 3" stroke="${d}" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>` +
+        `<circle cx="36" cy="39.5" r="7" fill="#fff6c8"/><circle cx="64" cy="39.5" r="7" fill="#fff6c8"/>` +
+        `<ellipse cx="36.8" cy="40" rx="2.6" ry="5" fill="#1f2a1a"/><ellipse cx="63.2" cy="40" rx="2.6" ry="5" fill="#1f2a1a"/>` +
+        `<circle cx="38" cy="37.6" r="1.4" fill="#fff"/><circle cx="64.4" cy="37.6" r="1.4" fill="#fff"/>` +
+        SHEEN(32, 33, 5, 2.2) + SHEEN(60, 33, 5, 2.2) + BLUSH(66, 22, '#ff8a7a', .3);
+    } },
+    { key: 'kitten', en: 'Kitten', zh: '小猫', bg: ['#f2a7c3', '#b45a82'], draw: () => {
+      const f = '#b9bec8', d = '#8d93a0', w = '#fbfbfd', p = '#f6a6b8';
+      return BODY(d, 106, 30, 22) +
+        `<path d="M25 50L26 24L45 36Z" fill="${f}" stroke="${f}" stroke-width="5" stroke-linejoin="round"/>` +
+        `<path d="M75 50L74 24L55 36Z" fill="${f}" stroke="${f}" stroke-width="5" stroke-linejoin="round"/>` +
+        `<path d="M30 43L30.5 30L39 37Z" fill="${p}"/><path d="M70 43L69.5 30L61 37Z" fill="${p}"/>` +
+        `<circle cx="50" cy="60" r="27" fill="${f}"/>` +
+        `<path d="M44 34.5q1 3.4 0 6.6M50 33.6v7.6M56 34.5q-1 3.4 0 6.6" stroke="${d}" stroke-width="2.6" stroke-linecap="round" fill="none"/>` +
+        `<path d="M30 63C30 54 40 52 50 58C60 52 70 54 70 63C70 76 60 84 50 84C40 84 30 76 30 63Z" fill="${w}"/>` +
+        SHEEN(39, 44, 8, 3.2) +
+        EYE(39, 58, 5.2, 6.2, '#2c2430') + EYE(61, 58, 5.2, 6.2, '#2c2430') +
+        `<circle cx="37.6" cy="60.6" r="1.2" fill="#fff" opacity=".8"/><circle cx="59.6" cy="60.6" r="1.2" fill="#fff" opacity=".8"/>` +
+        BLUSH(67, 19, '#ff7f9c', .45) +
+        `<path d="M47.6 65h4.8l-2.4 2.8z" fill="#ef7c95" stroke="#ef7c95" stroke-width="1.2" stroke-linejoin="round"/>` + MOUTH(68, '#8a5a66', 1.3) +
+        `<path d="M36 69l-13-2M36 72l-12 2.4M64 69l13-2M64 72l12 2.4" stroke="${d}" stroke-width="1" opacity=".8" stroke-linecap="round"/>` +
+        `<g transform="translate(4 7)"><path d="M60 27q4-6 9-2q-3 5-9 2zM60 27q-1-7 5-8q1 6-5 8z" fill="#ff8fb1"/><circle cx="60.5" cy="27" r="2" fill="#ffd0de"/></g>`;
+    } },
   ];
 
   // 机器人：几种配色
@@ -1610,7 +1654,7 @@ en: {
   wins:'{n} wins {a}', split:'{n} split {a}', uncontested:'Everyone else folded',
   cats:['High Card','One Pair','Two Pair','Three of a Kind','Straight','Flush','Full House','Four of a Kind','Straight Flush','Royal Flush'],
   streets:{flop:'Flop',turn:'Turn',river:'River'},
-  l_join:'{n} sat down', l_leave:'{n} left', l_rebuy:'{n} borrowed {a}', l_void:'Hand called off — bets returned', l_hand:'Hand #{h}', l_fold:'{n} folds', l_check:'{n} checks', l_call:'{n} calls {a}',
+  l_join:'{n} sat down', l_leave:'{n} left', l_rebuy:'{n} borrowed {a}', l_repay:'{n} paid back {a}', repayBtn:'Repay {a}', repaid:'Paid back {a} · back to your points', repayWait:'Repay after this hand', l_void:'Hand called off — bets returned', l_hand:'Hand #{h}', l_fold:'{n} folds', l_check:'{n} checks', l_call:'{n} calls {a}',
   l_callAllin:'{n} calls all-in for {a}', l_bet:'{n} bets {a}', l_raise:'{n} raises to {a}', l_allin:'{n} is all-in for {a}', l_timeout:'{n} ran out of time',
   l_winFold:'{n} takes {a} uncontested', l_pot:'{p}: {n} win {a} with {c}', l_pot1:'{p}: {n} wins {a} with {c}', mainPot:'Main pot', sidePot:'Side pot',
   l_restored:'Table reopened — waiting for friends to reconnect', l_late:'{n} joins next hand',
@@ -1683,7 +1727,7 @@ zh: {
   wins:'{n} 赢得 {a}', split:'{n} 平分 {a}', uncontested:'其他人都弃牌了',
   cats:['高牌','一对','两对','三条','顺子','同花','葫芦','四条','同花顺','皇家同花顺'],
   streets:{flop:'翻牌',turn:'转牌',river:'河牌'},
-  l_join:'{n} 入座', l_leave:'{n} 离开了', l_rebuy:'{n} 借了 {a} 筹码', l_void:'这一手作废，下注已退回', l_hand:'第 {h} 手', l_fold:'{n} 弃牌', l_check:'{n} 过牌', l_call:'{n} 跟注 {a}',
+  l_join:'{n} 入座', l_leave:'{n} 离开了', l_rebuy:'{n} 借了 {a} 筹码', l_repay:'{n} 还了 {a} 筹码', repayBtn:'还 {a}', repaid:'还了 {a}，已退回积分', repayWait:'这一手打完再还', l_void:'这一手作废，下注已退回', l_hand:'第 {h} 手', l_fold:'{n} 弃牌', l_check:'{n} 过牌', l_call:'{n} 跟注 {a}',
   l_callAllin:'{n} 全押跟注 {a}', l_bet:'{n} 下注 {a}', l_raise:'{n} 加注到 {a}', l_allin:'{n} 全押 {a}', l_timeout:'{n} 超时',
   l_winFold:'{n} 赢得 {a}（其他人弃牌）', l_pot:'{p}：{n} 以{c}赢得 {a}', l_pot1:'{p}：{n} 以{c}赢得 {a}', mainPot:'主池', sidePot:'边池',
   l_restored:'牌桌已恢复，等朋友们重新连进来', l_late:'{n} 下一手加入',
@@ -1753,7 +1797,7 @@ document.body.insertAdjacentHTML('afterbegin', ART.sprite("<rect x=\"1.5\" y=\"1
   document.documentElement.style.setProperty('--moon', `url("data:image/svg+xml,${encodeURIComponent(moon)}")`);
 })();
 const IQS = P.IQS, lvOf = iq => Math.max(0, IQS.indexOf(iq || 100));
-const avHTML = (i, bot, iq) => bot ? `<svg class="u" viewBox="0 0 100 100" style="color:${ART.BOT_EYES[i % 4]}"><use href="#bq${lvOf(iq)}"/></svg>` : `<svg class="u" viewBox="0 0 100 100"><use href="#av${i % 12}"/></svg>`;
+const avHTML = (i, bot, iq) => bot ? `<svg class="u" viewBox="0 0 100 100" style="color:${ART.BOT_EYES[i % 4]}"><use href="#bq${lvOf(iq)}"/></svg>` : `<svg class="u" viewBox="0 0 100 100"><use href="#av${i % ART.AVATARS.length}"/></svg>`;
 
 // 纸牌元件
 const RANK = r => r === 10 ? '10' : '??23456789TJQKA'[r];
@@ -1817,7 +1861,7 @@ document.addEventListener('pointerdown', () => Snd.ac(), { passive: true });
 // ============================== 身份与大厅 ==============================
 let token = store.get('token'); if (!token) { token = rid(16); store.set('token', token); }
 let myName = store.get('name') || '';
-let myAv = store.get('av'); if (myAv == null) { myAv = Math.floor(Math.random() * 12); }
+let myAv = store.get('av'); if (myAv == null) { myAv = Math.floor(Math.random() * ART.AVATARS.length); }
 
 function applyLang(){
   document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
@@ -1835,7 +1879,7 @@ function applyLang(){
 $('langBtn').onclick = () => { lang = lang === 'en' ? 'zh' : 'en'; store.set('lang', lang); applyLang(); };
 $('nick').value = myName;
 const avs = $('avs');
-for (let i = 0; i < 12; i++) {
+for (let i = 0; i < ART.AVATARS.length; i++) {
   const b = document.createElement('button'); b.innerHTML = avHTML(i); b.setAttribute('aria-label', ART.AVATARS[i].en);
   b.onclick = () => { myAv = i; store.set('av', i); paintAv(); };
   avs.appendChild(b);
@@ -1915,6 +1959,7 @@ function earn(n){ n = Math.max(0, Math.round(n)); if (n) { Wal.bal += n; wSave()
 const buyInFor = want => Wal.inf ? want : Math.min(want, Wal.bal);
 function seatSettle(){ const s = Wal.seat; if (!s) return 0; Wal.seat = null; const a = s.paid ? Math.max(0, s.chips | 0) : 0; Wal.bal += a; wSave(); return a; }
 function seatStart(code, chips, kind){ seatSettle(); const paid = !Wal.inf; if (paid) Wal.bal = Math.max(0, Wal.bal - chips); Wal.seat = { code, chips, paid, kind, at: Date.now() }; wSave(); }
+function seatRepay(a, chips){ if (!Wal.seat) return; if (Wal.seat.paid) Wal.bal += a; Wal.seat.chips = chips; wSave(); toast(t('repaid', { a: fmt(a) }), 2600); }
 function seatRebuy(a){ if (!Wal.seat) return; const paid = !Wal.inf; if (paid) Wal.bal = Math.max(0, Wal.bal - a); Wal.seat.paid = paid; Wal.seat.chips = a; wSave(); }
 // 把座位“停”起来（保存的牌局）。只能停一个：之前停着的另一桌先换回积分
 function parkSeat(rec){
@@ -2086,6 +2131,7 @@ function startHost(cfg){
   S.act = a => { const r = game.act('host', a); if (r !== 'ok') toast(r === 'paused' ? pausedTxt() : t('cant')); };
   S.emote = e => broadcastEmote(game.byId('host').seat, e);
   S.rebuy = a => { if (game.rebuy('host', a)) seatRebuy(game.byId('host').chips); };
+  S.repay = () => { const a = game.repay('host'); if (a) seatRepay(a, game.byId('host').chips); else toast(t('repayWait')); };
   S.leave = () => {
     S.closing = true;
     const me = game.byId('host');
@@ -2140,7 +2186,7 @@ function startHost(cfg){
     if (msg.t === 'hello') {
       const name = String(msg.name || '').trim().slice(0, 10) || 'Guest';
       const tk = String(msg.token || '').slice(0, 40);
-      const av = Math.max(0, Math.min(11, msg.av | 0));
+      const av = Math.max(0, Math.min(ART.AVATARS.length - 1, msg.av | 0));
       let p = game.players.find(x => x.token === tk && !x.isBot && x.id !== 'host'), fresh = false;
       if (p) { p.name = name; p.avatar = av; }
       else {
@@ -2166,6 +2212,7 @@ function startHost(cfg){
     else if (msg.t === 'act') { const r = game.act(pid, { type: String(msg.a), to: +msg.to }); if (r !== 'ok') conn.send({ t: 'err', code: r === 'paused' ? 'paused' : 'cant' }); }
     else if (msg.t === 'emote') { const e = String(msg.e || ''); if (/^(e(1[01]|\d)|p[0-7])$/.test(e)) broadcastEmote(p.seat, e); }
     else if (msg.t === 'rebuy') { const a = msg.a == null ? undefined : Math.max(1, Math.floor(+msg.a) || 0); if (game.rebuy(pid, a)) { try { conn.send({ t: 'rebought', a: p.chips }); } catch(e){} } }
+    else if (msg.t === 'repay') { const a = game.repay(pid); try { conn.send(a ? { t: 'repaid', a, c: p.chips } : { t: 'err', code: 'repayWait' }); } catch(e){} }
     else if (msg.t === 'leave') { conns.delete(pid); game.removePlayer(pid); try { conn.send({ t: 'bye' }); } catch(e){} }
   }
   let tries = 0;
@@ -2209,7 +2256,7 @@ function peerOpts(){
 }
 // park：从首页“保存的牌局”回来时带着的座位记录（房主还没继续时，退出会把座位放回去）
 // 房主发来的战绩表：只留需要的字段
-const cleanSnap = a => Array.isArray(a) ? a.slice(0, 9).map(x => ({ id: String(x.id || ''), n: String(x.n || '').slice(0, 10), c: Math.max(0, x.c | 0), b: Math.max(0, x.b | 0), l: Math.max(0, x.l | 0), r: Math.max(0, x.r | 0), bot: x.bot ? 1 : 0, av: Math.max(0, Math.min(11, x.av | 0)), iq: IQS.includes(x.iq) ? x.iq : 100 })) : null;
+const cleanSnap = a => Array.isArray(a) ? a.slice(0, 9).map(x => ({ id: String(x.id || ''), n: String(x.n || '').slice(0, 10), c: Math.max(0, x.c | 0), b: Math.max(0, x.b | 0), l: Math.max(0, x.l | 0), r: Math.max(0, x.r | 0), bot: x.bot ? 1 : 0, av: Math.max(0, Math.min(ART.AVATARS.length - 1, x.av | 0)), iq: IQS.includes(x.iq) ? x.iq : 100 })) : null;
 function startClient(code, park){
   S.mode = 'client'; S.code = code;
   let peer = null, conn = null, lastMsg = 0, everConnected = false, dead = false, retryT = 0, fails = 0;
@@ -2220,6 +2267,7 @@ function startClient(code, park){
   S.act = a => send({ t: 'act', a: a.type, to: a.to });
   S.emote = e => send({ t: 'emote', e });
   S.rebuy = a => send({ t: 'rebuy', a });
+  S.repay = () => send({ t: 'repay' });
   S.leave = () => {
     dead = true;
     // 连不上房主（牌局存起来了、房主掉线了）：座位留着，回首页还能回到牌桌或者换回积分
@@ -2277,6 +2325,7 @@ function startClient(code, park){
         else if (!Wal.seat || Wal.seat.code !== code) { Wal.seat = { code, chips: m.chips | 0, paid: !Wal.inf, kind: 'client', at: Date.now() }; wSave(); }
       }
       else if (m.t === 'rebought') seatRebuy(m.a | 0);
+      else if (m.t === 'repaid') seatRepay(Math.max(0, m.a | 0), Math.max(0, m.c | 0));
       else if (m.t === 'state') { if (S.myId && !dead) setNet(true); onView(m.v); }
       else if (m.t === 'emote') showBubble(m.seat, m.e);
       else if (m.t === 'err') toast(t(m.code) || t('cant'), 3200);
@@ -2979,7 +3028,7 @@ function openMenu(){
     const iq = p.isBot ? (host ? `<button class="iq l${lvOf(p.iq)}" data-iq="${p.id}">IQ ${p.iq}</button>` : `<span class="iq l${lvOf(p.iq)}" style="font-size:11px;padding:4px 6px;margin:0">IQ ${p.iq}</span>`) : '';
     return `<div class="prow"><span class="pav">${avHTML(p.avatar, p.isBot, p.iq)}</span>
     <span class="pi"><b>${esc(p.name)}${p.id === S.myId ? ` <span style="color:var(--brass);font-weight:700">· ${esc(t('you'))}</span>` : ''}</b><span>${esc(sub)}</span></span>
-    <span class="pv">${fmt(p.chips)}</span>${iq}${host && p.id !== 'host' ? `<button class="btn glass sm" data-kick="${p.id}" aria-label="${esc(t('remove'))}"><svg viewBox="0 0 24 24"><use href="#i-kick"/></svg></button>` : ''}</div>`;
+    <span class="pv">${fmt(p.chips)}</span>${iq}${p.id === S.myId && p.loan > 0 && p.chips > 0 ? `<button class="btn gold sm" data-repay="1" style="white-space:nowrap">${esc(t('repayBtn', { a: fmt(Math.min(p.loan, p.chips, v.settings.startChips)) }))}</button>` : ''}${host && p.id !== 'host' ? `<button class="btn glass sm" data-kick="${p.id}" aria-label="${esc(t('remove'))}"><svg viewBox="0 0 24 24"><use href="#i-kick"/></svg></button>` : ''}</div>`;
   }).join('');
   const nb = store.get('botiq') || 0;
   const lines = v.log.map(logLine).join('<br>').replace(/<br><div/g, '<div').replace(/<\/div><br>/g, '</div>');
@@ -3006,6 +3055,7 @@ function openMenu(){
   $('mOdds').onclick = () => { setOdds(!oddsOn); openMenu(); };
   $('mPts').onclick = () => { closeSheet(); openHub(); };
   $('mLang').onclick = () => { lang = lang === 'en' ? 'zh' : 'en'; store.set('lang', lang); applyLang(); openMenu(); };
+  document.querySelectorAll('[data-repay]').forEach(b => b.onclick = () => { b.disabled = true; S.repay && S.repay(); setTimeout(reMenu, host ? 0 : 450); });
   if (host) {
     $('mBot').onclick = () => { hostApi.addBot(); closeSheet(); };
     $('mPause').onclick = () => { if (!v.started) hostApi.start(); else hostApi.togglePause(); closeSheet(); };

@@ -276,6 +276,17 @@
       this.changed(); this.maybeAutoStart();
       return true;
     }
+    // 还钱：不在打的这一手里时，从筹码里还一笔（最多一次借的数）
+    repay(id) {
+      const p = this.byId(id), h = this.hand;
+      if (!p || !(p.loan > 0) || !(p.chips > 0) || (p.inHand && !p.folded && h && h.street !== 'done')) return 0;
+      const a = Math.min(p.loan, p.chips, this.settings.startChips);
+      p.chips -= a; p.loan -= a;
+      p.rebuys = p.loan ? Math.max(1, Math.ceil(p.loan / this.settings.startChips)) : 0;
+      this.addLog({ k: 'repay', n: p.name, a });
+      this.changed();
+      return a;
+    }
     // 中途收桌（保存进度、结束牌局）：这一手作废，每人拿回这手下的注；庄家按钮退回去，下次接着玩时这一手重发
     voidHand() {
       const h = this.hand;

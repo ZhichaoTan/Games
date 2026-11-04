@@ -156,6 +156,39 @@
         `<circle cx="38.5" cy="56.4" r="3.1" fill="#fff"/><circle cx="61.5" cy="56.4" r="3.1" fill="#fff"/><circle cx="39" cy="56.8" r="1.8" fill="#151619"/><circle cx="61" cy="56.8" r="1.8" fill="#151619"/>` +
         `<ellipse cx="50" cy="65.6" rx="4.2" ry="3" fill="#1d1f24"/>` + MOUTH(68.8, '#1d1f24', 1.4) + BLUSH(68, 21, '#ff7b8a', .3);
     } },
+    { key: 'croc', en: 'Crocodile', zh: '鳄鱼', bg: ['#e9905c', '#a24a2a'], draw: () => {
+      const g = '#5fae5a', d = '#3f8a43', l = '#cfe8a0';
+      return BODY(d, 106, 34, 24) +
+        `<ellipse cx="50" cy="58" rx="27" ry="21" fill="${g}"/>` +
+        `<circle cx="36" cy="40" r="10.5" fill="${g}"/><circle cx="64" cy="40" r="10.5" fill="${g}"/>` +
+        `<path d="M24 64C24 58 32 56 50 56C68 56 76 58 76 64C76 76 66 83 50 83C34 83 24 76 24 64Z" fill="${g}"/>` +
+        `<path d="M27 70Q50 78 73 70" stroke="${d}" stroke-width="2.2" fill="none" stroke-linecap="round"/>` +
+        `<path d="M33 71.6l2.4 3.4 2.4-2.6M43 73.6l2.2 3.4 2.2-3M52.6 73.6l2.2 3.4 2.2-3.4M62.2 72.4l2.4 3 2.4-3.4" fill="#fff" stroke="#fff" stroke-width="1" stroke-linejoin="round"/>` +
+        `<ellipse cx="50" cy="78.5" rx="14" ry="3.6" fill="${l}" opacity=".7"/>` +
+        `<ellipse cx="43.5" cy="61" rx="2.2" ry="1.5" fill="${d}"/><ellipse cx="56.5" cy="61" rx="2.2" ry="1.5" fill="${d}"/>` +
+        `<path d="M40 48l3-3 3 3 3-3 3 3 3-3 3 3" stroke="${d}" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>` +
+        `<circle cx="36" cy="39.5" r="7" fill="#fff6c8"/><circle cx="64" cy="39.5" r="7" fill="#fff6c8"/>` +
+        `<ellipse cx="36.8" cy="40" rx="2.6" ry="5" fill="#1f2a1a"/><ellipse cx="63.2" cy="40" rx="2.6" ry="5" fill="#1f2a1a"/>` +
+        `<circle cx="38" cy="37.6" r="1.4" fill="#fff"/><circle cx="64.4" cy="37.6" r="1.4" fill="#fff"/>` +
+        SHEEN(32, 33, 5, 2.2) + SHEEN(60, 33, 5, 2.2) + BLUSH(66, 22, '#ff8a7a', .3);
+    } },
+    { key: 'kitten', en: 'Kitten', zh: '小猫', bg: ['#f2a7c3', '#b45a82'], draw: () => {
+      const f = '#b9bec8', d = '#8d93a0', w = '#fbfbfd', p = '#f6a6b8';
+      return BODY(d, 106, 30, 22) +
+        `<path d="M25 50L26 24L45 36Z" fill="${f}" stroke="${f}" stroke-width="5" stroke-linejoin="round"/>` +
+        `<path d="M75 50L74 24L55 36Z" fill="${f}" stroke="${f}" stroke-width="5" stroke-linejoin="round"/>` +
+        `<path d="M30 43L30.5 30L39 37Z" fill="${p}"/><path d="M70 43L69.5 30L61 37Z" fill="${p}"/>` +
+        `<circle cx="50" cy="60" r="27" fill="${f}"/>` +
+        `<path d="M44 34.5q1 3.4 0 6.6M50 33.6v7.6M56 34.5q-1 3.4 0 6.6" stroke="${d}" stroke-width="2.6" stroke-linecap="round" fill="none"/>` +
+        `<path d="M30 63C30 54 40 52 50 58C60 52 70 54 70 63C70 76 60 84 50 84C40 84 30 76 30 63Z" fill="${w}"/>` +
+        SHEEN(39, 44, 8, 3.2) +
+        EYE(39, 58, 5.2, 6.2, '#2c2430') + EYE(61, 58, 5.2, 6.2, '#2c2430') +
+        `<circle cx="37.6" cy="60.6" r="1.2" fill="#fff" opacity=".8"/><circle cx="59.6" cy="60.6" r="1.2" fill="#fff" opacity=".8"/>` +
+        BLUSH(67, 19, '#ff7f9c', .45) +
+        `<path d="M47.6 65h4.8l-2.4 2.8z" fill="#ef7c95" stroke="#ef7c95" stroke-width="1.2" stroke-linejoin="round"/>` + MOUTH(68, '#8a5a66', 1.3) +
+        `<path d="M36 69l-13-2M36 72l-12 2.4M64 69l13-2M64 72l12 2.4" stroke="${d}" stroke-width="1" opacity=".8" stroke-linecap="round"/>` +
+        `<g transform="translate(4 7)"><path d="M60 27q4-6 9-2q-3 5-9 2zM60 27q-1-7 5-8q1 6-5 8z" fill="#ff8fb1"/><circle cx="60.5" cy="27" r="2" fill="#ffd0de"/></g>`;
+    } },
   ];
 
   // 机器人：几种配色

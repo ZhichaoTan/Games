@@ -3,7 +3,7 @@
   'use strict';
   const S = {
     en: {
-      title: 'Sichuan Mahjong', titleA: 'Sichuan', titleB: 'MAHJONG', gHoldem: 'Hold’em', gMahjong: 'Mahjong', rules: 'Rules', langBtn: '中文',
+      title: 'Sichuan Mahjong', titleA: 'Sichuan', titleB: 'MAHJONG', allGames: 'All games', rules: 'Rules', langBtn: '中文',
       tagline: 'Bloody Battle rules · Swap three · Void suit<br>Send friends a four-letter room code and play',
       wx: 'Opened inside WeChat? Tap ··· at the top right and open it in your browser. Online play is steadier there and your progress is kept.',
       yourName: 'Your name', namePh: 'Up to 10 characters',
@@ -44,8 +44,8 @@
       resEnd: 'Round over', resDraw: 'Draw', resRound: 'Round {r}', resLast: 'final round',
       ord: ['', '1st', '2nd', '3rd'], dealerB: 'D', winOrder: '{o} to win · {h}',
       how: { zimo: 'self-drawn', pao: 'on a discard', rob: 'robbed a kong', dgh: 'kong bloom, giver pays' },
-      hua: 'Flower pig · still holding the void suit', tingMax: 'Ready · up to {f} fan', noTing: 'Not ready', dealerP: 'Dealer · ', you: 'You', youS: ' (you)',
-      lHu: '{h} · {t} · {f} fan', lHuN: ' ×{n}', lPayZimo: '{n} self-drew', lPayDgh: 'Kong bloom · {n}', lPayRob: 'Kong robbed by {n}', lPayPao: 'Dealt in to {n}',
+      hua: 'Flower pig · still holding the void suit', tingMax: 'Ready · up to {f} fan', noTing: 'Not ready', dealerP: 'Dealer · ', dealerW: 'Dealer', you: 'You', youS: ' (you)',
+      lHu: '{h} · {t} · {f} fan', lHu0: '{h} · {t}', lHuN: ' ×{n}', lPayZimo: '{n} self-drew', lPayDgh: 'Kong bloom · {n}', lPayRob: 'Kong robbed by {n}', lPayPao: 'Dealt in to {n}',
       lGang: '{w} ({k})', kAn: 'concealed kong', kBu: 'added kong', kMing: 'exposed kong', lGangPay: "{n}'s {w}",
       lZhuan: 'Kong money moved to you', lZhuanPay: 'Kong money to {n}', lPig: 'Flower pig check', lPigPay: 'Flower pig', lCha: 'Ready check ({f} fan)', lChaPay: 'Not ready', lTax: 'Kong refund', lTaxPay: 'Kong refund',
       next: 'Next round', nextIn: 'Next round starts in {s}s', waitFor: 'Waiting for {n}', readyMe: 'Ready',
@@ -78,7 +78,7 @@
       moreRules: 'More rules', idTaken: 'That room code is busy. Try again in a moment.', peek: 'View table', backRes: 'Results', lastRound: 'Last round', fanH: 'Fan',
     },
     zh: {
-      title: '四川麻将', titleA: '四川麻将', titleB: '', gHoldem: '德州扑克', gMahjong: '四川麻将', rules: '规则', langBtn: 'English',
+      title: '四川麻将', titleA: '四川麻将', titleB: '', allGames: '全部游戏', rules: '规则', langBtn: 'English',
       tagline: '血战到底 · 换三张 · 定缺<br>约上朋友，发个四位房间码就能开打',
       wx: '在微信里打开的话，建议点右上角「···」用浏览器打开，联机更稳，进度也不会丢。',
       yourName: '你的名字', namePh: '最多 10 个字',
@@ -118,9 +118,9 @@
       vPeng: '碰', vGang: '杠', vHu: '胡了', vZimo: '自摸',
       resEnd: '本局结束', resDraw: '流局', resRound: '第 {r} 局', resLast: '最后一局',
       ord: ['', '第 1 个', '第 2 个', '第 3 个'], dealerB: '庄', winOrder: '{o}胡 · {h}',
-      how: { zimo: '自摸', pao: '点炮', rob: '抢杠胡', dgh: '点杠花' },
-      hua: '花猪（手里还有缺门）', tingMax: '听牌 · 最大 {f} 番', noTing: '没听牌', dealerP: '庄 · ', you: '你', youS: '（你）',
-      lHu: '{h} · {t} {f}番', lHuN: '（{n}家给）', lPayZimo: '{n} 自摸', lPayDgh: '点杠花 · {n}', lPayRob: '被抢杠 · {n}', lPayPao: '点炮 · {n}',
+      how: { zimo: '自摸', pao: '接炮', rob: '抢杠胡', dgh: '点杠花' },
+      hua: '花猪（手里还有缺门）', tingMax: '听牌 · 最大 {f} 番', noTing: '没听牌', dealerP: '庄 · ', dealerW: '庄家', you: '你', youS: '（你）',
+      lHu: '{h} · {t} {f}番', lHu0: '{h} · {t}', lHuN: '（{n}家给）', lPayZimo: '{n} 自摸', lPayDgh: '点杠花 · {n}', lPayRob: '被抢杠 · {n}', lPayPao: '点炮 · {n}',
       lGang: '{w}（{k}）', kAn: '暗杠', kBu: '补杠', kMing: '直杠', lGangPay: '{n} {w}',
       lZhuan: '呼叫转移', lZhuanPay: '呼叫转移 · {n}', lPig: '查花猪', lPigPay: '花猪', lCha: '查大叫（听{f}番）', lChaPay: '没听牌', lTax: '退税', lTaxPay: '退税',
       next: '下一局', nextIn: '{s} 秒后开始下一局', waitFor: '等 {n}', readyMe: '已准备',

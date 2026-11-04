@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a0e13">
+<meta name="description" content="Card and tile games to play with friends on your phones: Midnight Hold'em and Sichuan Mahjong. No sign-up, just a room code.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Games</title>
+<script>
+// Hold'em used to live here, so its old invite links look like /Games/#ABCD: send them on to the game.
+(function () { var h = location.hash; if (/^#[A-Za-z0-9]{4}$/.test(h)) location.replace('poker/' + location.search + h); })();
+</script>
+<script>/*@@NOZOOM@@*/</script>
+<style>
+/*@@FONTS@@*/
+/* The home page of the collection: a night sky, a headline, and one poster card per game. Each card wears its game's own look. */
+:root{
+  --night:#0a0e13;
+  --text:#efe8da; --mute:#9aa4ae; --faint:#66727d; --line:rgba(239,232,218,.12);
+  --gold:#d3ac63; --gold-hi:#f4dda6; --gold-lo:#8c682b;
+  --display:"Fraunces","Songti SC","STSong",Georgia,serif;
+  --ui:"Manrope",-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --brush:"HubBrush","Kaiti SC","STKaiti","KaiTi",serif;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--night);-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;color:var(--text);font:500 15px/1.5 var(--ui);-webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(70% 42% at 78% 0%,rgba(255,214,150,.13),transparent 70%),
+    radial-gradient(60% 40% at 0% 70%,rgba(29,148,102,.09),transparent 70%),
+    radial-gradient(60% 40% at 100% 45%,rgba(64,96,180,.10),transparent 70%),
+    radial-gradient(140% 100% at 50% 20%,#141c27 0%,#0b1016 55%,#06080b 100%)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+[hidden]{display:none!important}
+
+.sky{position:fixed;left:0;right:0;top:0;height:62vh;pointer-events:none;-webkit-mask-image:linear-gradient(#000 25%,transparent);mask-image:linear-gradient(#000 25%,transparent)}
+.sky svg{width:100%;height:100%}
+@media (prefers-reduced-motion:no-preference){.sky .tw{animation:tw 5s ease-in-out infinite}}
+@keyframes tw{50%{opacity:.06}}
+
+.wrap{position:relative;max-width:460px;margin:0 auto;padding:calc(var(--sat) + 14px) max(18px,var(--sar)) calc(var(--sab) + 34px) max(18px,var(--sal))}
+.top{position:relative;z-index:2;display:flex;align-items:center;gap:8px;min-height:40px}
+.brand{display:flex;align-items:center;gap:9px;font:800 12px/1 var(--ui);letter-spacing:.46em;color:var(--gold);padding-left:2px}
+.brand svg{width:17px;height:17px;color:var(--gold-hi);filter:drop-shadow(0 0 5px rgba(244,221,166,.5))}
+.grow{flex:1;min-width:0}
+.me{display:flex;align-items:center;gap:7px;min-width:0;max-width:40vw;height:34px;padding:0 11px 0 3px;border-radius:99px;background:rgba(255,255,255,.05);border:1px solid var(--line);font-size:13px;font-weight:700}
+.me svg{width:27px;height:27px;border-radius:50%;flex:none}
+.me span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{flex:none;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:99px;background:rgba(255,255,255,.05);border:1px solid var(--line);font-size:13px;font-weight:700;transition:background .2s}
+.pill:active{background:rgba(255,255,255,.1)}
+.pill svg{width:16px;height:16px}
+
+.moon{position:absolute;right:max(24px,var(--sar));top:calc(var(--sat) + 60px);width:58px;height:58px;color:#f6e3b4;pointer-events:none;
+  filter:drop-shadow(0 0 14px rgba(246,227,180,.45)) drop-shadow(0 0 40px rgba(246,227,180,.18));rotate:-18deg}
+
+.hero{position:relative;padding:44px 2px 2px}
+.hero h1{margin:0;font:italic 600 min(43px,11vw)/1.02 var(--display);letter-spacing:-.022em}
+.hero h1 span{display:block;width:max-content;max-width:100%;background:linear-gradient(180deg,#fff8e8 8%,#f0d9a0 58%,#c99a4a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;padding:0 6px 5px 0}
+html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spacing:3px;white-space:nowrap}
+.hero p{margin:12px 0 0;max-width:33ch;color:var(--mute);font-size:14.5px;line-height:1.62;text-wrap:pretty}
+
+.list{display:grid;gap:18px;margin-top:28px}
+.game{--glow:rgba(0,0,0,.4);position:relative;display:block;border-radius:26px;overflow:hidden;text-decoration:none;isolation:isolate;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 0 0 1px rgba(255,255,255,.07),0 24px 46px -16px var(--glow),0 10px 22px rgba(0,0,0,.36);
+  transition:transform .4s cubic-bezier(.2,.8,.2,1),box-shadow .4s}
+.game:active{transform:scale(.982);transition-duration:.15s}
+@media (hover:hover){.game:hover{transform:translateY(-4px)}}
+.game::after{content:"";position:absolute;inset:0;z-index:3;border-radius:inherit;pointer-events:none;background:linear-gradient(150deg,rgba(255,255,255,.07),transparent 32%)}
+.art{position:relative;height:188px}
+.art::before{content:"";position:absolute;inset:0;-webkit-mask-image:linear-gradient(#000 35%,transparent 96%);mask-image:linear-gradient(#000 35%,transparent 96%)}
+.art .glow{position:absolute;left:50%;top:54%;width:340px;height:230px;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none}
+.info{position:relative;padding:0 20px 20px}
+.head{display:flex;align-items:flex-end;gap:12px}
+.lock{display:flex;align-items:center;gap:11px;min-width:0;margin:0}
+.lock .w{display:flex;flex-direction:column;align-items:flex-start;line-height:1}
+.lock .w1{font:italic 600 37px/.98 var(--display);letter-spacing:-.02em;background:linear-gradient(180deg,#fff8e8 10%,#f0d9a0 56%,#c99a4a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;padding:0 5px 4px 0;white-space:nowrap}
+.lock .w1.br{font:400 40px/1.08 var(--brush);letter-spacing:3px;padding:0 2px 2px 0}
+.lock .w2{font:800 10.5px/1 var(--ui);letter-spacing:.58em;color:var(--gold);margin-top:4px;padding-left:2px;white-space:nowrap}
+.lock .seal{flex:none;width:21px;height:36px;rotate:5deg;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+.lock .tseal{flex:none;writing-mode:vertical-rl;font:400 15px/1 var(--brush);letter-spacing:1px;color:#fff2e6;background:linear-gradient(160deg,#d8463a,#a32a22);padding:6px 4px;border-radius:4px;rotate:5deg;
+  box-shadow:0 3px 8px rgba(0,0,0,.4),inset 0 0 0 1.2px rgba(255,235,220,.38)}
+.go{flex:none;margin-left:auto;display:inline-flex;align-items:center;gap:5px;height:40px;padding:0 13px 0 17px;border-radius:99px;font-weight:800;font-size:14.5px;color:#26190a;
+  background:linear-gradient(180deg,#f6e2b0,#c99a4a);box-shadow:0 6px 16px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.55);transition:transform .3s}
+.go svg{width:17px;height:17px;transition:transform .3s}
+@media (hover:hover){.game:hover .go svg{transform:translateX(3px)}}
+.desc{margin:12px 0 0;color:rgba(239,232,218,.74);font-size:13.5px;line-height:1.58;text-wrap:pretty}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.chip{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px 0 8px;border-radius:99px;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.09);font-size:12px;font-weight:700;color:rgba(239,232,218,.86);white-space:nowrap}
+.chip svg{width:14px;height:14px;opacity:.8}
+
+/* ----- Hold'em: midnight blue, brass lattice, two cards and chips ----- */
+.g-poker{--glow:rgba(64,96,190,.42);background:linear-gradient(172deg,#22325c 0%,#152039 46%,#0c1325 100%)}
+.g-poker .art::before{background:repeating-linear-gradient(45deg,rgba(211,172,99,.07) 0 1px,transparent 1px 10px),repeating-linear-gradient(-45deg,rgba(211,172,99,.07) 0 1px,transparent 1px 10px)}
+.g-poker .art .glow{background:radial-gradient(closest-side,rgba(244,221,166,.26),transparent)}
+.pfan{position:absolute;left:50%;top:20px;width:0;height:0}
+.pc{--w:66px;position:absolute;left:calc(var(--w)/-2);top:0;width:var(--w);height:calc(var(--w)*1.4);border-radius:calc(var(--w)*.12);transform-origin:50% 125%;
+  background:linear-gradient(165deg,#fffdf8 0%,#f6f0e3 60%,#ece3d0 100%);color:#1a1c25;
+  box-shadow:inset 0 0 0 .6px rgba(0,0,0,.18),inset 0 1px 0 #fff,0 7px 16px rgba(0,0,0,.5);transition:rotate .5s cubic-bezier(.2,.8,.2,1),translate .5s cubic-bezier(.2,.8,.2,1)}
+.pc.red{color:#c33641}
+.pc .r{position:absolute;left:9%;top:4%;font:700 31px/1 var(--display);letter-spacing:-.03em}
+.pc .p1{position:absolute;left:11%;top:41%;width:26%;height:26%;fill:currentColor}
+.pc .p2{position:absolute;right:7%;bottom:6%;width:52%;height:52%;fill:currentColor}
+.pc:not(.back)::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(135deg,rgba(255,255,255,.55),transparent 38%)}
+.pc.back{background:var(--pmoon) center/38% no-repeat,repeating-linear-gradient(45deg,rgba(211,172,99,.30) 0 .8px,transparent .8px 6px),repeating-linear-gradient(-45deg,rgba(211,172,99,.30) 0 .8px,transparent .8px 6px),radial-gradient(circle at 50% 50%,#24345a,#121a2e 75%);
+  box-shadow:inset 0 0 0 3.6px #efe6d2,inset 0 0 0 5.6px #121a2e,inset 0 0 0 6.6px rgba(211,172,99,.8),0 6px 14px rgba(0,0,0,.45)}
+.pc.c0{rotate:-19deg;translate:-38px 10px}
+.pc.c1{rotate:-4deg;translate:-6px -2px}
+.pc.c2{rotate:12deg;translate:28px 6px}
+.pchips{position:absolute;left:58px;top:78px;width:46px;height:50px;filter:drop-shadow(0 6px 9px rgba(0,0,0,.5));transition:translate .5s cubic-bezier(.2,.8,.2,1)}
+.pchips svg{position:absolute;width:42px;height:42px}
+.game:active .pc.c0,.g-poker:hover .pc.c0{rotate:-25deg;translate:-46px 12px}
+.game:active .pc.c2,.g-poker:hover .pc.c2{rotate:18deg;translate:36px 8px}
+.g-poker:hover .pchips{translate:6px 2px}
+
+/* ----- Mahjong: jade felt, standing tiles, two dice ----- */
+.g-mahjong{--glow:rgba(29,148,102,.40);background:linear-gradient(172deg,#1c6a4d 0%,#124331 46%,#08261b 100%)}
+.g-mahjong .art::before{background-image:var(--noise);opacity:.9;mix-blend-mode:overlay}
+.g-mahjong .art .glow{background:radial-gradient(closest-side,rgba(255,228,160,.24),transparent)}
+.mfan{position:absolute;left:50%;top:34px;width:0;height:0}
+.mt{position:absolute;left:-29px;top:0;width:58px;height:79px;transform-origin:50% 135%;transition:rotate .5s cubic-bezier(.2,.8,.2,1),translate .5s cubic-bezier(.2,.8,.2,1)}
+.mt i{position:absolute;border-radius:8px}
+.mt .tb{left:0;right:0;top:-9px;bottom:0;background:linear-gradient(180deg,#43c58f 0,#1d9466 3%,#106a46 7%,#e2d4b4 7.5%,#f4ecda 10%);box-shadow:0 10px 18px rgba(0,0,0,.45)}
+.mt .tf{inset:0;background:linear-gradient(162deg,#fffef9 0%,#fbf6ea 45%,#f1e8d4 100%);box-shadow:inset 0 -5px 4px -3px rgba(150,118,66,.28),inset 0 2px 0 #fff}
+.mt .tf svg{position:absolute;left:4%;top:3.5%;width:92%;height:93%}
+.mt.back .tb{background:linear-gradient(180deg,#e9dcc0 0,#d9caa8 9%,#1d9466 10%,#106a46 100%)}
+.mt.back .tf{background:linear-gradient(158deg,#43c58f 0%,#1d9466 42%,#106a46 100%);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.35),inset 0 -2px 3px rgba(0,0,0,.18)}
+.mt.back .tf::before{content:"";position:absolute;inset:24% 24%;border-radius:50%;border:2px solid rgba(255,255,255,.14);box-shadow:inset 0 0 0 4px rgba(255,255,255,.05)}
+.mt.k0{rotate:-24deg;translate:-66px 18px}
+.mt.k1{rotate:-11deg;translate:-32px 4px}
+.mt.k2{rotate:2deg;translate:2px 0}
+.mt.k3{rotate:15deg;translate:36px 6px}
+.game:active .mt.k0,.g-mahjong:hover .mt.k0{rotate:-30deg;translate:-76px 20px}
+.game:active .mt.k1,.g-mahjong:hover .mt.k1{rotate:-14deg;translate:-37px 2px}
+.game:active .mt.k3,.g-mahjong:hover .mt.k3{rotate:20deg;translate:44px 8px}
+.dice{position:absolute;left:50%;top:104px;width:0;height:0}
+.die{position:absolute;width:38px;height:38px;filter:drop-shadow(0 6px 6px rgba(0,0,0,.45));transition:translate .5s cubic-bezier(.2,.8,.2,1),rotate .5s cubic-bezier(.2,.8,.2,1)}
+.die.d1{left:78px;top:2px;rotate:-8deg}
+.die.d2{left:108px;top:20px;width:33px;height:33px;rotate:10deg}
+.g-mahjong:hover .die.d1{translate:4px -3px;rotate:-14deg}
+.g-mahjong:hover .die.d2{translate:6px 1px;rotate:18deg}
+
+@media (prefers-reduced-motion:no-preference){
+  .pfan,.mfan{animation:float 6s ease-in-out infinite}
+  .mfan{animation-delay:-3s}
+  .boot .hero,.boot .game,.boot .more{animation:rise .75s cubic-bezier(.2,.8,.2,1) backwards}
+  .boot .game:nth-child(1){animation-delay:.1s}
+  .boot .game:nth-child(2){animation-delay:.2s}
+  .boot .game:nth-child(3){animation-delay:.3s}
+  .boot .more{animation-delay:.32s}
+}
+@keyframes float{50%{transform:translateY(-5px)}}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}}
+
+.more{display:flex;align-items:center;gap:12px;margin-top:18px;padding:15px 18px;border-radius:20px;border:1.5px dashed rgba(239,232,218,.15);color:var(--mute);font-size:13.5px;font-weight:600}
+.more svg{flex:none;width:22px;height:22px;color:var(--faint)}
+.foot{margin:26px 6px 0;color:var(--faint);font-size:12.5px;line-height:1.75;text-align:center;text-wrap:balance}
+.foot p{margin:0}
+
+@media (min-width:760px){
+  .wrap{max-width:940px;padding-left:max(32px,var(--sal));padding-right:max(32px,var(--sar))}
+  .hero{padding-top:56px}
+  .hero h1{font-size:56px}
+  html[lang^=zh] .hero h1{font-size:66px}
+  .moon{right:max(60px,var(--sar));top:calc(var(--sat) + 76px);width:72px;height:72px}
+  .list{grid-template-columns:1fr 1fr;gap:22px;margin-top:36px}
+  .art{height:206px}
+  .hero p{max-width:46ch}
+}
+/* phones on their side: a shorter hero so the games show on the first screen */
+@media (max-height:520px) and (min-width:600px){
+  .hero{padding-top:14px}
+  .hero h1{font-size:36px}
+  html[lang^=zh] .hero h1{font-size:44px}
+  .hero p{max-width:60ch;margin-top:8px}
+  .moon{top:calc(var(--sat) + 50px);width:48px;height:48px}
+  .list{margin-top:22px}
+}
+</style>
+</head>
+<body>
+<div class="sky" id="sky" aria-hidden="true"></div>
+<main class="wrap boot" id="wrap">
+  <header class="top">
+    <div class="brand"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#moon"/></svg><span>GAMES</span></div>
+    <div class="grow"></div>
+    <div class="me" id="me" hidden></div>
+    <button class="pill" id="lang"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-globe"/></svg><span id="langLbl">中文</span></button>
+  </header>
+  <svg class="moon" viewBox="0 0 100 100" aria-hidden="true"><use href="#moon"/></svg>
+  <section class="hero">
+    <h1 id="hd"></h1>
+    <p id="sub"></p>
+  </section>
+  <section class="list" id="list" aria-label="Games"></section>
+  <div class="more"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#h-more"/></svg><span id="more"></span></div>
+  <footer class="foot" id="foot"></footer>
+</main>
+<script>/*@@ART@@*/</script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem('mh_' + k)); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem('mh_' + k, JSON.stringify(v)); } catch (e) {} },
+  };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+  // ----- artwork: the shared sprite (avatars, suits, chips, moon, icons) plus the tile faces and icons this page uses -----
+  const I = (id, d) => `<symbol id="${id}" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</g></symbol>`;
+  document.body.insertAdjacentHTML('afterbegin', Art.sprite(/*@@SEAL@@*/'') +
+    '<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">' +
+    /*@@TILES@@*/'' +
+    I('h-people', '<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.4-3.2 2.6-5 5.5-5s5.1 1.8 5.5 5"/><path d="M15.5 5.6a3 3 0 0 1 0 5.8M17.8 14.3c1.6.7 2.6 2.3 2.8 4.7"/>') +
+    I('h-online', '<path d="M4.2 9.6a11 11 0 0 1 15.6 0"/><path d="M7.1 12.6a6.8 6.8 0 0 1 9.8 0"/><path d="M10 15.6a2.7 2.7 0 0 1 4 0"/><circle cx="12" cy="18.6" r=".6" fill="currentColor"/>') +
+    I('h-bot', '<rect x="5" y="8" width="14" height="11" rx="3.5"/><path d="M12 8V5"/><path d="M9.5 13h.01M14.5 13h.01" stroke-width="2.6"/>') +
+    I('h-more', '<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><path d="M16.75 13.8v5.9M13.8 16.75h5.9"/>') +
+    I('h-go', '<path d="M5 12h13.5M13 6.5l5.5 5.5-5.5 5.5"/>') +
+    '</svg>');
+
+  // felt grain for the mahjong card, the moon for the card back
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d'); const d = g.createImageData(96, 96);
+    for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255 | 0; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = Math.random() * 26 | 0; }
+    g.putImageData(d, 0, 0);
+    document.documentElement.style.setProperty('--noise', `url(${c.toDataURL()})`);
+  } catch (e) { document.documentElement.style.setProperty('--noise', 'none'); }
+  const pmoon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="34" fill="none" stroke="#d3ac63" stroke-width="3" opacity=".9"/><circle cx="50" cy="50" r="40" fill="none" stroke="#d3ac63" stroke-width="1.2" opacity=".6"/><path transform="translate(22 22) scale(.56)" d="M62 14A38 38 0 1 0 86 62A30 30 0 1 1 62 14Z" fill="#e7c98a"/></svg>';
+  document.documentElement.style.setProperty('--pmoon', `url("data:image/svg+xml,${encodeURIComponent(pmoon)}")`);
+
+  // a few stars; the same sky every visit
+  (function sky() {
+    let seed = 11, h = '';
+    const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+    for (let i = 0; i < 38; i++) {
+      const x = rnd() * 100, y = rnd() * 100, big = rnd() < 0.14, r = big ? 1.25 : 0.55 + rnd() * 0.45, o = 0.22 + rnd() * 0.5, tw = rnd() < 0.3;
+      h += `<circle cx="${x.toFixed(2)}%" cy="${y.toFixed(2)}%" r="${r.toFixed(2)}" fill="#fff" opacity="${o.toFixed(2)}"${tw ? ` class="tw" style="animation-delay:-${(rnd() * 5).toFixed(2)}s"` : ''}/>`;
+    }
+    $('sky').innerHTML = `<svg>${h}</svg>`;
+  })();
+
+  // an isometric die: the top and two side faces, pips drawn on each face's plane
+  const PIPS = { 1: [[50, 50, 15]], 2: [[27, 27], [73, 73]], 3: [[24, 24], [50, 50], [76, 76]], 4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+    5: [[25, 25], [75, 25], [50, 50], [25, 75], [75, 75]], 6: [[28, 22], [72, 22], [28, 50], [72, 50], [28, 78], [72, 78]] };
+  function die(top, left, right) {
+    const face = (n, m, fill, shade) => {
+      const red = n === 1 || n === 4;
+      const pips = PIPS[n].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r || 9.5}" fill="${red ? '#cc3328' : '#232323'}"/>`).join('');
+      return `<path d="${m.d}" fill="${fill}" stroke="${fill}" stroke-width="5" stroke-linejoin="round"/><g transform="${m.t}" opacity="${shade}">${pips}</g>`;
+    };
+    return `<svg viewBox="0 0 100 100" aria-hidden="true">` +
+      face(top, { d: 'M50 10L86 29L50 48L14 29Z', t: 'matrix(.36 .19 -.36 .19 50 10)' }, '#fffaf0', 1) +
+      face(left, { d: 'M14 29L50 48L50 90L14 71Z', t: 'matrix(.36 .19 0 .42 14 29)' }, '#eadfc6', .9) +
+      face(right, { d: 'M50 48L86 29L86 71L50 90Z', t: 'matrix(.36 -.19 0 .42 50 48)' }, '#d4c4a3', .85) +
+      '</svg>';
+  }
+
+  const pcard = (cls, rank, suit) => `<div class="pc ${cls}"><span class="r">${rank}</span><svg class="p1" viewBox="0 0 100 100"><use href="#suit-${suit}"/></svg><svg class="p2" viewBox="0 0 100 100"><use href="#suit-${suit}"/></svg></div>`;
+  const tile = (cls, t) => `<div class="mt ${cls}"><i class="tb"></i><i class="tf">${t == null ? '' : `<svg viewBox="0 0 60 80"><use href="#t${t}"/></svg>`}</i></div>`;
+
+  // ----- the games. To add one: give it a folder at the top of the repo, an entry here, and its art below. -----
+  const GAMES = [
+    { id: 'poker', href: 'poker/',
+      lock: () => `<span class="w"><span class="w1">Midnight</span><span class="w2">HOLD’EM</span></span><svg class="seal" viewBox="0 0 60 104" aria-hidden="true"><use href="#seal"/></svg>`,
+      art: () => `<div class="glow"></div><div class="pfan"><div class="pc back c0"></div>${pcard('c1', 'A', 's')}${pcard('red c2', 'K', 'h')}` +
+        `<div class="pchips"><svg viewBox="0 0 100 100" style="left:0;top:8px;color:#1f5b52"><use href="#chip"/></svg><svg viewBox="0 0 100 100" style="left:5px;top:0;color:#c33641"><use href="#chip"/></svg></div></div>`,
+      en: { name: 'Midnight Hold’em', desc: 'No-limit Texas Hold’em for a night in. Bots to practice with, an odds helper, and points to play for.', players: '2–9 players' },
+      zh: { name: '夜局 · 德州扑克', desc: '无限注德州扑克。有机器人陪练，有胜率提示，还有积分可以赢。', players: '2–9 人' } },
+    { id: 'mahjong', href: 'mahjong/',
+      lock: zh => zh ? `<span class="w"><span class="w1 br">四川麻将</span></span><span class="tseal" aria-hidden="true">血战</span>`
+        : `<span class="w"><span class="w1">Sichuan</span><span class="w2">MAHJONG</span></span><span class="tseal" aria-hidden="true">血战</span>`,
+      art: () => `<div class="glow"></div><div class="mfan">${tile('back k0')}${tile('k1', 4)}${tile('k2', 9)}${tile('k3', 22)}</div>` +
+        `<div class="dice"><div class="die d1">${die(1, 2, 3)}</div><div class="die d2">${die(4, 5, 6)}</div></div>`,
+      en: { name: 'Sichuan Mahjong', desc: 'Bloody Battle rules: swap three, pick a void suit, and play on after someone wins. Bots fill any empty seats.', players: '4 players' },
+      zh: { name: '四川麻将', desc: '血战到底，换三张，定缺。有人胡了其他人接着打，人不够机器人来凑。', players: '4 人' } },
+  ];
+
+  const S = {
+    en: { title: 'Games', hd: ['What are we', 'playing tonight?'], sub: 'Pick a game, send your friends the four-letter room code, and play together on your phones. No sign-up.',
+      lang: '中文', online: 'Online', bots: 'Bots', play: 'Play', more: 'More games on the way',
+      foot: ['Every game has its own rooms, so friends can play different games at the same time.', 'Your name, avatar and language carry over from game to game.'] },
+    zh: { title: '游戏', hd: ['今晚玩什么？'], sub: '选一个游戏，把四位房间码发给朋友，大家用手机一起玩。不用注册。',
+      lang: 'English', online: '联机', bots: '机器人', play: '进入', more: '更多游戏，陆续上线',
+      foot: ['每个游戏有自己的房间，朋友们可以同时在不同的游戏里玩。', '名字、头像和语言在各个游戏里通用。'] },
+  };
+
+  let lang = store.get('lang') === 'zh' ? 'zh' : 'en';
+  function card(g) {
+    const s = S[lang], t = g[lang], zh = lang === 'zh';
+    return `<a class="game g-${g.id}" href="${g.href}" aria-label="${esc(t.name + ', ' + t.players)}">` +
+      `<div class="art" aria-hidden="true">${g.art()}</div>` +
+      `<div class="info"><div class="head"><h2 class="lock">${g.lock(zh)}</h2><span class="go">${esc(s.play)}<svg viewBox="0 0 24 24"><use href="#h-go"/></svg></span></div>` +
+      `<p class="desc">${esc(t.desc)}</p>` +
+      `<div class="chips"><span class="chip"><svg viewBox="0 0 24 24"><use href="#h-people"/></svg>${esc(t.players)}</span>` +
+      `<span class="chip"><svg viewBox="0 0 24 24"><use href="#h-online"/></svg>${esc(s.online)}</span>` +
+      `<span class="chip"><svg viewBox="0 0 24 24"><use href="#h-bot"/></svg>${esc(s.bots)}</span></div></div></a>`;
+  }
+  function paintMe() {
+    const n = store.get('name'), av = store.get('av'), el = $('me');
+    if (typeof n !== 'string' || !n.trim()) { el.hidden = true; return; }
+    const i = Number.isInteger(av) && av >= 0 && av < Art.AVATARS.length ? av : 0;
+    el.innerHTML = `<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#av${i}"/></svg><span>${esc(n.trim().slice(0, 10))}</span>`;
+    el.hidden = false;
+  }
+  function render() {
+    const s = S[lang];
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    document.title = s.title;
+    $('hd').innerHTML = s.hd.map(l => `<span>${esc(l)}</span>`).join('');
+    $('sub').textContent = s.sub;
+    $('langLbl').textContent = s.lang;
+    $('list').innerHTML = GAMES.map(card).join('');
+    $('more').textContent = s.more;
+    $('foot').innerHTML = s.foot.map(l => `<p>${esc(l)}</p>`).join('');
+    paintMe();
+  }
+  render();
+  setTimeout(() => $('wrap').classList.remove('boot'), 1400);
+  $('lang').onclick = () => { lang = lang === 'zh' ? 'en' : 'zh'; store.set('lang', lang); $('wrap').classList.remove('boot'); render(); };
+  // coming back from a game (back button): pick up a new name, avatar or language
+  addEventListener('pageshow', e => { if (e.persisted) { lang = store.get('lang') === 'zh' ? 'zh' : 'en'; render(); } });
+})();
+</script>
+</body>
+</html>

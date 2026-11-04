@@ -308,9 +308,6 @@
     sym += I('next', '<path d="M5 12h13.5M13 6.5l5.5 5.5-5.5 5.5"/>');
     sym += I('save', '<path d="M7.5 4.5h9a1.5 1.5 0 0 1 1.5 1.5v14l-6-4-6 4V6a1.5 1.5 0 0 1 1.5-1.5z"/>');
     sym += I('flag', '<path d="M6 20.5V4.5"/><path d="M6 5h11.5l-2.6 4 2.6 4H6"/>');
-    // 合集切换用的两个小图标：扑克牌、麻将牌
-    sym += `<symbol id="g-holdem" viewBox="0 0 24 24"><rect x="4.6" y="2.9" width="14.8" height="18.2" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path transform="translate(7 7) scale(.1)" fill="currentColor" d="${SUITS.s.match(/d="([^"]+)"/)[1]}"/></symbol>`;
-    sym += '<symbol id="g-mahjong" viewBox="0 0 24 24"><rect x="5" y="2.6" width="14" height="18.8" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.9" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/></symbol>';
     sym += I('history', '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3L4.5 9"/><path d="M4.5 4.5V9H9"/><path d="M12 8.5V12l2.5 2"/>');
     return `<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"><defs>${defs}</defs>${sym}</svg>`;
   }

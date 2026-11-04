@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Inline fonts, PeerJS, the shared avatars, the rules engine, the bots and the UI into mahjong/index.html (one file for GitHub Pages).
-Shared with the poker game at the repo root: src/art.js (avatars), src/peerjs.min.js, src/fonts/ (Fraunces, Manrope)."""
+Shared with the Hold'em game: poker/src/art.js (avatars), poker/src/peerjs.min.js, poker/src/fonts/ (Fraunces, Manrope)."""
 import os, base64
 here = os.path.dirname(os.path.abspath(__file__))
-root = os.path.join(here, '..', '..', 'src')
+root = os.path.join(here, '..', '..', 'poker', 'src')
 rd = lambda *p: open(os.path.join(*p), encoding='utf-8').read()
 def font(fam, path, weight, style='normal', rng=None):
     b = base64.b64encode(open(path, 'rb').read()).decode()
@@ -19,9 +19,9 @@ fonts = '\n'.join([
     font('Manrope', os.path.join(root, 'fonts', 'manrope-latin-800-normal.woff2'), '750 900'),
 ])
 src = rd(here, 'index.html')
-subs = [('/*@@FONT@@*/', fonts), ('/*@@PEERJS@@*/', rd(root, 'peerjs.min.js')), ('/*@@AVATARS@@*/', rd(root, 'art.js')),
-        ('/*@@GLYPHS@@*/', rd(here, 'glyphs.js')), ('/*@@ART@@*/', rd(here, 'art.js')), ('/*@@ENGINE@@*/', rd(here, 'engine.js')),
-        ('/*@@AI@@*/', rd(here, 'ai.js')), ('/*@@I18N@@*/', rd(here, 'i18n.js')), ('/*@@SOUND@@*/', rd(here, 'sound.js')),
+subs = [('/*@@FONT@@*/', fonts), ('/*@@NOZOOM@@*/', rd(root, 'nozoom.js')), ('/*@@PEERJS@@*/', rd(root, 'peerjs.min.js')), ('/*@@AVATARS@@*/', rd(root, 'art.js')),
+        ('/*@@GLYPHS@@*/', rd(here, 'glyphs.js')), ('/*@@TILES@@*/', rd(here, 'tiles.js')), ('/*@@ART@@*/', rd(here, 'art.js')), ('/*@@ENGINE@@*/', rd(here, 'engine.js')),
+        ('/*@@AI@@*/', rd(here, 'ai.js')), ('/*@@I18N@@*/', rd(here, 'i18n.js')), ('/*@@SFX@@*/', rd(here, 'sfx.js')), ('/*@@SOUND@@*/', rd(here, 'sound.js')),
         ('/*@@UI@@*/', rd(here, 'ui.js')), ('/*@@APP@@*/', rd(here, 'app.js'))]
 for tag, body in subs:
     assert src.count(tag) == 1, tag

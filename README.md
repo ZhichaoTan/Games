@@ -1,11 +1,14 @@
 # Games
 
-Two table games for phone browsers that you play online with friends. There's no sign-up: pick a name, open a table and send the four-letter room code (or the invite link) to your friends.
+Table games for phone browsers that you play online with friends. There's no sign-up: pick a name, open a table and send the four-letter room code (or the invite link) to your friends.
 
-- **Midnight Hold'em**: https://zhichaotan.github.io/Games/
+- **Home page**, with the list of games: https://zhichaotan.github.io/Games/
+- **Midnight Hold'em**: https://zhichaotan.github.io/Games/poker/
 - **Sichuan Mahjong**: https://zhichaotan.github.io/Games/mahjong/
 
-The switch at the top of each lobby takes you to the other game. Your name, avatar and language carry over. Both games are in English by default, and the globe button switches them to Chinese.
+Tap a game on the home page to open its lobby, and the "All games" button at the top of each lobby goes back. Each game has its own rooms, so friends can be in different games at the same time. Your name, avatar and language carry over from game to game. Everything is in English by default, and the globe button switches to Chinese.
+
+Hold'em used to be at the top of the site, so an old invite link like `/Games/#ABCD` still opens that Hold'em room.
 
 ## How online play works
 
@@ -46,15 +49,22 @@ Four players, Bloody Battle (血战到底) rules.
 
 ## Build
 
-Each game is one self-contained HTML file that GitHub Pages serves as it is.
+Each page is one self-contained HTML file that GitHub Pages serves as it is. The sources are next to it, and each build script inlines the fonts, artwork and code.
 
-- Hold'em: the source is in `src/`. `python3 src/build.py` inlines the fonts, PeerJS, the rules engine and the artwork into the root `index.html`.
-- Mahjong: the source is in `mahjong/src/`. `python3 mahjong/src/build.py` writes `mahjong/index.html`. It reuses the fonts, PeerJS and avatars from `src/`.
+- Home page: the source is `hub/index.html`. `python3 hub/build.py` writes the root `index.html`. It reuses the fonts, avatars and seal from `poker/src/` and three tile faces from `mahjong/src/tiles.js`.
+- Hold'em: the source is in `poker/src/`. `python3 poker/src/build.py` writes `poker/index.html`.
+- Mahjong: the source is in `mahjong/src/`. `python3 mahjong/src/build.py` writes `mahjong/index.html`. It reuses the fonts, PeerJS, avatars and the zoom guard (`nozoom.js`) from `poker/src/`.
 - Mahjong tests: `node mahjong/tests/engine.test.js` checks the rules and scoring, and `node mahjong/tests/sim.js` plays long bot-only matches.
-- `mahjong/dev/` has the Playwright scripts used to try the game in a headless browser: `play.js` (autoplay screenshots), `human.js` (taps, drags and buttons like a player), and `online.js` (four browsers on a local PeerServer, including a dropped connection and a mid-game join).
+- `mahjong/dev/` has the Playwright scripts used to try the game in a headless browser: `play.js` (autoplay screenshots), `human.js` (taps, drags and buttons like a player), and `online.js` (four browsers on a local PeerServer, including a dropped connection and a mid-game join). It also has the scripts that made the generated files: `maketiles.py` (`mahjong/src/tiles.js`), `makesfx.py` (`mahjong/src/sfx.js`) and `makefont.py` (the brush-font subset). `hub/makefont.py` makes the home page's brush-font subset.
+
+### Adding a game
+
+Put it in its own folder at the top of the repo, named after the game (the folder name becomes the address, like `/Games/poker/`). Give its lobby an "All games" link to `../`, add an entry to the `GAMES` list in `hub/index.html` with its card artwork, and run `python3 hub/build.py`. Use a PeerJS id prefix of its own so its rooms stay separate, and keep the shared `mh_name`, `mh_av` and `mh_lang` settings so players keep their name, avatar and language.
 
 ## Credits
 
 - [PeerJS](https://peerjs.com) (MIT) for the peer-to-peer connection.
-- [Fraunces](https://github.com/undercasetype/Fraunces) and [Manrope](https://github.com/sharanda/manrope), SIL Open Font License 1.1 (see `src/fonts/`).
-- [Ma Shan Zheng](https://fonts.google.com/specimen/Ma+Shan+Zheng) for the brush lettering on the mahjong tiles and titles, SIL Open Font License 1.1 (a subset is in `mahjong/src/fonts/`).
+- [Fraunces](https://github.com/undercasetype/Fraunces) and [Manrope](https://github.com/sharanda/manrope), SIL Open Font License 1.1 (see `poker/src/fonts/`).
+- [Ma Shan Zheng](https://fonts.google.com/specimen/Ma+Shan+Zheng) for the brush lettering on the mahjong titles and the home page, SIL Open Font License 1.1 (subsets in `mahjong/src/fonts/` and `hub/fonts/`).
+- Mahjong tile faces: [riichi-mahjong-tiles](https://github.com/FluffyStuff/riichi-mahjong-tiles) by FluffyStuff, public domain (CC0), recoloured slightly. The optimised copies come from the npm package [@johnmorrisdotca/jarajara](https://www.npmjs.com/package/@johnmorrisdotca/jarajara) (MIT, © 2026 John Morris).
+- Mahjong table sounds: [Casino Audio](https://kenney.nl/assets/casino-audio) by Kenney, CC0 1.0, in the short cuts shipped with the same jarajara package.

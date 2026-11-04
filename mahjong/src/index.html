@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>川麻 · 血战到底</title>
+<script>/*@@NOZOOM@@*/</script>
 <style>
 /*@@FONT@@*/
 :root{
@@ -15,6 +16,7 @@
   --panel:rgba(8,24,18,.82);--line:rgba(232,198,123,.22);--glass:rgba(255,255,255,.06);
   --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);
   --brush:"MJBrush","Kaiti SC","STKaiti","KaiTi",serif;
+  --bk:#1d9466;--bk2:#43c58f;--bk3:#106a46;
   --ui:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -30,13 +32,12 @@ svg.ic{width:20px;height:20px;flex:none}
   radial-gradient(120% 70% at 50% 0%,#1b5a43 0%,#0f3528 45%,#071a13 100%)}
 #lobby::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:var(--noise);opacity:.5;mix-blend-mode:overlay}
 .lob{position:relative;max-width:440px;margin:0 auto;padding:calc(var(--sat) + 18px) 18px calc(var(--sab) + 28px)}
-.games{display:flex;gap:3px;padding:3px;border-radius:99px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08)}
-.games a{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;height:38px;border-radius:99px;font-size:14px;font-weight:700;color:var(--ink2);text-decoration:none;white-space:nowrap;transition:background .2s,color .2s}
-.games a svg{width:17px;height:17px;flex:none}
-.games a.on{background:linear-gradient(180deg,#f1d592,#c99b48);color:#2b1d07;box-shadow:0 4px 12px rgba(0,0,0,.3)}
-.games a:not(.on):active{background:rgba(255,255,255,.06)}
-.corner{position:absolute;top:calc(var(--sat) + 76px);z-index:2}
-.corner.l{left:18px}.corner.r{right:18px}
+.lobtop{position:relative;z-index:2;display:flex;align-items:center;gap:8px;min-height:36px}
+.lobtop .grow{flex:1;min-width:0}
+.lobtop .pillbtn{white-space:nowrap}
+.lobtop .pillbtn:active{background:rgba(255,255,255,.1)}
+.pillbtn.home{gap:4px;padding:0 13px 0 8px;color:var(--ink);text-decoration:none}
+.pillbtn.home .ic{width:18px;height:18px;color:var(--gold)}
 .pillbtn{display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:99px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.08);font-size:13px;color:var(--ink2)}
 .hero{position:relative;text-align:center;padding:40px 0 4px}
 .fan{position:relative;height:150px;margin:0 auto;width:260px}
@@ -111,10 +112,12 @@ html[lang=en] .title .w1{font:italic 600 50px/0.98 "Fraunces",Georgia,serif;lett
 .rules-sum{margin-top:14px;font-size:13px;color:var(--ink2);line-height:1.8;text-align:center}
 
 /* ===== 牌桌 ===== */
-#game{background:radial-gradient(90% 60% at 50% 45%,#1d5c44 0%,#134a37 40%,#0b2c21 100%);overflow:hidden;touch-action:none}
+#game{background:radial-gradient(62% 44% at 50% 45%,rgba(255,232,180,.09),transparent 72%),radial-gradient(115% 78% at 50% 45%,#215f49 0%,#174b3a 40%,#0d3026 72%,#071a14 100%);overflow:hidden;touch-action:none}
+#game::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(140% 100% at 50% 45%,transparent 52%,rgba(0,0,0,.42) 100%)}
 #game::before{content:"";position:absolute;inset:0;background-image:var(--noise);opacity:.55;mix-blend-mode:overlay;pointer-events:none}
 #tbl{position:absolute;inset:0}
-.felt-ring{position:absolute;border-radius:36px;border:1px solid rgba(255,255,255,.05);box-shadow:inset 0 0 60px rgba(0,0,0,.25);pointer-events:none}
+.felt-ring{position:absolute;border-radius:34px;background:radial-gradient(85% 75% at 50% 45%,rgba(255,255,255,.035),rgba(0,0,0,.07));box-shadow:inset 0 0 0 1px rgba(255,255,255,.055),inset 0 0 44px rgba(0,0,0,.3),0 0 0 1px rgba(0,0,0,.16);pointer-events:none}
+.felt-ring::before{content:"";position:absolute;inset:7px;border-radius:28px;border:1.5px dashed rgba(255,255,255,.075)}
 .topbar{position:absolute;left:0;right:0;top:0;height:calc(var(--sat) + 44px);padding:var(--sat) 10px 0;display:flex;align-items:center;gap:8px;z-index:30;pointer-events:none}
 .topbar>*{pointer-events:auto}
 .tb-btn{width:36px;height:36px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:var(--ink2);position:relative}
@@ -125,52 +128,57 @@ html[lang=en] .title .w1{font:italic 600 50px/0.98 "Fraunces",Georgia,serif;lett
 .netdot{position:absolute;right:5px;top:5px;width:7px;height:7px;border-radius:50%;background:#46d18d;box-shadow:0 0 0 2px rgba(0,0,0,.4)}
 .netdot.bad{background:#ff6b5b}
 
-/* 牌：基准 60×82，用 transform 缩放和移动 */
+/* 牌：基准 60×82，用 transform 缩放和移动。两层：象牙色牌面 + 翠绿色牌背，侧面露出两层的厚度 */
 .t{position:absolute;left:0;top:0;width:60px;height:82px;transform-origin:30px 41px;will-change:transform;transition:transform .3s cubic-bezier(.22,.8,.25,1),opacity .22s;z-index:5}
-.t .f{position:absolute;inset:0;border-radius:9px;background:linear-gradient(172deg,#fffef8 0%,#f7f1e3 62%,#ebe1ca 100%);overflow:hidden}
-.t .f svg{position:absolute;left:8.5%;top:6%;width:83%;height:88%}
+.t .f{position:absolute;inset:0;border-radius:9px;background:linear-gradient(162deg,#fffef9 0%,#fbf6ea 45%,#f1e8d4 100%);overflow:hidden;box-shadow:inset 0 1.5px 0 #fff,inset 0 -2px 3px rgba(140,108,58,.16)}
+.t .f svg{position:absolute;left:4%;top:3.5%;width:92%;height:93%}
 .t .b{position:absolute;border-radius:9px;z-index:-1}
-/* 站着的（自己手牌）：上面露出牌的顶边（象牙色面层 + 绿色背层） */
-.t.stand .b{left:0;right:0;top:-12px;bottom:0;background:linear-gradient(180deg,#14603f 0,#23905f 6.5%,#e3d8bd 7.4%,#efe6cf 12.6%,#efe6cf 100%);box-shadow:0 10px 16px rgba(0,0,0,.38)}
-.t.stand .f{box-shadow:inset 0 -5px 0 rgba(170,150,110,.26),inset 0 2px 0 #fff}
+/* 站着的（自己手牌）：上面露出牌的顶边（翠绿背层 + 象牙色面层），下面一道影子 */
+.t.stand .b{left:0;right:0;top:-13px;bottom:0;background:linear-gradient(180deg,var(--bk2) 0,var(--bk) 3.4%,var(--bk3) 8.2%,#e2d4b4 8.7%,#f4ecda 12%,#ece1c8 13.8%);box-shadow:0 9px 12px -1px rgba(0,0,0,.42),0 2px 3px rgba(0,0,0,.25)}
+.t.stand .f{box-shadow:inset 0 -5px 4px -3px rgba(150,118,66,.28),inset 0 2px 0 #fff,inset 2px 0 0 rgba(255,255,255,.6)}
 /* 平躺的（牌河、碰杠）：下面露出厚度；横着放的按方向把厚度画在屏幕下方 */
-.t.flat .b,.t.down .b{left:0;right:0;top:6px;bottom:-11px;box-shadow:0 8px 10px rgba(0,0,0,.3)}
-.t.flat .b{background:linear-gradient(180deg,#d9ceb2 0,#e7dcc1 86%,#1d7c56 91%,#0f5a3e 100%)}
-.t.down .b{background:linear-gradient(180deg,#1b7d56 0,#1b7d56 86%,#e9dfc6 91%,#d6ccb2 100%)}
-.t.flat.o1 .b,.t.down.o1 .b{top:0;bottom:0;left:-11px;right:6px;box-shadow:-8px 0 10px rgba(0,0,0,.3)}
-.t.flat.o1 .b{background:linear-gradient(270deg,#d9ceb2 0,#e7dcc1 86%,#1d7c56 91%,#0f5a3e 100%)}
-.t.down.o1 .b{background:linear-gradient(270deg,#1b7d56 0,#1b7d56 86%,#e9dfc6 91%,#d6ccb2 100%)}
-.t.flat.o3 .b,.t.down.o3 .b{top:0;bottom:0;left:6px;right:-11px;box-shadow:8px 0 10px rgba(0,0,0,.3)}
-.t.flat.o3 .b{background:linear-gradient(90deg,#d9ceb2 0,#e7dcc1 86%,#1d7c56 91%,#0f5a3e 100%)}
-.t.down.o3 .b{background:linear-gradient(90deg,#1b7d56 0,#1b7d56 86%,#e9dfc6 91%,#d6ccb2 100%)}
-.t.flat .f{box-shadow:inset 0 1px 0 #fff,inset 0 -2px 0 rgba(170,150,110,.18)}
-.t.down .f{background:linear-gradient(170deg,#3aa979,#1d8159 55%,#15694b)}
-.t.down .f::before{content:"";position:absolute;inset:18% 22%;border:3px solid rgba(255,255,255,.16);border-radius:50%/40%}
+.t.flat .b,.t.down .b{left:0;right:0;top:6px;bottom:-11px;box-shadow:0 7px 9px rgba(0,0,0,.34),0 1px 2px rgba(0,0,0,.3)}
+.t.flat .b{background:linear-gradient(180deg,#d4c6a7 0,#e4d8bd 86%,var(--bk3) 89.5%,var(--bk) 94%,#0b4f34 100%)}
+.t.down .b{background:linear-gradient(180deg,var(--bk3) 0,var(--bk3) 86%,#e6d9be 90%,#cfc0a0 100%)}
+.t.flat.o1 .b,.t.down.o1 .b{top:0;bottom:0;left:-11px;right:6px;box-shadow:-6px 0 9px rgba(0,0,0,.34)}
+.t.flat.o1 .b{background:linear-gradient(270deg,#d4c6a7 0,#e4d8bd 86%,var(--bk3) 89.5%,var(--bk) 94%,#0b4f34 100%)}
+.t.down.o1 .b{background:linear-gradient(270deg,var(--bk3) 0,var(--bk3) 86%,#e6d9be 90%,#cfc0a0 100%)}
+.t.flat.o3 .b,.t.down.o3 .b{top:0;bottom:0;left:6px;right:-11px;box-shadow:6px 0 9px rgba(0,0,0,.34)}
+.t.flat.o3 .b{background:linear-gradient(90deg,#d4c6a7 0,#e4d8bd 86%,var(--bk3) 89.5%,var(--bk) 94%,#0b4f34 100%)}
+.t.down.o3 .b{background:linear-gradient(90deg,var(--bk3) 0,var(--bk3) 86%,#e6d9be 90%,#cfc0a0 100%)}
+.t.flat .f{box-shadow:inset 0 1.5px 0 #fff,inset 0 -2px 2px rgba(150,118,66,.2)}
+.t.down .f{background:linear-gradient(158deg,var(--bk2) 0%,var(--bk) 42%,var(--bk3) 100%);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.35),inset 0 -2px 3px rgba(0,0,0,.18)}
+.t.down .f::before{content:"";position:absolute;inset:22% 26%;border-radius:50%;border:2.5px solid rgba(255,255,255,.13);box-shadow:inset 0 0 0 5px rgba(255,255,255,.05)}
 .t.sel{z-index:8}
-.t.dim .f::after{content:"";position:absolute;inset:0;background:rgba(20,30,25,.42)}
-.t.que .f::before{content:"";position:absolute;right:4px;top:4px;width:14px;height:14px;border-radius:50%;background:#c4312f;box-shadow:0 0 0 2px #fff;z-index:2}
-.t.hl .f{background:linear-gradient(172deg,#fff6c9,#ffe7a1 70%,#f4d27a)}
-.t.last .f{box-shadow:0 0 0 3px #ffd36b,inset 0 1px 0 #fff}
+.t.dim .f::after{content:"";position:absolute;inset:0;background:rgba(18,28,24,.4)}
+.t.que .f::before{content:"";position:absolute;right:4px;top:4px;width:13px;height:13px;border-radius:50%;background:#cc3328;box-shadow:0 0 0 2.5px #fff,0 1px 3px 2px rgba(0,0,0,.2);z-index:2}
+.t.hl .f{background:linear-gradient(162deg,#fff8d6,#ffeaa8 60%,#f6d77f)}
+.t.last .f{box-shadow:0 0 0 3px #ffcf5a,0 0 14px 3px rgba(255,207,90,.55),inset 0 1.5px 0 #fff}
+.t.last::before{content:"";position:absolute;left:50%;top:-17px;width:0;height:0;margin-left:-7px;border:7px solid transparent;border-top:9px solid #ffcf5a;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45));animation:bob 1s ease-in-out infinite alternate;z-index:4}
+.t.o1.last::before,.t.o3.last::before{display:none}
+@keyframes bob{0%{translate:0 -3px}100%{translate:0 2px}}
 .t.got .f{animation:gotGlow 1.6s ease-out}
-@keyframes gotGlow{0%,40%{background:linear-gradient(172deg,#fff3b0,#ffd76a)}100%{}}
+@keyframes gotGlow{0%,40%{background:linear-gradient(162deg,#fff3b0,#ffd76a)}100%{}}
 .t.mk::after,.t.mkb::after{content:"";position:absolute;left:50%;top:-40px;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:#35d28c;box-shadow:0 0 0 4px rgba(0,0,0,.3),0 0 18px #35d28c;z-index:3}
 .t.mkb::after{background:radial-gradient(circle,#fff 0 30%,#35d28c 34%)}
 .t.huT .f{box-shadow:0 0 0 3px #ff7a52,0 0 16px #ff7a52}
+.t.drop .f,.t.drop .b{animation:drop .4s ease-in both}
+@keyframes drop{0%{transform:scale(1.14)}72%{transform:scale(.97)}100%{transform:scale(1)}}
 
-/* 对手手牌 */
+/* 对手手牌：一个元素画一排立着的牌（从背后/侧面看） */
 .ohand{position:absolute;z-index:4;pointer-events:none}
 .ohand i{position:absolute;border-radius:3px}
-.ohand.top i{background:linear-gradient(180deg,#e9dfc6 0 22%,#2c9a6b 24%,#167150 70%,#0f5a3e);box-shadow:0 2px 3px rgba(0,0,0,.35)}
-.ohand.side i{background:linear-gradient(90deg,#0f5a3e,#1d8a5f 45%,#2c9a6b 62%,#e9dfc6 64%,#f6efe0);box-shadow:0 2px 3px rgba(0,0,0,.35)}
-.ohand.side.r i{background:linear-gradient(270deg,#0f5a3e,#1d8a5f 45%,#2c9a6b 62%,#e9dfc6 64%,#f6efe0)}
-.ohand.down i{background:linear-gradient(180deg,#36a676,#1b7d56);box-shadow:0 2px 0 #e9dfc6,0 3px 3px rgba(0,0,0,.35)}
+.ohand.top i{background:linear-gradient(180deg,#f3ead6 0,#e2d5b6 19%,var(--bk3) 21%,var(--bk2) 27%,var(--bk) 50%,var(--bk3) 100%);box-shadow:0 3px 4px rgba(0,0,0,.42),inset 0 -1px 0 rgba(0,0,0,.2)}
+.ohand.side i{background:linear-gradient(90deg,var(--bk3) 0,var(--bk) 30%,var(--bk2) 52%,var(--bk3) 60%,#dccfaf 62%,#f6eedd 82%,#e9dec6 100%);box-shadow:0 2px 3px rgba(0,0,0,.4)}
+.ohand.side.r i{background:linear-gradient(270deg,var(--bk3) 0,var(--bk) 30%,var(--bk2) 52%,var(--bk3) 60%,#dccfaf 62%,#f6eedd 82%,#e9dec6 100%)}
+.ohand.down i{background:linear-gradient(158deg,var(--bk2),var(--bk) 45%,var(--bk3));box-shadow:0 2px 0 #e6d9be,0 3px 0 #cfc0a0,0 5px 5px rgba(0,0,0,.38)}
 
 /* 座位 */
 .seat{position:absolute;z-index:12;display:flex;align-items:center;gap:6px;pointer-events:auto;transition:opacity .3s}
 .seat .av{position:relative;width:var(--a,40px);height:var(--a,40px);border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.18),0 4px 10px rgba(0,0,0,.35);transition:box-shadow .25s}
 .seat .av svg{width:100%;height:100%;border-radius:50%}
 .seat.turn .av{box-shadow:0 0 0 2.5px #ffd36b,0 0 18px rgba(255,211,107,.6)}
-.seat .info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.seat .info{display:flex;flex-direction:column;gap:1px;min-width:0;padding:3px 8px 4px;border-radius:10px;background:rgba(3,14,10,.42);box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
 .seat .nm{font-size:12px;color:var(--ink);max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .seat .sc{font-size:12.5px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .seat .sc.neg{color:#ff9a8a}
@@ -196,12 +204,13 @@ html[lang=en] .title .w1{font:italic 600 50px/0.98 "Fraunces",Georgia,serif;lett
 @keyframes bub{0%{opacity:0;transform:translateY(6px) scale(.9)}8%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
 
 /* 中间罗盘 */
-.compass{position:absolute;z-index:3;border-radius:18px;background:radial-gradient(circle at 50% 35%,#21493a,#0f2b21);box-shadow:inset 0 0 0 1px rgba(232,198,123,.25),0 8px 20px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;flex-direction:column}
-.compass .lt{position:absolute;background:rgba(255,255,255,.09);border-radius:4px;transition:background .25s,box-shadow .25s}
-.compass .lt.on{background:#ffd36b;box-shadow:0 0 14px #ffd36b}
-.compass .lt.hu{background:#d9473a}
-.compass .left{font-size:11px;color:var(--ink3)}
-.compass .left b{display:block;font-size:22px;color:var(--ink);font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.compass{position:absolute;z-index:3;border-radius:24%;background:radial-gradient(110% 80% at 28% 18%,rgba(255,255,255,.11),transparent 46%),linear-gradient(150deg,#2a3431 0%,#141b19 55%,#0a0f0d 100%);box-shadow:0 0 0 1.5px rgba(232,198,123,.5),0 0 0 4.5px rgba(0,0,0,.28),0 14px 28px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.16),inset 0 -3px 8px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;flex-direction:column}
+.compass .lt{position:absolute;background:rgba(255,255,255,.075);border-radius:99px;box-shadow:inset 0 1px 1px rgba(0,0,0,.5);transition:background .25s,box-shadow .25s}
+.compass .lt.on{background:linear-gradient(90deg,#ffe7a6,#ffc451,#ffe7a6);box-shadow:0 0 9px 2px rgba(255,196,81,.8),0 0 26px 4px rgba(255,196,81,.4);animation:ltp 1.1s ease-in-out infinite alternate}
+@keyframes ltp{0%{opacity:.72}100%{opacity:1}}
+.compass .lt.hu{background:#e0503f;box-shadow:0 0 8px rgba(224,80,63,.65)}
+.compass .left{font-size:10.5px;color:rgba(232,198,123,.62);letter-spacing:.06em}
+.compass .left b{display:block;font:800 23px/1.1 "Manrope",var(--ui);color:#ffeec4;font-variant-numeric:tabular-nums;text-shadow:0 0 10px rgba(255,205,100,.38)}
 .compass .clock{position:absolute;bottom:6px;font-size:11px;color:#ffd36b;font-weight:700;font-variant-numeric:tabular-nums}
 .compass .dir{position:absolute;font-family:var(--brush);font-size:14px;color:rgba(232,198,123,.75)}
 
@@ -209,22 +218,29 @@ html[lang=en] .title .w1{font:italic 600 50px/0.98 "Fraunces",Georgia,serif;lett
 .acts{position:absolute;z-index:25;display:flex;gap:10px;align-items:flex-end;justify-content:flex-end}
 .abtn{position:relative;width:62px;height:62px;border-radius:50%;font-family:var(--brush);font-size:30px;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.35),inset 0 -3px 0 rgba(0,0,0,.18);animation:abIn .28s cubic-bezier(.2,1.5,.4,1);text-shadow:0 2px 3px rgba(0,0,0,.35)}
 .abtn:active{transform:scale(.93)}
+.abtn::before{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(70% 50% at 50% 18%,rgba(255,255,255,.42),transparent 70%);pointer-events:none}
+.abtn::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2.5px solid rgba(255,255,255,.7);opacity:0;pointer-events:none}
+.abtn.hu::after,.abtn.gang::after,.abtn.peng::after{animation:abPulse 1.5s ease-out .3s infinite}
+.abtn.hu::after{border-color:#ffd36b}
+@keyframes abPulse{0%{opacity:.85;transform:scale(.92)}100%{opacity:0;transform:scale(1.35)}}
+.turnglow{position:absolute;z-index:4;pointer-events:none;border-radius:50%;background:radial-gradient(50% 50% at 50% 60%,rgba(255,206,100,.28),rgba(255,206,100,.08) 55%,transparent 72%);animation:tgIn .35s ease-out}
+@keyframes tgIn{0%{opacity:0}100%{opacity:1}}
 .abtn.hu{width:72px;height:72px;font-size:36px;background:radial-gradient(circle at 40% 30%,#ff8a5c,#d9362a 60%,#a5221a)}
 .abtn.gang{background:radial-gradient(circle at 40% 30%,#b493ff,#7a55d8 60%,#5634a8)}
 .abtn.peng{background:radial-gradient(circle at 40% 30%,#6fb6ff,#2f7fd6 60%,#1d59a3)}
 .abtn.pass{width:52px;height:52px;font-size:24px;background:radial-gradient(circle at 40% 30%,#8a9792,#56625d 60%,#3b4541)}
-.abtn .mini{position:absolute;top:-30px;left:50%;transform:translateX(-50%);width:24px;height:33px;border-radius:4px;background:#fbf8f0;box-shadow:0 2px 6px rgba(0,0,0,.4)}
-.abtn .mini svg{position:absolute;inset:2px 2px;width:20px;height:29px}
+.abtn .mini{position:absolute;top:-34px;left:50%;transform:translateX(-50%);width:24px;height:33px;border-radius:4px;background:linear-gradient(162deg,#fffef9,#f6efdf);box-shadow:0 2px 0 var(--bk3),0 4px 8px rgba(0,0,0,.4)}
+.abtn .mini svg{position:absolute;left:1px;top:1px;width:22px;height:31px}
 @keyframes abIn{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
 .gopts{position:absolute;z-index:26;display:flex;gap:8px;padding:8px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
-.gopts button{width:34px;height:46px;border-radius:5px;background:#fbf8f0;position:relative;box-shadow:0 2px 6px rgba(0,0,0,.35)}
-.gopts button svg{position:absolute;left:3px;top:3px;width:28px;height:40px}
+.gopts button{width:34px;height:46px;border-radius:5px;background:linear-gradient(162deg,#fffef9,#f6efdf);position:relative;box-shadow:0 3px 0 var(--bk3),0 4px 8px rgba(0,0,0,.35)}
+.gopts button svg{position:absolute;left:1.5px;top:1.5px;width:31px;height:43px}
 
 /* 提示框（听什么） */
 .tip{position:absolute;z-index:24;padding:8px 10px;border-radius:14px;background:rgba(6,20,15,.88);border:1px solid var(--line);box-shadow:0 8px 20px rgba(0,0,0,.35);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink2);pointer-events:none;flex-wrap:wrap;max-width:calc(100vw - 24px)}
 .tip .w{display:flex;align-items:center;gap:3px}
-.tip .mt{width:22px;height:30px;border-radius:3px;background:#fbf8f0;position:relative;flex:none}
-.tip .mt svg{position:absolute;left:2px;top:2px;width:18px;height:26px}
+.tip .mt{width:22px;height:30px;border-radius:3.5px;background:linear-gradient(162deg,#fffef9,#f6efdf);position:relative;flex:none;box-shadow:0 2px 0 var(--bk3)}
+.tip .mt svg{position:absolute;left:1px;top:1px;width:20px;height:28px}
 .tip .n{font-weight:700;color:var(--ink)}
 .tip .n.z{color:#ff8b7b}
 .tip .fn{font-size:11px;color:var(--gold)}
@@ -241,7 +257,7 @@ html[lang=en] .title .w1{font:italic 600 50px/0.98 "Fraunces",Georgia,serif;lett
 .qbtn.rec{border-color:rgba(232,198,123,.75);background:rgba(232,198,123,.12)}
 .qbtn.rec::after{content:"推荐";position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:10px;padding:1px 7px;border-radius:99px;background:linear-gradient(180deg,#f1d592,#c99b48);color:#2b1d07;font-weight:700}
 .dirfx{position:absolute;z-index:23;pointer-events:none;width:180px;height:180px;margin:-90px 0 0 -90px}
-.dirfx svg{width:100%;height:100%;animation:spin 1.4s cubic-bezier(.3,.6,.3,1) forwards}
+.dirfx svg{width:100%;height:100%;filter:drop-shadow(0 0 6px rgba(255,200,90,.6));animation:spin 1.5s cubic-bezier(.3,.6,.3,1) forwards}
 @keyframes spin{0%{transform:rotate(0) scale(.6);opacity:0}20%{opacity:1}80%{opacity:1}100%{transform:rotate(var(--rot,180deg)) scale(1);opacity:0}}
 
 /* 大字 */
@@ -251,15 +267,22 @@ html[lang=en] .title .w1{font:italic 600 50px/0.98 "Fraunces",Georgia,serif;lett
 .callout.sm{font-size:30px}
 .callout .sub{display:block;font-size:.36em;text-align:center;margin-top:-4px;font-family:var(--ui);font-weight:700;letter-spacing:1px}
 @keyframes call{0%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}14%{opacity:1;transform:translate(-50%,-50%) scale(.94)}22%{transform:translate(-50%,-50%) scale(1)}78%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%) scale(1)}}
-.c-hu{background:linear-gradient(180deg,#fff0c2,#ffb43d 45%,#e2431f);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 #6e1508)}
-.c-peng{color:#8fc8ff;-webkit-text-stroke:1px #123c6b}
-.c-gang{color:#c9b2ff;-webkit-text-stroke:1px #3c2273}
-.c-rain{color:#a9dcff}
-.c-wind{color:#d8f5d0}
+.c-hu{background:linear-gradient(180deg,#fff4cf,#ffbe45 45%,#e8471f);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 1px #5a1205) drop-shadow(0 0 1px #5a1205) drop-shadow(0 4px 0 #6e1508) drop-shadow(0 10px 16px rgba(0,0,0,.45))}
+.c-peng{color:#eef6ff;text-shadow:2px 0 #1f62b5,-2px 0 #1f62b5,0 2px #1f62b5,0 -2px #1f62b5,1.5px 1.5px #1f62b5,-1.5px 1.5px #1f62b5,1.5px -1.5px #1f62b5,-1.5px -1.5px #1f62b5,0 5px 0 #0d3466,0 9px 18px rgba(0,0,0,.5);color:#eef6ff}
+.c-gang{color:#fbf6ff;text-shadow:2px 0 #6a3bd0,-2px 0 #6a3bd0,0 2px #6a3bd0,0 -2px #6a3bd0,1.5px 1.5px #6a3bd0,-1.5px 1.5px #6a3bd0,1.5px -1.5px #6a3bd0,-1.5px -1.5px #6a3bd0,0 5px 0 #34186f,0 9px 18px rgba(0,0,0,.5)}
+.c-rain{color:#f0f9ff;text-shadow:2px 0 #2a6fa8,-2px 0 #2a6fa8,0 2px #2a6fa8,0 -2px #2a6fa8,1.5px 1.5px #2a6fa8,-1.5px 1.5px #2a6fa8,1.5px -1.5px #2a6fa8,-1.5px -1.5px #2a6fa8,0 4px 0 #123a5c,0 8px 16px rgba(0,0,0,.5)}
+.c-wind{color:#f4fff1;text-shadow:2px 0 #2c7b4a,-2px 0 #2c7b4a,0 2px #2c7b4a,0 -2px #2c7b4a,1.5px 1.5px #2c7b4a,-1.5px 1.5px #2c7b4a,1.5px -1.5px #2c7b4a,-1.5px -1.5px #2c7b4a,0 4px 0 #123f24,0 8px 16px rgba(0,0,0,.5)}
 .fly{position:absolute;z-index:36;pointer-events:none;font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;animation:fly 1.6s ease forwards;text-shadow:0 2px 4px rgba(0,0,0,.6)}
 .fly.p{color:#ffd36b}.fly.m{color:#ff8c7c}
 @keyframes fly{0%{opacity:0;transform:translate(-50%,6px)}12%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-26px)}}
 .fx{position:absolute;z-index:34;pointer-events:none}
+.coin{position:absolute;left:-9px;top:-9px;width:18px;height:18px;z-index:37;pointer-events:none;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6cf 0 14%,#ffd66b 30%,#e3a22c 68%,#a86a12 100%);box-shadow:0 0 0 1.5px rgba(122,74,8,.55),0 3px 6px rgba(0,0,0,.4),0 0 10px rgba(255,200,90,.5)}
+.coin::after{content:"";position:absolute;inset:5px;border-radius:2px;border:1.5px solid rgba(122,74,8,.55);transform:rotate(45deg) scale(.8)}
+.callout::before{content:"";position:absolute;left:50%;top:50%;width:2.4em;height:2.4em;margin:-1.2em 0 0 -1.2em;border-radius:50%;z-index:-1;pointer-events:none;opacity:0}
+.callout.c-hu::before{background:repeating-conic-gradient(from 0deg,rgba(255,214,110,.5) 0deg 6deg,transparent 6deg 18deg);-webkit-mask:radial-gradient(closest-side,#000 30%,transparent 100%);mask:radial-gradient(closest-side,#000 30%,transparent 100%);animation:rays 1.5s ease-out forwards}
+.callout.c-peng::before,.callout.c-gang::before{border:4px solid currentColor;animation:ring .9s ease-out forwards}
+@keyframes rays{0%{opacity:0;transform:scale(.35) rotate(0)}18%{opacity:1}100%{opacity:0;transform:scale(1.3) rotate(50deg)}}
+@keyframes ring{0%{opacity:.9;transform:scale(.3)}100%{opacity:0;transform:scale(1.4)}}
 
 /* 底部抽屉 */
 .sheet-bg{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);opacity:0;transition:opacity .25s}
@@ -303,10 +326,10 @@ html[lang=en] .title .w1{font:italic 600 50px/0.98 "Fraunces",Georgia,serif;lett
 .rp .lines div span:first-child{flex:1}
 .rp .lines .a{font-variant-numeric:tabular-nums;font-weight:700}
 .rp .hand{display:flex;flex-wrap:wrap;gap:2px;margin-top:8px;align-items:flex-end}
-.mt2{width:21px;height:29px;border-radius:3px;background:#fbf8f0;position:relative;flex:none;box-shadow:0 2px 0 #1b7a55}
-.mt2 svg{position:absolute;left:1.5px;top:1.5px;width:18px;height:26px}
-.mt2.back{background:linear-gradient(170deg,#36a676,#1b7d56)}
-.mt2.win{box-shadow:0 0 0 2px #ff7a52,0 2px 0 #1b7a55}
+.mt2{width:21px;height:29px;border-radius:3.5px;background:linear-gradient(162deg,#fffef9,#f6efdf);position:relative;flex:none;box-shadow:0 2px 0 var(--bk3),0 3px 3px rgba(0,0,0,.3)}
+.mt2 svg{position:absolute;left:1px;top:1px;width:19px;height:27px}
+.mt2.back{background:linear-gradient(158deg,var(--bk2),var(--bk) 45%,var(--bk3))}
+.mt2.win{box-shadow:0 0 0 2px #ff7a52,0 2px 0 var(--bk3)}
 .mt2.gap{margin-left:6px}
 .fanbar{display:inline-flex;gap:4px;flex-wrap:wrap}
 .fanbar i{font-style:normal;padding:1px 7px;border-radius:99px;background:rgba(232,198,123,.14);color:var(--gold);font-size:12px}
@@ -349,7 +372,7 @@ html[lang=en] .title .w1{font:italic 600 50px/0.98 "Fraunces",Georgia,serif;lett
 .tog i{position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#e9e4d6;transition:transform .2s;box-shadow:0 2px 4px rgba(0,0,0,.3)}
 .tog.on{background:linear-gradient(180deg,#f1d592,#c99b48)}.tog.on i{transform:translateX(18px);background:#fff}
 .mgrid.one{grid-template-columns:1fr}
-.chatrow{margin-top:12px}.chatrow .inp{font-size:15px;letter-spacing:0;text-transform:none;text-align:left;height:46px}
+.chatrow{margin-top:12px}.chatrow .inp{font-size:16px;letter-spacing:0;text-transform:none;text-align:left;height:46px}
 .rules-txt .note{font-size:12.5px;color:var(--ink3)}
 .sheet.res{padding-bottom:calc(var(--sab) + 12px)}
 .resfoot{position:sticky;bottom:calc(-1 * var(--sab) - 12px);margin:12px -16px 0;padding:12px 16px calc(var(--sab) + 12px);background:linear-gradient(180deg,rgba(11,35,26,0),#0b231a 30%);display:flex;flex-direction:column;gap:8px;align-items:stretch}
@@ -368,9 +391,9 @@ html[lang=en] .title .w1{font:italic 600 50px/0.98 "Fraunces",Georgia,serif;lett
 .qbtn.rec::after{content:attr(data-rec)}
 .compass .left{text-align:center;line-height:1.2}
 .fan .ft{animation:ftIn .5s cubic-bezier(.2,1.2,.4,1) both}
-.fan .ft .tb{position:absolute;left:0;right:0;top:-8px;bottom:0;border-radius:9px;background:linear-gradient(180deg,#14603f 0,#23905f 7%,#e3d8bd 8%,#efe6cf 100%);box-shadow:0 10px 20px rgba(0,0,0,.4)}
-.fan .ft .tf{position:absolute;inset:0;border-radius:9px;background:linear-gradient(172deg,#fffef8 0%,#f7f1e3 62%,#ebe1ca 100%);box-shadow:inset 0 -4px 0 rgba(170,150,110,.26),inset 0 2px 0 #fff}
-.fan .ft .tf svg{position:absolute;left:8.5%;top:6%;width:83%;height:88%}
+.fan .ft .tb{position:absolute;left:0;right:0;top:-9px;bottom:0;border-radius:9px;background:linear-gradient(180deg,var(--bk2) 0,var(--bk) 3%,var(--bk3) 7%,#e2d4b4 7.5%,#f4ecda 10%);box-shadow:0 10px 20px rgba(0,0,0,.45)}
+.fan .ft .tf{position:absolute;inset:0;border-radius:9px;background:linear-gradient(162deg,#fffef9 0%,#fbf6ea 45%,#f1e8d4 100%);box-shadow:inset 0 -5px 4px -3px rgba(150,118,66,.28),inset 0 2px 0 #fff}
+.fan .ft .tf svg{position:absolute;left:4%;top:3.5%;width:92%;height:93%}
 @keyframes ftIn{0%{opacity:0;translate:0 30px}100%{opacity:1;translate:0 0}}
 /* 英文：手写体换成衬线体，字号收一点 */
 html[lang=en]{--brush:"Fraunces","MJBrush",Georgia,serif}
@@ -396,9 +419,12 @@ html[lang=en] .tip .lab{font-size:14px;font-style:italic;font-weight:700}
 <!-- ============ 大厅 ============ -->
 <section id="lobby" class="screen">
   <div class="lob">
-    <nav class="games" aria-label="Games"><a href="../"><svg viewBox="0 0 24 24"><use href="#g-holdem"/></svg><span data-t="gHoldem"></span></a><a class="on" href="./" aria-current="page"><svg viewBox="0 0 24 24"><use href="#g-mahjong"/></svg><span data-t="gMahjong"></span></a></nav>
-    <button class="pillbtn corner l" id="btnRules"><svg class="ic" viewBox="0 0 24 24"><use href="#i-rule"/></svg><span data-t="rules"></span></button>
-    <button class="pillbtn corner r" id="btnLang"><svg class="ic" viewBox="0 0 24 24"><use href="#i-globe"/></svg><span></span></button>
+    <div class="lobtop">
+      <a class="pillbtn home" href="../"><svg class="ic" viewBox="0 0 24 24"><use href="#i-back"/></svg><span data-t="allGames"></span></a>
+      <div class="grow"></div>
+      <button class="pillbtn" id="btnRules"><svg class="ic" viewBox="0 0 24 24"><use href="#i-rule"/></svg><span data-t="rules"></span></button>
+      <button class="pillbtn" id="btnLang"><svg class="ic" viewBox="0 0 24 24"><use href="#i-globe"/></svg><span></span></button>
+    </div>
     <div class="hero">
       <div class="fan" id="fan"><div class="glow"></div></div>
       <div class="title"><h1><span class="w1" data-t="titleA"></span><span class="w2" data-t="titleB"></span></h1><span class="seal">血战</span></div>
@@ -468,10 +494,12 @@ html[lang=en] .tip .lab{font-size:14px;font-style:italic;font-weight:700}
 <script>/*@@PEERJS@@*/</script>
 <script>/*@@AVATARS@@*/</script>
 <script>/*@@GLYPHS@@*/</script>
+<script>/*@@TILES@@*/</script>
 <script>/*@@ART@@*/</script>
 <script>/*@@ENGINE@@*/</script>
 <script>/*@@AI@@*/</script>
 <script>/*@@I18N@@*/</script>
+<script>/*@@SFX@@*/</script>
 <script>/*@@SOUND@@*/</script>
 <script>/*@@UI@@*/</script>
 <script>/*@@APP@@*/</script>

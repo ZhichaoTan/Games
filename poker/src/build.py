@@ -15,7 +15,7 @@ fonts = '\n'.join([
     font('Manrope', 'manrope-latin-800-normal.woff2', '750 900'),
 ])
 src = rd('index.html')
-subs = [('/*@@FONTS@@*/', fonts), ('/*@@PEERJS@@*/', rd('peerjs.min.js')), ('/*@@ENGINE@@*/', rd('engine.js')),
+subs = [('/*@@FONTS@@*/', fonts), ('/*@@NOZOOM@@*/', rd('nozoom.js')), ('/*@@PEERJS@@*/', rd('peerjs.min.js')), ('/*@@ENGINE@@*/', rd('engine.js')),
         ('/*@@ART@@*/', rd('art.js')), ("/*@@SEAL@@*/''", json.dumps(rd('seal.svg')))]
 for tag, body in subs:
     assert src.count(tag) == 1, tag

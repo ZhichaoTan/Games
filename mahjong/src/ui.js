@@ -59,6 +59,7 @@
     const status = div('status'); status.hidden = true; root.appendChild(status);
     const tingChip = div('tingchip'); tingChip.hidden = true; root.appendChild(tingChip);
     const autoBar = div('autobar', '<span></span><button></button>'); autoBar.hidden = true; root.appendChild(autoBar);
+    const turnGlow = div('turnglow'); turnGlow.hidden = true; root.appendChild(turnGlow);
     autoBar.querySelector('button').onclick = () => onAct({ k: '_auto', on: false });
     tingChip.onclick = () => { showWaits = !showWaits; renderTip(); };
 
@@ -106,11 +107,11 @@
       g.colL = L + g.colW / 2; g.colR = W - Rr - g.colW / 2;
       if (port) {
         g.sidePlateY = g.topY + g.A + 44;
-        g.stackTop = g.sidePlateY + g.A / 2 + 60;
+        g.stackTop = g.sidePlateY + g.A / 2 + 66;
       } else {
         // 横屏：左右两家的头像放在上面两个角，牌从头像下面往下排
         g.sidePlateY = g.tbH + g.A / 2 + 6;
-        g.stackTop = g.tbH + g.A + 16;
+        g.stackTop = g.sidePlateY + Math.max(g.A / 2, 27) + 14;   // 名字牌（头像旁边）下面
         const tw = Math.min(g.hw * 0.62, 26), wMax = 14.5 * tw + 40;
         g.topRow = { l: W / 2 - wMax / 2, r: W / 2 + wMax / 2 };
       }
@@ -123,7 +124,7 @@
       const Wc = cx1 - cx0, Hc = cy1 - cy0;
       need = need || { tb: [18, 18], sd: [18, 18] };
       let best = null;
-      for (let pt = 6; pt <= 12; pt++) for (let ps = 5; ps <= 13; ps++) {
+      for (let pt = 5; pt <= 12; pt++) for (let ps = 5; ps <= 13; ps++) {
         const rB = Math.max(2, Math.ceil(need.tb[0] / pt)), rT = Math.max(2, Math.ceil(need.tb[1] / pt));
         const rL = Math.max(2, Math.ceil(need.sd[0] / ps)), rR = Math.max(2, Math.ceil(need.sd[1] / ps));
         const wPer = pt + (rL + rR) * 1.42 + 0.6, hPer = ps + (rB + rT) * 1.5 + 0.6;
@@ -214,6 +215,7 @@
           const q = riverPos(rel, i);
           let cls = '';
           if (R.lastDiscard && R.lastDiscard.id === id && i === rv.length - 1) cls += ' last';
+          if (id === dropId && Date.now() < dropUntil) cls += ' drop';
           if (R.claimTile && R.claimTile.id === id) cls += ' hl';
           put(String(id), TY(id), { x: q.x, y: q.y, k: g.rk, r: q.r, pose: 'flat', o: q.o, z: 5 + (rel === 2 ? 30 - Math.floor(i / g.pt) : rel === 0 ? Math.floor(i / g.pt) : 0), cls });
         });
@@ -299,7 +301,9 @@
         if (!swapping && sel === id) { y -= g.hh * 0.3; cls += ' sel'; }
         if (gotIds.has(id) && Date.now() < gotUntil) cls += ' got';
         if (myTurn && prefs.hints && tingT && tingT.by[t] && !(hasQ && SU(t) !== R.que[me])) cls += tingT.best === t ? ' mkb' : ' mk';
-        put(String(id), t, { x: cx, y, k: g.hk, r: 0, pose: 'stand', o: 0, z: 10 + idx, cls, hand: true });
+        const p = { x: cx, y, k: g.hk, r: 0, pose: 'stand', o: 0, z: 10 + idx, cls, hand: true };
+        if (Date.now() < dealUntil && !els.has(String(id))) p.delay = 80 + idx * 55;
+        put(String(id), t, p);
       };
       H.rest.forEach((id, i) => place(id, x + (i + 0.5) * g.hw, i));
       g.myHandX = x; g.myHandN = n;
@@ -480,7 +484,7 @@
       }
       return { x: g.box.cx, y: g.box.cy, k: p.k, r: p.r, op: 0 };
     }
-    let swapFrom = -1, queHold = 0;
+    let swapFrom = -1, queHold = 0, dropId = -1, dropUntil = 0, dealUntil = 0;
 
     // ======================= 听牌提示 =======================
     function handHints() {
@@ -590,8 +594,8 @@
       acts.innerHTML = '';
       if (!o || !R || R.phase !== 'play') { acts.hidden = true; return; }
       if (o.k === 'claim') {
-        if (o.peng) acts.appendChild(btn('peng', T('bPeng'), () => onAct({ k: 'peng' })));
-        if (o.gang) acts.appendChild(btn('gang', T('bGang'), () => onAct({ k: 'gang' })));
+        if (o.peng) acts.appendChild(btn('peng', T('bPeng'), () => onAct({ k: 'peng' }), o.hu || o.gang ? null : o.t));
+        if (o.gang) acts.appendChild(btn('gang', T('bGang'), () => onAct({ k: 'gang' }), o.hu ? null : o.t));
         if (o.hu) acts.appendChild(btn('hu', T('bHu'), () => onAct({ k: 'hu' }), o.t));
         acts.appendChild(btn('pass', T('bPass'), () => onAct({ k: 'pass' })));
         SND.vib(o.hu ? [40, 60, 40] : 30);
@@ -646,7 +650,13 @@
         });
       }
       const ht = banner.offsetHeight;
-      const top = R.phase === 'swap' && o && o.k === 'swap' ? g.box.cy - ht / 2 : g.box.cy - ht / 2;
+      let top = g.box.cy - ht / 2;
+      if (g.port) {
+        // 竖屏：放在罗盘下面（这时候自己的牌河还是空的）；已经扣下三张的话放在那三张下面
+        const below = g.box.cy + g.cs / 2 + 14, staged = R.phase === 'swap' && R.swapDone[me] ? anchor(0, 'stage').y + g.rw * 0.75 + 10 : 0;
+        const lo = Math.max(below, staged), bottom = g.plate0.y - g.A0 / 2 - 10;
+        if (lo + ht <= bottom) top = lo;
+      }
       banner.style.top = clamp(top, g.midTop, g.handTop - ht - g.hh * 0.6) + 'px';
     }
     function renderStatus() {
@@ -663,6 +673,10 @@
       if (txt) { status.textContent = txt; Object.assign(status.style, { left: g.W / 2 + 'px', top: (g.port ? g.plate0.y - g.A0 / 2 - 24 : g.sf.t + 22) + 'px' }); }
       if (root.parentElement) root.parentElement.classList.toggle('tbmsg', !g.port && (!!txt || !!auto));
       autoBar.hidden = !auto;
+      // 轮到自己出牌：手牌下面亮一道光
+      const mine = !!(v.opt && v.opt.k === 'turn') && !auto;
+      turnGlow.hidden = !mine;
+      if (mine) Object.assign(turnGlow.style, { left: g.handL + 'px', width: (g.handR - g.handL) + 'px', top: (g.handTop - g.hh * 0.25) + 'px', height: (g.hh * 1.5) + 'px' });
       if (auto) { autoBar.firstChild.textContent = T('autoOn'); autoBar.lastChild.textContent = T('autoOff'); }
       autoBar.classList.toggle('intb', !g.port);
       if (auto) Object.assign(autoBar.style, g.port ? { bottom: (g.H - (g.plate0.y - g.A0 / 2) + 12) + 'px', top: '' } : { top: (g.sf.t + 4) + 'px', bottom: '' });
@@ -717,14 +731,50 @@
       if (rel === 0) x = a.x - A / 2;
       d.style.left = clamp(x, 4, Gm.W - w - 4) + 'px'; d.style.top = clamp(y, Gm.tbH, Gm.H - h - 4) + 'px';
     }
+    // 金币从付钱的人飞到收钱的人
+    function coins(from, to, n, delay) {
+      if (!Gm || from === to || from == null || to == null) return;
+      const ra = relOf(from), rb = relOf(to), a = anchor(ra, 'plate'), b = anchor(rb, 'plate');
+      const lift = Math.min(90, Math.hypot(b.x - a.x, b.y - a.y) * 0.35);
+      for (let i = 0; i < n; i++) {
+        setTimeout(() => {
+          const c = div('coin'); root.appendChild(c);
+          const jx = (Math.random() - 0.5) * 18, jy = (Math.random() - 0.5) * 14;
+          const mx = (a.x + b.x) / 2 + jx, my = Math.min(a.y, b.y) - lift + jy;
+          const anim = c.animate([
+            { transform: `translate(${a.x}px,${a.y}px) scale(.6)`, opacity: 0 },
+            { transform: `translate(${a.x + jx}px,${a.y + jy}px) scale(1)`, opacity: 1, offset: 0.12 },
+            { transform: `translate(${mx}px,${my}px) scale(1.1)`, opacity: 1, offset: 0.55 },
+            { transform: `translate(${b.x}px,${b.y}px) scale(.7)`, opacity: 0.2 },
+          ], { duration: 760, easing: 'cubic-bezier(.45,.05,.55,.95)' });
+          anim.onfinish = () => c.remove();
+          setTimeout(() => c.remove(), 1200);
+        }, (delay || 0) + i * 70);
+      }
+    }
     function dirFx(dir) {
       const g = Gm;
       const txt = T(dir === 2 ? 'dirAcross' : dir === 1 ? 'dirRight' : 'dirLeft');
-      const rot = dir === 1 ? '-180deg' : dir === 3 ? '180deg' : '0deg';
-      const d = fx('dirfx', `<svg viewBox="0 0 100 100"><g fill="none" stroke="#ffd36b" stroke-width="5" stroke-linecap="round">${dir === 2
-        ? '<path d="M50 16V84"/><path d="M38 28L50 16L62 28M38 72L50 84L62 72"/>'
-        : `<path d="M50 14A36 36 0 1 ${dir === 3 ? 1 : 0} 86 50" /><path d="${dir === 3 ? 'M78 40L86 52L94 40' : 'M14 40L22 52L30 40'}" transform="${dir === 3 ? '' : 'translate(64 0) scale(-1 1) translate(-36 0)'}"/>`}</g></svg>`, g.box.cx, g.box.cy, 1500);
-      d.style.setProperty('--rot', rot);
+      // 三段带箭头的弧绕着罗盘转：往右换（下家）逆时针，往左换（上家）顺时针；换对家是一横一竖两个双向箭头
+      const P = a => [50 + 40 * Math.cos(a), 50 + 40 * Math.sin(a)], f = x => x.toFixed(1);
+      let art = '';
+      if (dir === 2) art = '<path d="M50 22V78M40 32L50 22L60 32M40 68L50 78L60 68"/><path d="M22 50H78M32 40L22 50L32 60M68 40L78 50L68 60" opacity=".55"/>';
+      else {
+        const cw = dir === 3;
+        for (let k = 0; k < 3; k++) {
+          const a0 = (k * 120 - 70) * Math.PI / 180, a1 = a0 + 78 * Math.PI / 180;
+          const [x0, y0] = P(a0), [x1, y1] = P(a1);
+          art += `<path d="M${f(x0)} ${f(y0)}A40 40 0 0 1 ${f(x1)} ${f(y1)}"/>`;
+          const ae = cw ? a1 : a0, [hx, hy] = P(ae);
+          const tx = cw ? -Math.sin(ae) : Math.sin(ae), ty = cw ? Math.cos(ae) : -Math.cos(ae), nx = Math.cos(ae), ny = Math.sin(ae);
+          const bx = hx - tx * 9, by = hy - ty * 9;
+          art += `<path d="M${f(bx + nx * 6.5)} ${f(by + ny * 6.5)}L${f(hx)} ${f(hy)}L${f(bx - nx * 6.5)} ${f(by - ny * 6.5)}"/>`;
+        }
+      }
+      const d = fx('dirfx', `<svg viewBox="0 0 100 100"><g fill="none" stroke="#ffd36b" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">${art}</g></svg>`, g.box.cx, g.box.cy, 1600);
+      const sz = g.cs + 84;
+      Object.assign(d.style, { width: sz + 'px', height: sz + 'px', marginLeft: -sz / 2 + 'px', marginTop: -sz / 2 + 'px' });
+      d.style.setProperty('--rot', dir === 2 ? '0deg' : dir === 3 ? '120deg' : '-120deg');
       callout(0, txt, 'c-wind', null, 'sm');
     }
     function effects(evs) {
@@ -736,31 +786,31 @@
           case 'deal': SND.play('deal'); break;
           case 'swap': SND.play('swap'); dirFx(e.dir); break;
           case 'que': SND.play('que'); setTimeout(() => plates.forEach(p => { const b = p.querySelector('.badge.que'); if (b) { b.classList.remove('pop'); b.offsetWidth; b.classList.add('pop'); } }), 30); break;
-          case 'discard': SND.play('discard'); if (SND.prefs && SND.prefs.call) SND.say(I18.tile(TY(e.id)), 1.25); break;
+          case 'discard': dropId = e.id; dropUntil = Date.now() + 700; SND.play('discard'); if (SND.prefs && SND.prefs.call) SND.say(I18.tile(TY(e.id)), 1.25); break;
           case 'draw': if (e.s === me) SND.play('draw'); break;
           case 'peng': SND.play('peng'); SND.say(T('vPeng')); callout(rel, T('cPeng'), 'c-peng'); break;
           case 'gang': {
             SND.play('gang'); SND.say(T('vGang'));
             callout(rel, T('cGang'), 'c-gang', T(e.kind === 'an' ? 'cRain' : 'cWind'));
             const mult = e.kind === 'bu' ? 1 : 2, base = v.rules.base;
-            if (e.kind === 'ming') { flyMoney(e.s, base * 2); flyMoney(e.from, -base * 2); }
-            else { let n = 0; for (let s = 0; s < 4; s++) if (s !== e.s && !R.hu[s]) { flyMoney(s, -base * mult); n++; } flyMoney(e.s, base * mult * n); }
+            if (e.kind === 'ming') { flyMoney(e.s, base * 2); flyMoney(e.from, -base * 2); coins(e.from, e.s, 3, 150); }
+            else { let n = 0; for (let s = 0; s < 4; s++) if (s !== e.s && !R.hu[s]) { flyMoney(s, -base * mult); coins(s, e.s, 3, 150); n++; } flyMoney(e.s, base * mult * n); }
             break;
           }
           case 'hu': {
             const title = T(e.how === 'zimo' ? (e.items.some(x => x[0] === '杠上开花') ? 'cBloom' : 'cZimo') : e.how === 'rob' ? 'cRob' : 'cHu');
             SND.play('hu', delay / 1000); SND.say(T(e.how === 'zimo' ? 'vZimo' : 'vHu'));
-            setTimeout(() => callout(rel, title, 'c-hu', `${I18.fan(e.title)} · ${T('nFan', { n: e.fan })}`, 'big'), delay);
+            setTimeout(() => callout(rel, title, 'c-hu', I18.fan(e.title) + (e.fan ? ' · ' + T('nFan', { n: e.fan }) : ''), 'big'), delay);
             const tot = e.amt * e.payers.length;
             flyMoney(e.s, tot, delay + 500);
-            for (const p of e.payers) flyMoney(p, -e.amt, delay + 500);
+            for (const p of e.payers) { flyMoney(p, -e.amt, delay + 500); coins(p, e.s, 5, delay + 250); }
             setTimeout(() => SND.play('coin'), delay + 600);
             if (e.s === me) SND.vib([60, 40, 120]);
             delay += 700;
             break;
           }
           case 'multi': setTimeout(() => callout(relOf(e.from), T(e.n === 3 ? 'cMulti3' : 'cMulti2'), 'c-hu', null, 'mid'), delay + 200); break;
-          case 'zhuan': setTimeout(() => { callout(relOf(e.to), T('cZhuan'), 'c-rain', null, 'sm'); flyMoney(e.to, e.amt); flyMoney(e.from, -e.amt); }, delay + 900); break;
+          case 'zhuan': setTimeout(() => { callout(relOf(e.to), T('cZhuan'), 'c-rain', null, 'sm'); flyMoney(e.to, e.amt); flyMoney(e.from, -e.amt); coins(e.from, e.to, 3, 0); }, delay + 900); break;
           case 'end': {
             if (e.reason === 'wall') { SND.play('end'); callout(0, T(R.wins.length ? 'cWall' : 'cDraw'), 'c-wind', R.result && R.result.info.some(x => x && (x.hua || !x.ting)) ? T('cCha') : null, 'mid'); }
             break;
@@ -893,11 +943,23 @@
         clearTiles();
         roundKey = rk; sel = null; swapSel = []; swapFor = ''; queRec = -1; selfSkip = ''; showWaits = false; gotIds = new Set(); swapFrom = -1;
         fresh = !evs.some(e => e.k === 'deal') || gap;
+        if (!fresh) dealUntil = Date.now() + 300;
       } else if (gap && evs.length > 25) fresh = true;
       if (R.evn != null) {}
       // 换完三张：拿到的三张亮一下
       const sw = evs.find(e => e.k === 'swap');
       if (sw && evs.length < 30) { queHold = Date.now() + 1500; setTimeout(() => render(true), 1550); }
+      if (sw && Gm) {
+        // 另外三家扣着的三张飞给收牌的人
+        for (let rel = 1; rel < 4; rel++) {
+          const st = stages[rel]; if (st.hidden) continue;
+          const toRel = relOf((seatOf(rel) + sw.dir) % 4), a = anchor(rel, 'stage');
+          const b = toRel === 0 ? { x: Gm.W / 2, y: Gm.handY } : (Gm['oh' + toRel] || anchor(toRel, 'hand'));
+          const c = st.cloneNode(true); c.style.zIndex = 39; root.appendChild(c);
+          const an = c.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${(b.x - a.x).toFixed(1)}px,${(b.y - a.y).toFixed(1)}px) scale(.75)`, opacity: 0.1 }], { duration: 560, easing: 'cubic-bezier(.4,0,.6,1)' });
+          an.onfinish = () => c.remove(); setTimeout(() => c.remove(), 900);
+        }
+      }
       if (sw && R.swapGot) {
         gotIds = new Set(R.swapGot); gotUntil = Date.now() + 2600;
         swapFrom = (me - sw.dir + 4) % 4;
@@ -965,7 +1027,7 @@
       const tot = L.from.reduce((a, f) => a + f.amt, 0);
       const mine = L.from.find(f => f.s === s);
       if (L.k === 'hu') {
-        if (L.to === s) { const h = HOW(L.how); add(T('lHu', { h: h.charAt(0).toUpperCase() + h.slice(1), t: I18.fan(L.title), f: L.fan }) + (L.from.length > 1 ? T('lHuN', { n: L.from.length }) : ''), tot); }
+        if (L.to === s) { const h = HOW(L.how); add(T(L.fan ? 'lHu' : 'lHu0', { h: h.charAt(0).toUpperCase() + h.slice(1), t: I18.fan(L.title), f: L.fan }) + (L.from.length > 1 ? T('lHuN', { n: L.from.length }) : ''), tot); }
         else if (mine) add(T(L.how === 'zimo' ? 'lPayZimo' : L.how === 'dgh' ? 'lPayDgh' : L.how === 'rob' ? 'lPayRob' : 'lPayPao', { n: N(L.to) }), -mine.amt);
       } else if (L.k === 'gang') {
         const w = T(L.kind === 'an' ? 'cRain' : 'cWind');
@@ -1008,7 +1070,7 @@
       let sub = '';
       if (w) sub = T('winOrder', { o: T('ord')[w.order] || '', h: HOW(w.how) });
       else if (inf) sub = inf.hua ? T('hua') : inf.ting ? T('tingMax', { f: inf.max }) : T('noTing');
-      if (R.dealer === s) sub = T('dealerP') + sub;
+      if (R.dealer === s) sub = sub ? T('dealerP') + sub : T('dealerW');
       const lines = ledgerLines(v, s);
       h += `<div class="rp${s === me ? ' me' : ''}"><div class="top"><div class="av">${avSvg(p, s)}</div><div class="nm">${esc(p.name)}${s === me ? T('youS') : ''}<small>${esc(sub)}</small></div><div class="d ${d > 0 ? 'p' : d < 0 ? 'm' : 'z'}">${fmt(d)}</div></div>`;
       if (w) h += `<div class="fanbar">${w.items.map(x => `<i>${esc(I18.fan(x[0]))} ${x[1]}</i>`).join('')}</div>`;

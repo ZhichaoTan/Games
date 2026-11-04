@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
 (async () => {
   const [url, out, W, H, n, iv, lang] = process.argv.slice(2);
   const b = await chromium.launch();
-  const p = await b.newPage({ viewport: { width: +W, height: +H }, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
+  const p = await b.newPage({ viewport: { width: +W, height: +H }, deviceScaleFactor: +(process.env.DSF || 1), hasTouch: true, isMobile: true });
   const errs = [];
   p.on('pageerror', e => errs.push('pageerror: ' + e.message + ' ' + (e.stack || '').split('\n').slice(0, 3).join(' | ')));
   p.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });

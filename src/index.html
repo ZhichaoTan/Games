@@ -1199,9 +1199,10 @@ const ICE = [
   { urls: 'stun:stun.miwifi.com:3478' }, { urls: 'stun:stun.qq.com:3478' },
   { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' },
   { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
+  { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp', 'turns:openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' },
 ];
 function peerOpts(){
-  const o = { config: { iceServers: ICE }, debug: 1 };
+  const o = { config: { iceServers: ICE, iceCandidatePoolSize: 4 }, debug: 1 };
   const ph = qs.get('ph');
   if (ph) { const [h, p] = ph.split(':'); Object.assign(o, { host: h, port: +p || 9000, path: '/', secure: false, config: { iceServers: [] } }); }
   return o;
@@ -1211,7 +1212,7 @@ function peerOpts(){
 const cleanSnap = a => Array.isArray(a) ? a.slice(0, 9).map(x => ({ id: String(x.id || ''), n: String(x.n || '').slice(0, 10), c: Math.max(0, x.c | 0), b: Math.max(0, x.b | 0), l: Math.max(0, x.l | 0), r: Math.max(0, x.r | 0), bot: x.bot ? 1 : 0, av: Math.max(0, Math.min(11, x.av | 0)), iq: IQS.includes(x.iq) ? x.iq : 100 })) : null;
 function startClient(code, park){
   S.mode = 'client'; S.code = code;
-  let peer = null, conn = null, lastMsg = 0, everConnected = false, dead = false, retryT = 0;
+  let peer = null, conn = null, lastMsg = 0, everConnected = false, dead = false, retryT = 0, fails = 0;
   S.online = () => !!(conn && conn.open && everConnected && !dead);
   setNet(false, 'connecting');
   enterGame();
@@ -1254,9 +1255,9 @@ function startClient(code, park){
     if (dead) return;
     conn = peer.connect(PREFIX + code, { reliable: true, serialization: 'json' });
     const c = conn;
-    const to = setTimeout(() => { if (c === conn && !c.open) { setNet(false, 'slow'); retry(500); } }, 12000);
+    const to = setTimeout(() => { if (c === conn && !c.open) { setNet(false, 'slow'); if (++fails % 2 === 0) { try { peer && peer.destroy(); } catch(e){} } retry(300); } }, 8000);
     c.on('open', () => {
-      clearTimeout(to); lastMsg = Date.now();
+      clearTimeout(to); fails = 0; lastMsg = Date.now();
       const rec = Wal.seat && Wal.seat.code === code && Wal.seat.paid ? Wal.seat.chips : 0; // 原座位没了的话，这些筹码先算回积分再买
       c.send({ t: 'hello', name: myName, token, av: myAv, buyIn: Wal.inf ? -1 : Wal.bal + rec });
     });

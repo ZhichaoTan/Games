@@ -1,0 +1,162 @@
+// ===== 中英文 =====  语言和扑克共用一个设置（localStorage mh_lang），默认英文
+(function (G) {
+  'use strict';
+  const S = {
+    en: {
+      title: 'Sichuan Mahjong', titleA: 'Sichuan', titleB: 'MAHJONG', gHoldem: 'Hold’em', gMahjong: 'Mahjong', rules: 'Rules', langBtn: '中文',
+      tagline: 'Bloody Battle rules · Swap three · Void suit<br>Send friends a four-letter room code and play',
+      wx: 'Opened inside WeChat? Tap ··· at the top right and open it in your browser. Online play is steadier there and your progress is kept.',
+      yourName: 'Your name', namePh: 'Up to 10 characters',
+      tabJoin: 'Join', tabHost: 'Host', tabSolo: 'Practice',
+      join: 'Join', joinHint: 'Ask a friend to open a room and send you the code',
+      create: 'Open a room', startSolo: 'Start practice',
+      foot: 'Sichuan Bloody Battle: 108 tiles and no chows.<br>Give up one suit and discard it first. Winners step out; the rest play on.',
+      needName: 'Pick a name first', badCode: 'Room codes are four letters or digits',
+      oRounds: 'Rounds', oCap: 'Fan cap', oZimo: 'Self-draw', oDgh: 'Kong bloom', oSwap: 'Swap three', oExtra: 'Extras', oBase: 'Base points', oTimer: 'Turn timer', oBots: 'Bots', oSpeed: 'Bot speed',
+      nRounds: '{n}', noLimit: 'No limit', nFan: '{n} fan', noCap: 'None', zDi: '+1 base', zFan: '+1 fan', dPao: 'Kong giver pays', dZimo: 'Everyone pays',
+      on: 'On', off: 'Off', xYjjd: 'Terminals, 2-5-8', xMqzz: 'Concealed, simples', xTdh: 'Heaven & earth', tOff: 'Off', tSec: '{n}s',
+      lv: ['', 'Rookie', 'Regular', 'Shark', 'Genius'], lvMix: 'Mixed', spFast: 'Fast', spNormal: 'Normal', spSlow: 'Slow',
+      resumeHost: 'Room <b>{c}</b> is unfinished · round {r}', resumeSolo: 'Your practice game is unfinished · round {r}', resumeClient: 'You were playing in room <b>{c}</b>',
+      resume: 'Resume', rejoin: 'Rejoin', discard: 'Discard',
+      roomCode: 'Room code', copyInvite: 'Copy invite', share: 'Share', copied: 'Invite copied. Send it to your friends',
+      invite: 'Come play Sichuan mahjong with me! Room {c}: {u}',
+      seatOpen: 'Open seat', seatWait: 'Waiting for a friend', addBot: 'Add a bot', hostTag: 'Host', youTag: 'You',
+      start: 'Start', startFill: 'Start · bots fill open seats', waitHost: 'Waiting for the host to start…', leave: 'Leave',
+      sumRounds: '{n} rounds', sumNoLimit: 'no round limit', sumCap: '{n} fan cap', sumNoCap: 'no fan cap', sumDi: 'self-draw +1 base', sumFan: 'self-draw +1 fan', sumSwap: 'swap three', sumNoSwap: 'no swap', sumBase: 'base {n}', sumTimer: '{n}s per move',
+      opening: 'Opening the room…', connecting: 'Connecting to room {c}…', notFound: "Can't find room {c}. Check the code, or wait for the host to open it.",
+      full: 'The room is full', hostGone: 'The host dropped out. Waiting for them to come back…', netBad: 'Connection hiccup, reconnecting…', slow: 'Slow to connect, trying again…',
+      kicked: 'The host removed you from the room', saved: 'The host saved the game. Come back later with the same room code.', ended: 'The host ended the game',
+      backLobby: 'Back to lobby', cancel: 'Cancel', ok: 'OK',
+      joined: '{n} joined', leftRoom: '{n} left', tookOver: '{n} took over a bot seat', isBack: '{n} is back', dropped: '{n} dropped out. A bot plays for now.',
+      roundOf: 'Round {r}/{n}', roundN: 'Round {r}', practice: 'Practice', roomChip: 'Room {c}', paused: 'Paused', pausedBy: 'The host paused the game',
+      wall: 'left', stWon: 'Won', stZimo: 'Won', stOff: 'Offline', stAuto: 'Auto', stPicked: 'Ready', stPicking: 'Picking', stQued: 'Ready', stQuing: 'Choosing',
+      ting: 'Ready', autoOn: 'Autoplay is on', autoOff: 'Take over',
+      nLeft: '{n} left', nFanS: '{n} fan', nAll: '{n} in all', tipDiscard: 'Discard to wait on', tipWait: 'Waiting on',
+      bPeng: 'Pung', bGang: 'Kong', bHu: 'Hu', bPass: 'Pass',
+      swapH: 'Swap Three', swapS: 'Pick three tiles of one suit to pass on.<br>A set is picked for you; tap tiles to change it.', swapOk: 'Swap these three', waitOthers: 'Waiting for the others…',
+      queH: 'Void Suit', queS: 'Choose a suit to give up. You must discard all of it first.', nTiles: '{n} tiles', rec: 'Suggested',
+      suit: ['Characters', 'Bamboo', 'Dots'], suitS: ['C', 'B', 'D'],
+      youWon: "You've won this round. Watch the others finish.", queFirst: 'Discard your {s} first',
+      dirAcross: 'Swap across', dirRight: 'Counter-clockwise · to the right', dirLeft: 'Clockwise · to the left',
+      cPeng: 'Pung', cGang: 'Kong', cRain: 'Rain', cWind: 'Wind', cHu: 'Hu', cZimo: 'Self-drawn', cBloom: 'Kong bloom', cRob: 'Robbed', cMulti2: 'Double win', cMulti3: 'Triple win', cZhuan: 'Kong money moves', cDraw: 'Draw', cWall: 'Wall empty', cCha: 'Ready check',
+      toastQue: 'Discard your void suit first: {s}',
+      vPeng: 'Pung', vGang: 'Kong', vHu: 'Hu', vZimo: 'Self drawn',
+      resEnd: 'Round over', resDraw: 'Draw', resRound: 'Round {r}', resLast: 'final round',
+      ord: ['', '1st', '2nd', '3rd'], dealerB: 'D', winOrder: '{o} to win · {h}',
+      how: { zimo: 'self-drawn', pao: 'on a discard', rob: 'robbed a kong', dgh: 'kong bloom, giver pays' },
+      hua: 'Flower pig · still holding the void suit', tingMax: 'Ready · up to {f} fan', noTing: 'Not ready', dealerP: 'Dealer · ', you: 'You', youS: ' (you)',
+      lHu: '{h} · {t} · {f} fan', lHuN: ' ×{n}', lPayZimo: '{n} self-drew', lPayDgh: 'Kong bloom · {n}', lPayRob: 'Kong robbed by {n}', lPayPao: 'Dealt in to {n}',
+      lGang: '{w} ({k})', kAn: 'concealed kong', kBu: 'added kong', kMing: 'exposed kong', lGangPay: "{n}'s {w}",
+      lZhuan: 'Kong money moved to you', lZhuanPay: 'Kong money to {n}', lPig: 'Flower pig check', lPigPay: 'Flower pig', lCha: 'Ready check ({f} fan)', lChaPay: 'Not ready', lTax: 'Kong refund', lTaxPay: 'Kong refund',
+      next: 'Next round', nextIn: 'Next round starts in {s}s', waitFor: 'Waiting for {n}', readyMe: 'Ready',
+      final: 'Final standings', finalRounds: '{n} rounds', finalLine: '{w} wins · {z} self-drawn', bigFan: ' · best {f} fan', again: 'Play again', newMatch: 'New game',
+      menu: 'Menu', mRoom: 'Room {c}', mPlayers: 'Players', mAuto: 'Autoplay', mHints: 'Ready hints', mSound: 'Sound', mVoice: 'Voice', mCall: 'Call out discards', mVib: 'Vibration', mLang: 'Language', mSpeed: 'Bot speed',
+      mPause: 'Pause', mResume: 'Resume', mLeave: 'Leave the table', mSaveLeave: 'Save & continue later', mEnd: 'End the game', mLeaveSolo: 'Back to lobby (saved)', mKick: 'Remove', mBotLv: 'Bot level', mSettings: 'Settings', mInvite: 'Invite',
+      leaveQ: 'A bot will take over your seat. Leave the table?', endQ: 'Everyone will see the final standings. End the game now?',
+      chat: 'Chat', send: 'Send', chatPh: 'Say something…',
+      phrases: ['Hurry up!', 'Let me think…', 'Nice hand!', "I'm on a roll", 'That was close', 'Go easy on me', 'Well played', 'One more round?'],
+      botNames: ['Ada', 'Bo', 'Coco', 'Dex', 'Echo', 'Fig', 'Gus', 'Hana'],
+      fan: {
+        '平胡': 'Plain Win', '对对胡': 'All Pungs', '清一色': 'Full Flush', '七对': 'Seven Pairs', '龙七对': 'Dragon Pairs', '清七对': 'Pure Seven Pairs', '清龙七对': 'Pure Dragon Pairs',
+        '清对': 'Pure Pungs', '金钩钓': 'Golden Hook', '清金钩钓': 'Pure Golden Hook', '将金钩钓': '2-5-8 Golden Hook', '将对': '2-5-8 Pungs', '带幺九': 'Terminals Everywhere',
+        '幺九对': 'Terminal Pungs', '清幺九': 'Pure Terminals', '十八罗汉': 'Eighteen Arhats', '清十八罗汉': 'Pure Eighteen Arhats',
+        '根': 'Quad', '门清': 'Concealed', '中张': 'All Simples', '天胡': 'Heavenly Hand', '地胡': 'Earthly Hand', '杠上开花': 'Kong Bloom', '杠上炮': 'Kong Discard',
+        '抢杠胡': 'Robbing the Kong', '海底捞月': 'Last Tile Draw', '海底炮': 'Last Tile Discard', '自摸': 'Self-drawn',
+      },
+      tile: (r, s) => (['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'][r - 1]) + ' ' + ['character', 'bamboo', 'dot'][s],
+      rulesTitle: 'How to play',
+      rulesHTML: `<h4>The tiles</h4>108 tiles: Characters, Bamboo and Dots, 1 to 9, four of each. No chows; you can only pung, kong or win.
+<h4>Swap three</h4>After the deal, everyone picks three tiles of one suit. They are passed clockwise, counter-clockwise or across, chosen at random.
+<h4>Void suit</h4>Everyone gives up one suit. You must discard all of that suit first, and you can't win while you still hold any.
+<h4>Bloody battle</h4>Whoever wins steps out and the others play on, until one player is left or the wall runs out. Several players can win on the same discard.
+<h4>A winning hand</h4>Four sets (runs or pungs) plus a pair, or seven pairs.
+<h4>Wind and rain</h4>Kongs pay at once. An exposed kong: the player who discarded pays 2× base. An added kong: everyone still playing pays 1×. A concealed kong: everyone still playing pays 2×. If you kong and then deal in, that kong money moves to the winner.
+<h4>When the wall runs out</h4>Anyone still holding their void suit is a flower pig and pays everyone else the capped amount. Players who are not ready pay each ready player for that player's best hand. Players who are not ready return their kong money.
+<h4>Scoring</h4>A win is worth base × 2<sup>fan</sup>, up to the fan cap. A self-draw is paid by everyone still playing, plus one base (or one fan, depending on the room).`,
+      fanTable: [['All Pungs', 1], ['Full Flush (one suit)', 2], ['Seven Pairs', 2], ['Quad, each four-of-a-kind', 1], ['Golden Hook (single tile left)', 1], ['2-5-8 Pungs', 2], ['Terminals Everywhere', 2], ['Kong Bloom / Kong Discard', 1], ['Robbing the Kong', 1], ['Last Tile Draw / Discard', 1], ['Heavenly / Earthly Hand', 5], ['Concealed, All Simples (optional)', 1]],
+      fanNote: 'Fan add up. Example: a full flush of all pungs is 3 fan.',
+      moreRules: 'More rules', idTaken: 'That room code is busy. Try again in a moment.', peek: 'View table', backRes: 'Results', lastRound: 'Last round', fanH: 'Fan',
+    },
+    zh: {
+      title: '四川麻将', titleA: '四川麻将', titleB: '', gHoldem: '德州扑克', gMahjong: '四川麻将', rules: '规则', langBtn: 'English',
+      tagline: '血战到底 · 换三张 · 定缺<br>约上朋友，发个四位房间码就能开打',
+      wx: '在微信里打开的话，建议点右上角「···」用浏览器打开，联机更稳，进度也不会丢。',
+      yourName: '你的名字', namePh: '最多 10 个字',
+      tabJoin: '加入房间', tabHost: '开房间', tabSolo: '人机练习',
+      join: '加入', joinHint: '朋友开好房间后，把四位房间码发给你',
+      create: '开房间', startSolo: '开始练习',
+      foot: '四川血战到底：一百零八张，不能吃，<br>定缺后先打缺门，胡了的人退出，其他人接着打。',
+      needName: '先起个名字', badCode: '房间码是四位字母或数字',
+      oRounds: '局数', oCap: '封顶', oZimo: '自摸', oDgh: '点杠花', oSwap: '换三张', oExtra: '加番', oBase: '底分', oTimer: '限时', oBots: '电脑', oSpeed: '电脑速度',
+      nRounds: '{n} 局', noLimit: '不限', nFan: '{n} 番', noCap: '不封顶', zDi: '加底', zFan: '加番', dPao: '算点炮', dZimo: '算自摸',
+      on: '开', off: '关', xYjjd: '幺九将对', xMqzz: '门清中张', xTdh: '天地胡', tOff: '不限', tSec: '{n} 秒',
+      lv: ['', '新手', '普通', '高手', '大师'], lvMix: '混合', spFast: '快', spNormal: '正常', spSlow: '慢',
+      resumeHost: '房间 <b>{c}</b> 还没打完 · 第 {r} 局', resumeSolo: '上次的练习还没打完 · 第 {r} 局', resumeClient: '你刚才在房间 <b>{c}</b>',
+      resume: '继续', rejoin: '回到房间', discard: '不要了',
+      roomCode: '房间码', copyInvite: '复制邀请', share: '分享', copied: '邀请复制好了，发给朋友吧',
+      invite: '来打四川麻将！房间码 {c}，点链接直接进：{u}',
+      seatOpen: '空位', seatWait: '等朋友加入', addBot: '加电脑', hostTag: '房主', youTag: '你',
+      start: '开始', startFill: '开始（空位补电脑）', waitHost: '等房主开始…', leave: '离开',
+      sumRounds: '{n} 局', sumNoLimit: '不限局数', sumCap: '{n} 番封顶', sumNoCap: '不封顶', sumDi: '自摸加底', sumFan: '自摸加番', sumSwap: '换三张', sumNoSwap: '不换牌', sumBase: '底分 {n}', sumTimer: '每步 {n} 秒',
+      opening: '正在开房间…', connecting: '正在连接房间 {c}…', notFound: '没找到房间 {c}。确认一下房间码，或者等房主开好房间。',
+      full: '房间满了', hostGone: '房主断开了，等房主回来…', netBad: '网络不稳，正在重连…', slow: '连接有点慢，再试一次…',
+      kicked: '你被房主请出了房间', saved: '房主保存了牌局，之后用同一个房间码回来接着打。', ended: '房主结束了牌局',
+      backLobby: '回大厅', cancel: '取消', ok: '好',
+      joined: '{n} 加入了', leftRoom: '{n} 离开了', tookOver: '{n} 接替了电脑的座位', isBack: '{n} 回来了', dropped: '{n} 掉线了，电脑先代打',
+      roundOf: '第 {r}/{n} 局', roundN: '第 {r} 局', practice: '练习', roomChip: '房间 {c}', paused: '已暂停', pausedBy: '房主暂停了牌局',
+      wall: '剩余', stWon: '胡', stZimo: '自摸', stOff: '掉线', stAuto: '托管', stPicked: '选好了', stPicking: '选牌中', stQued: '定好了', stQuing: '定缺中',
+      ting: '听', autoOn: '托管中，电脑替你出牌', autoOff: '取消托管',
+      nLeft: '{n}张', nFanS: '{n}番', nAll: '共 {n} 张', tipDiscard: '打这张听', tipWait: '听',
+      bPeng: '碰', bGang: '杠', bHu: '胡', bPass: '过',
+      swapH: '换三张', swapS: '挑三张同一花色的牌换给别人<br>已经帮你挑了一组，点牌可以改', swapOk: '确定换这三张', waitOthers: '等其他人…',
+      queH: '定缺', queS: '选一门不要的花色，这门的牌要先打完', nTiles: '{n} 张', rec: '推荐',
+      suit: ['万', '条', '筒'], suitS: ['万', '条', '筒'],
+      youWon: '你已经胡了，看他们打完这一局', queFirst: '先把缺的{s}打完',
+      dirAcross: '对家互换', dirRight: '逆时针 · 换给下家', dirLeft: '顺时针 · 换给上家',
+      cPeng: '碰', cGang: '杠', cRain: '下雨', cWind: '刮风', cHu: '胡', cZimo: '自摸', cBloom: '杠上花', cRob: '抢杠', cMulti2: '一炮双响', cMulti3: '一炮三响', cZhuan: '呼叫转移', cDraw: '流局', cWall: '牌摸完了', cCha: '查叫',
+      toastQue: '先打缺门：{s}',
+      vPeng: '碰', vGang: '杠', vHu: '胡了', vZimo: '自摸',
+      resEnd: '本局结束', resDraw: '流局', resRound: '第 {r} 局', resLast: '最后一局',
+      ord: ['', '第 1 个', '第 2 个', '第 3 个'], dealerB: '庄', winOrder: '{o}胡 · {h}',
+      how: { zimo: '自摸', pao: '点炮', rob: '抢杠胡', dgh: '点杠花' },
+      hua: '花猪（手里还有缺门）', tingMax: '听牌 · 最大 {f} 番', noTing: '没听牌', dealerP: '庄 · ', you: '你', youS: '（你）',
+      lHu: '{h} · {t} {f}番', lHuN: '（{n}家给）', lPayZimo: '{n} 自摸', lPayDgh: '点杠花 · {n}', lPayRob: '被抢杠 · {n}', lPayPao: '点炮 · {n}',
+      lGang: '{w}（{k}）', kAn: '暗杠', kBu: '补杠', kMing: '直杠', lGangPay: '{n} {w}',
+      lZhuan: '呼叫转移', lZhuanPay: '呼叫转移 · {n}', lPig: '查花猪', lPigPay: '花猪', lCha: '查大叫（听{f}番）', lChaPay: '没听牌', lTax: '退税', lTaxPay: '退税',
+      next: '下一局', nextIn: '{s} 秒后开始下一局', waitFor: '等 {n}', readyMe: '已准备',
+      final: '最终战绩', finalRounds: '一共 {n} 局', finalLine: '胡 {w} 次 · 自摸 {z} 次', bigFan: ' · 最大 {f} 番', again: '再来一场', newMatch: '再来一场',
+      menu: '菜单', mRoom: '房间 {c}', mPlayers: '玩家', mAuto: '托管（电脑代打）', mHints: '听牌提示', mSound: '音效', mVoice: '语音', mCall: '报牌', mVib: '震动', mLang: '语言', mSpeed: '电脑速度',
+      mPause: '暂停', mResume: '继续', mLeave: '离开牌桌', mSaveLeave: '保存进度，下次接着打', mEnd: '结束牌局', mLeaveSolo: '回大厅（进度会保存）', mKick: '请出', mBotLv: '电脑难度', mSettings: '设置', mInvite: '邀请',
+      leaveQ: '离开后电脑会接替你的座位，确定离开吗？', endQ: '结束后大家会看到最终战绩，确定结束吗？',
+      chat: '聊天', send: '发送', chatPh: '说点什么…',
+      phrases: ['快点出牌呀', '等我想想', '这牌不错', '手气来了', '好险好险', '手下留情', '厉害厉害', '再来一局？'],
+      botNames: ['阿杰', '小雨', '老周', '小林', '阿珍', '大鹏', '小葵', '老陈'],
+      fan: {},
+      tile: (r, s) => (s === 1 && r === 1 ? '幺鸡' : ['一', '二', '三', '四', '五', '六', '七', '八', '九'][r - 1] + ['万', '条', '筒'][s]),
+      rulesTitle: '怎么玩',
+      rulesHTML: `<h4>牌</h4>一百零八张：万、条、筒，各 1 到 9，每种 4 张。不能吃，只能碰、杠、胡。
+<h4>换三张</h4>发完牌，每人挑三张同一花色的牌，随机顺时针、逆时针或者和对家交换。
+<h4>定缺</h4>每人选一门花色不要。缺的那门要先打完，手里还有缺门的牌不能胡。
+<h4>血战到底</h4>有人胡了就退出这一局，其他人接着打，直到只剩一家或者牌摸完。一张牌可以同时被几家胡（一炮多响）。
+<h4>胡牌</h4>四组（顺子或刻子）加一对将，或者七对。
+<h4>刮风下雨</h4>杠了马上收钱。直杠：放杠的人给 2 倍底分；补杠：还在打的每家给 1 倍；暗杠：还在打的每家给 2 倍。杠完打出去的牌被人胡了，这次杠的钱转给胡的人（呼叫转移）。
+<h4>牌摸完了</h4>手里还有缺门的是花猪，赔给其他人封顶的番；没听牌的赔给听牌的人（查大叫，按对方能胡的最大番）；没听牌的人把杠钱退回去（退税）。
+<h4>算分</h4>每次胡牌得 底分 × 2<sup>番数</sup>，最多到封顶。自摸是还在打的每家都给，另外加一底（或者加一番，看房间设置）。`,
+      fanTable: [['对对胡', 1], ['清一色（只有一门）', 2], ['七对', 2], ['根（每有四张一样的）', 1], ['金钩钓（只剩一张单钓）', 1], ['将对（全是 2、5、8 的刻子）', 2], ['带幺九', 2], ['杠上开花 / 杠上炮', 1], ['抢杠胡', 1], ['海底捞月 / 海底炮', 1], ['天胡 / 地胡', 5], ['门清、中张（可选）', 1]],
+      fanNote: '番数相加。比如清一色加对对胡（清对）是 3 番。',
+      moreRules: '更多规则', idTaken: '这个房间码被占用了，稍后再试', peek: '看看牌桌', backRes: '结算', lastRound: '最后一局', fanH: '番数',
+    },
+  };
+  const read = () => { try { return JSON.parse(localStorage.getItem('mh_lang')); } catch (e) { return null; } };
+  let lang = read() === 'zh' ? 'zh' : 'en';
+  function t(k, v) {
+    let s = S[lang][k]; if (s == null) s = S.en[k];
+    if (typeof s !== 'string') return s;
+    return v ? s.replace(/\{(\w+)\}/g, (_, x) => (v[x] != null ? v[x] : '')) : s;
+  }
+  const fan = name => (lang === 'zh' ? name : (S.en.fan[name] || name));
+  const tile = t => S[lang].tile(t % 9 + 1, (t / 9) | 0);
+  function setLang(l) { lang = l === 'zh' ? 'zh' : 'en'; try { localStorage.setItem('mh_lang', JSON.stringify(lang)); } catch (e) {} if (G.document) G.document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en'; }
+  if (G.document) G.document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  G.MJI18N = { t, fan, tile, setLang, get lang() { return lang; }, S };
+})(typeof window !== 'undefined' ? window : globalThis);

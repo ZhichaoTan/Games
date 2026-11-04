@@ -67,7 +67,12 @@ svg.u{display:block;width:100%;height:100%}
 /* ====================== 大厅 ====================== */
 #lobby{overflow-y:auto;-webkit-overflow-scrolling:touch;align-items:center}
 .lob{width:100%;max-width:440px;padding:18px max(18px,env(safe-area-inset-left,0px)) 34px;display:flex;flex-direction:column;gap:16px;position:relative}
-.lang-btn{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:14px;display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;
+.games{display:flex;gap:3px;padding:3px;border-radius:999px;background:rgba(0,0,0,.3);border:1px solid var(--line)}
+.games a{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;height:38px;border-radius:999px;font-size:14px;font-weight:700;color:var(--mute);text-decoration:none;white-space:nowrap;transition:background .2s,color .2s}
+.games a svg{width:17px;height:17px;flex:none}
+.games a.on{background:linear-gradient(180deg,#f4dda6,#c99a4a);color:#26190a;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+.games a:not(.on):active{background:rgba(255,255,255,.06)}
+.lang-btn{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:76px;display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;
   background:var(--glass-2);border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--mute);z-index:2}
 .lang-btn svg{width:16px;height:16px}
 .hero{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:26px}
@@ -362,7 +367,7 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
 .hintx{font-size:12px;color:var(--faint);line-height:1.5}
 
 /* ====================== 积分 ====================== */
-.wallet-btn{position:absolute;left:max(16px,env(safe-area-inset-left,0px));top:14px;display:flex;align-items:center;gap:7px;padding:6px 13px 6px 7px;border-radius:999px;background:var(--glass-2);border:1px solid var(--line);font-weight:800;font-size:14px;color:var(--brass-hi);z-index:2}
+.wallet-btn{position:absolute;left:max(16px,env(safe-area-inset-left,0px));top:76px;display:flex;align-items:center;gap:7px;padding:6px 13px 6px 7px;border-radius:999px;background:var(--glass-2);border:1px solid var(--line);font-weight:800;font-size:14px;color:var(--brass-hi);z-index:2}
 .wallet-btn svg{width:20px;height:20px;color:var(--crimson);filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
 .rd{width:8px;height:8px;border-radius:50%;background:#ff6b6b;box-shadow:0 0 8px #ff6b6b;animation:blink 1.6s infinite}
 .seatbox{flex-direction:row;align-items:center;gap:12px;border-color:rgba(211,172,99,.35);background:linear-gradient(180deg,rgba(211,172,99,.12),rgba(211,172,99,.04))}
@@ -477,6 +482,7 @@ button.iq{font-size:12px;padding:6px 9px;border-radius:10px;margin:0;vertical-al
 
 <section id="lobby" class="screen">
   <div class="lob">
+    <nav class="games" aria-label="Games"><a class="on" href="./" aria-current="page"><svg viewBox="0 0 24 24"><use href="#g-holdem"/></svg><span data-t="gHoldem"></span></a><a href="./mahjong/"><svg viewBox="0 0 24 24"><use href="#g-mahjong"/></svg><span data-t="gMahjong"></span></a></nav>
     <button class="wallet-btn" id="walletBtn"><svg viewBox="0 0 100 100"><use href="#chip"/></svg><b id="walletAmt">0</b><span class="rd" id="walletDot" hidden></span></button>
     <button class="lang-btn" id="langBtn"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg><span id="langLbl">中文</span></button>
     <div class="hero">
@@ -584,7 +590,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // ============================== 文案 ==============================
 const STR = {
 en: {
-  tagline:'Poker night with friends. No sign-up, just a four-letter room code.',
+  tagline:'Poker night with friends. No sign-up, just a four-letter room code.', gHoldem:'Hold’em', gMahjong:'Mahjong',
   wx:'WeChat can block the connection. Tap ··· in the corner and choose “Open in Browser”.',
   yourName:'Your name', namePh:'Up to 10 letters', tabJoin:'Join', tabHost:'Host', tabSolo:'Practice', joinBtn:'Sit down',
   blinds:'Blinds', stack:'Stack', clock:'Shot clock', hostBtn:'Open a table', resume:'Reopen table {c}', practice:'Practice against bots',
@@ -657,7 +663,7 @@ en: {
   bots:['Mochi','Biscuit','Taro','Pudding','Sesame','Boba','Toffee','Dumpling'],
 },
 zh: {
-  tagline:'和朋友的夜间牌局。不用注册，分享 4 位房间码就能一起打。',
+  tagline:'和朋友的夜间牌局。不用注册，分享 4 位房间码就能一起打。', gHoldem:'德州扑克', gMahjong:'四川麻将',
   wx:'微信里可能连不上。点右上角「···」，选择「在浏览器打开」。',
   yourName:'你的昵称', namePh:'最多 10 个字', tabJoin:'加入', tabHost:'开桌', tabSolo:'练习', joinBtn:'入座',
   blinds:'盲注', stack:'初始筹码', clock:'思考时间', hostBtn:'开一桌', resume:'恢复上次的牌桌 {c}', practice:'和机器人练习',

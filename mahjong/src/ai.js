@@ -97,6 +97,9 @@
     const R = v.R, me = v.me;
     const seen = new Array(27).fill(0);
     for (const id of R.hand) seen[TY(id)]++;
+    // 2v2：队友的手牌也看得到
+    const mateVis = R.mateHand && R.mate >= 0 && !(R.shown && R.shown[R.mate]);
+    if (mateVis) for (const id of R.mateHand) seen[TY(id)]++;
     for (let s = 0; s < 4; s++) {
       for (const id of R.river[s]) seen[TY(id)]++;
       for (const m of R.melds[s]) if (m.t >= 0) seen[m.t] += m.ids.length || (m.k === 'peng' ? 3 : 4);
@@ -106,7 +109,7 @@
     const winIds = new Set();
     for (const w of R.wins) if (!winIds.has(w.id)) { winIds.add(w.id); seen[w.t]++; }
     // 换出去的三张：我知道在谁手里（还没打出来就当看得见）
-    if (R.swapPick && R.swapDir) {
+    if (R.swapPick && R.swapDir && !(mateVis && (me + R.swapDir) % 4 === R.mate)) {
       const gone = counts(R.swapPick);
       const to = (me + R.swapDir) % 4;
       const out = new Array(27).fill(0);
@@ -236,7 +239,7 @@
   function threats(v, K) {
     const R = v.R, me = v.me, out = [];
     for (const j of K.active) {
-      if (j === me) continue;
+      if (j === me || (v.rules.team && j === (me + 2) % 4)) continue;   // 队友不能胡我打的牌
       const q = R.que[j];
       const rv = R.river[j];
       // 打过非缺门的牌 = 缺门已经打完
@@ -434,6 +437,7 @@
     lv = lvOf(lv); rnd = rnd || Math.random;
     const R = v.R, me = v.me, o = v.opt;
     if (o.hu) return { k: 'zimo' };
+    if (o.ts) { const sw = chooseTSwap(v, lv); if (sw) return { k: 'tswap', give: sw.give, take: sw.take }; }
     if ((o.an && o.an.length) || (o.bu && o.bu.length)) {
       if (lv === 1) {
         if (o.an.length) return { k: 'angang', t: o.an[0] };
@@ -528,9 +532,86 @@
     return best;
   }
 
+  // ---------------- 2v2：跟队友换牌 ----------------
+  // 我（14 张）把 g 换成队友的 t 之后：我能不能胡、两边的向听数
+  function tsCheck(H, nH, qH, M, nM, qM, g, t) {
+    H[g]--; H[t]++; M[t]--; M[g]++;
+    const win = isHu(H, nH, qH);
+    const s = win ? -1 : shanten(H, nH, qH), m = shanten(M, nM, qM);
+    H[g]++; H[t]--; M[t]++; M[g]--;
+    return { win, s, m };
+  }
+  function tsCtx(v, asker) {
+    const R = v.R, me = v.me, mate = R.mate;
+    const a = asker === 'me' ? me : mate, b = asker === 'me' ? mate : me;
+    const ids = s => (s === me ? R.hand : R.mateHand);
+    return { H: counts(ids(a)), nH: R.melds[a].length, qH: R.que[a], M: counts(ids(b)), nM: R.melds[b].length, qM: R.que[b], a, b };
+  }
+  // 换完会怎样（给界面提示用）：asker 'me' = 我来换；'mate' = 队友来换
+  function tsPreview(v, asker, g, t) {
+    const R = v.R; if (!R || !R.mateHand) return null;
+    const c = tsCtx(v, asker);
+    const r = tsCheck(c.H, c.nH, c.qH, c.M, c.nM, c.qM, g, t);
+    return { win: r.win, asker: r.s, other: r.m, asker0: shanten(c.H, c.nH, c.qH), other0: shanten(c.M, c.nM, c.qM) };
+  }
+  // 我能不能靠换一张直接胡：返回能换来胡的队友的牌（种类）
+  function tsWins(v) {
+    const R = v.R; if (!R || !R.mateHand) return [];
+    const c = tsCtx(v, 'me'), out = new Set();
+    for (let g = 0; g < 27; g++) if (c.H[g]) for (let t = 0; t < 27; t++) if (c.M[t] && t !== g && !out.has(t) && tsCheck(c.H, c.nH, c.qH, c.M, c.nM, c.qM, g, t).win) out.add(t);
+    return [...out];
+  }
+  // 轮到我：要不要找队友换一张。能胡就换；不然只在两边都不变差、而且明显变好时换（次数少就更挑）
+  function chooseTSwap(v, lv) {
+    lv = lvOf(lv);
+    const R = v.R, me = v.me, o = v.opt;
+    if (!o || !o.ts || !R.mateHand || !(R.mate >= 0)) return null;
+    const c = tsCtx(v, 'me');
+    const s0 = shanten(c.H, c.nH, c.qH), m0 = shanten(c.M, c.nM, c.qM);
+    const melds = R.melds[me].map(m => ({ k: m.k, t: m.t }));
+    let best = null;
+    for (let g = 0; g < 27; g++) {
+      if (!c.H[g]) continue;
+      for (let t = 0; t < 27; t++) {
+        if (!c.M[t] || t === g) continue;
+        const r = tsCheck(c.H, c.nH, c.qH, c.M, c.nM, c.qM, g, t);
+        let val;
+        if (r.win) {
+          c.H[g]--; c.H[t]++;
+          const f = calcFan(c.H, melds, { zimo: true }, v.rules);
+          c.H[g]++; c.H[t]--;
+          val = 100 + (f ? f.fan : 0) * 2 - Math.max(0, r.m - m0) * 3;
+        } else {
+          if (r.s > s0 || r.m > m0) continue;
+          val = (s0 - r.s) + (m0 - r.m) + (r.s === 0 && s0 > 0 ? 1.5 : 0) + (r.m === 0 && m0 > 0 ? 1.5 : 0);
+        }
+        if (!best || val > best.val) best = { val, g, t, win: r.win };
+      }
+    }
+    if (!best) return null;
+    const left = o.tsLeft || 0;
+    const need = best.win ? 0 : lv === 1 ? 1e9 : left >= 99 ? 1 : left >= 3 ? 2 : 2.5;
+    if (best.val < need) return null;
+    const pick = (ids, t) => { for (let i = ids.length - 1; i >= 0; i--) if (TY(ids[i]) === t) return ids[i]; return null; };
+    const give = R.drawn != null && TY(R.drawn) === best.g ? R.drawn : pick(R.hand, best.g);
+    const take = pick(R.mateHand, best.t);
+    return give == null || take == null ? null : { give, take, win: best.win };
+  }
+  // 队友来要牌：能让他胡就换；不让自己变慢就换；让他听牌、自己只慢一步也换
+  function chooseTAnswer(v) {
+    const R = v.R, o = v.opt;
+    if (!o || o.k !== 'offer' || !R.mateHand) return false;
+    const c = tsCtx(v, 'mate');
+    const s0 = shanten(c.H, c.nH, c.qH), m0 = shanten(c.M, c.nM, c.qM);
+    const r = tsCheck(c.H, c.nH, c.qH, c.M, c.nM, c.qM, TY(o.give), TY(o.take));
+    if (r.win || r.m <= m0) return true;
+    return r.s < s0 && r.s <= 0 && r.m - m0 <= 1;
+  }
+
   // 统一入口
   function decide(v, lv, rnd) {
     const o = v.opt; if (!o) return null;
+    if (o.k === 'offer') return { k: chooseTAnswer(v) ? 'tsyes' : 'tsno' };
     if (o.k === 'swap') return { k: 'swap', ids: chooseSwap(v.R.hand, lv, rnd) };
     if (o.k === 'que') return { k: 'que', s: chooseQue(v.R.hand, lv, rnd) };
     if (o.k === 'claim') return { k: chooseClaim(v, lv, rnd) };
@@ -567,7 +648,7 @@
     return { mode: 'wait', waits: w };
   }
 
-  const AI = { LV, shanten, shantenStd, shanten7, decide, chooseDiscard, chooseClaim, chooseTurn, chooseSwap, chooseQue, tingHints, know, evalHand };
+  const AI = { LV, shanten, shantenStd, shanten7, decide, chooseDiscard, chooseClaim, chooseTurn, chooseSwap, chooseQue, tingHints, know, evalHand, chooseTSwap, chooseTAnswer, tsPreview, tsWins };
   G.MJAI = AI;
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -33,7 +33,7 @@ No-limit Texas Hold'em for 2 to 9 players.
 
 ## Sichuan Mahjong
 
-Four players, Bloody Battle (血战到底) rules.
+Four players, Bloody Battle (血战到底) rules, every player for themselves or in 2v2 teams.
 
 - 108 tiles: Characters, Bamboo and Dots, 1 to 9, four of each. There are no chows; you can only pung, kong or win.
 - Swap three: after the deal everyone passes three tiles of one suit, clockwise, counter-clockwise or across. The host can turn this off.
@@ -42,7 +42,9 @@ Four players, Bloody Battle (血战到底) rules.
 - Kongs pay at once: an exposed kong is paid by the player who discarded the tile, the others by everyone still playing. If the tile you discard right after a kong lets someone win, that kong's money goes to the winner.
 - When the wall runs out, a player still holding their void suit pays everyone, players who aren't ready pay those who are, and players who aren't ready hand back their kong money.
 - A win scores the base points × 2 to the power of the fan count, up to the room's fan cap. Fan come from the hand (All Pungs, Full Flush, Seven Pairs, Golden Hook, 2-5-8 Pungs, Terminals Everywhere and more), from each set of four identical tiles, and from how you won (Kong Bloom, Robbing the Kong, Last Tile, Heavenly and Earthly Hands). A self-drawn win collects from everyone still playing, plus one base point or one fan, as the host sets.
-- Host options: number of rounds, fan cap, how self-draws score, how a win off a discarded kong counts, swap three, extra fan (terminals and 2-5-8, concealed and all simples, heavenly and earthly hands), base points and a turn timer.
+- Host options: free-for-all or 2v2 teams, number of rounds, fan cap, how self-draws score, how a win off a discarded kong counts, swap three, extra fan (terminals and 2-5-8, concealed and all simples, heavenly and earthly hands), base points and a turn timer.
+- 2v2 teams: partners sit across from each other and play as one side. You see your partner's hand face up and they see yours, while the other team sees neither. You can't win off your partner's discard, money only moves between the two teams, and the round ends once both players of one team have won. In the room, the host taps "Make partner" on the player they want to team up with, and the other two play together. In practice your partner is the bot across the table.
+- Partner swap: on your turn, after you draw, tap Swap, pick the tile you want from your partner's hand and one of yours to give back (of a different kind), and tap Ask. Your partner sees what the swap does for both hands and taps Swap or No; after 20 seconds it counts as a no. A swap you get counts as a fresh draw, so you can win on the tile your partner gave you. One request per turn, and swaps stop once either partner has won. The host sets how many swaps each player gets per round: 1, 2, 3 (the default), 5 or no limit. Bots ask for a swap when it wins them the hand, or when it helps without setting either hand back, and they agree to swaps that cost them little.
 - Bots come in four levels: Rookie, Regular, Shark and Genius. Stronger bots pick better swaps and void suits, count the tiles that have gone and play safe when someone looks ready.
 - Tap a tile to select it, then tap it again or drag it up to discard it. You can also slide along your hand to pick a tile. With hints on, a dot marks the tiles that leave you ready, and a selected tile shows what you'd be waiting on and how many of those tiles are left.
 - Autoplay hands your turns to a bot for a while, and "Take over" gives them back.
@@ -51,15 +53,15 @@ Four players, Bloody Battle (血战到底) rules.
 
 Each page is one self-contained HTML file that GitHub Pages serves as it is. The sources are next to it, and each build script inlines the fonts, artwork and code.
 
-- Home page: the source is `hub/index.html`. `python3 hub/build.py` writes the root `index.html`. It reuses the fonts, avatars and seal from `poker/src/` and three tile faces from `mahjong/src/tiles.js`.
+- Home page: the source is `hub/index.html`. `python3 hub/build.py` writes the root `index.html`. It reuses the fonts, avatars and seal from `poker/src/` and four tile faces from `mahjong/src/tiles.js`.
 - Hold'em: the source is in `poker/src/`. `python3 poker/src/build.py` writes `poker/index.html`.
 - Mahjong: the source is in `mahjong/src/`. `python3 mahjong/src/build.py` writes `mahjong/index.html`. It reuses the fonts, PeerJS, avatars and the zoom guard (`nozoom.js`) from `poker/src/`.
 - Mahjong tests: `node mahjong/tests/engine.test.js` checks the rules and scoring, and `node mahjong/tests/sim.js` plays long bot-only matches.
-- `mahjong/dev/` has the Playwright scripts used to try the game in a headless browser: `play.js` (autoplay screenshots), `human.js` (taps, drags and buttons like a player), and `online.js` (four browsers on a local PeerServer, including a dropped connection and a mid-game join). It also has the scripts that made the generated files: `maketiles.py` (`mahjong/src/tiles.js`), `makesfx.py` (`mahjong/src/sfx.js`) and `makefont.py` (the brush-font subset). `hub/makefont.py` makes the home page's brush-font subset.
+- `mahjong/dev/` has the Playwright scripts used to try the game in a headless browser: `play.js` (autoplay screenshots), `human.js` (taps, drags and buttons like a player), `online.js` (four browsers on a local PeerServer, including a dropped connection and a mid-game join), `team.js` (2v2 practice, asking for and answering swaps through the buttons) and `online2v2.js` (a 2v2 room in four browsers: choosing a partner, a swap between two people, a dropped partner rejoining). It also has the scripts that made the generated files: `maketiles.py` (`mahjong/src/tiles.js`), `makesfx.py` (`mahjong/src/sfx.js`) and `makefont.py` (the brush-font subset). `hub/makefont.py` makes the home page's brush-font subset.
 
 ### Adding a game
 
-Put it in its own folder at the top of the repo, named after the game (the folder name becomes the address, like `/Games/poker/`). Give its lobby an "All games" link to `../`, add an entry to the `GAMES` list in `hub/index.html` with its card artwork, and run `python3 hub/build.py`. Use a PeerJS id prefix of its own so its rooms stay separate, and keep the shared `mh_name`, `mh_av` and `mh_lang` settings so players keep their name, avatar and language.
+Put it in its own folder at the top of the repo, named after the game (the folder name becomes the address, like `/Games/poker/`). Give its lobby an "All games" link to `../`, add an entry to the `GAMES` list in `hub/index.html` with its card artwork, and run `python3 hub/build.py`. Each card has a Chinese and an English version of its lettering and artwork, and they don't mix: no English wordmark on the Chinese page, and no Chinese seal or characters on the English one. Use a PeerJS id prefix of its own so its rooms stay separate, and keep the shared `mh_name`, `mh_av` and `mh_lang` settings so players keep their name, avatar and language.
 
 ## Credits
 

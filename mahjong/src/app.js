@@ -100,20 +100,25 @@
     $('nick').placeholder = T('namePh');
     $('btnLang').querySelector('span').textContent = T('langBtn');
     document.title = T('title');
+    paintFan();
   }
-  // 标题上的一把牌
+  // 标题上的一把牌。英文界面不放带汉字的万子（换成条、筒），跟主页一样每种语言的图案各自统一
+  const FAN = { zh: [4, 9, 22, 0, 16], en: [13, 9, 22, 18, 16] };
   (function fan() {
     const f = $('fan');
-    const ts = [4, 9, 22, 0, 16];
-    ts.forEach((t, i) => {
+    for (let i = 0; i < 5; i++) {
       const d = document.createElement('div');
       d.className = 'ft';
       d.style.transform = `rotate(${(i - 2) * 13}deg)`;
       d.style.animationDelay = (i * 90) + 'ms';
-      d.innerHTML = `<i class="tb"></i><i class="tf">${UIM.face(t)}</i>`;
+      d.innerHTML = '<i class="tb"></i><i class="tf"></i>';
       f.appendChild(d);
-    });
+    }
   })();
+  function paintFan() { // data-tile, not data-t: applyStatic fills every [data-t] with text
+    const ts = FAN[I18.lang === 'zh' ? 'zh' : 'en'];
+    $('fan').querySelectorAll('.ft .tf').forEach((el, i) => { if (el.dataset.tile !== String(ts[i])) { el.dataset.tile = ts[i]; el.innerHTML = UIM.face(ts[i]); } });
+  }
   function paintMe() {
     $('meAv').innerHTML = `<svg viewBox="0 0 100 100"><use href="#av${myAv}"/></svg>`;
     const g = $('avs'); g.innerHTML = '';
@@ -142,6 +147,8 @@
     swap: { lab: 'oSwap', vals: [true, false], txt: v => T(v ? 'on' : 'off') },
     base: { lab: 'oBase', vals: [1, 2, 5, 10], txt: v => String(v) },
     timer: { lab: 'oTimer', vals: [0, 15, 20, 30], txt: v => (v ? T('tSec', { n: v }) : T('tOff')) },
+    team: { lab: 'oMode', vals: [false, true], txt: v => T(v ? 'mTeam' : 'mFree') },
+    tswap: { lab: 'oTsw', vals: [1, 2, 3, 5, 0], txt: v => (v ? String(v) : T('noLimit')) },
   };
   const BOTV = [1, 2, 3, 4, 0];
   const botTxt = v => (v ? T('lv')[v] : T('lvMix'));
@@ -177,6 +184,8 @@
       const rule = k => segRow(T(OPT[k].lab), OPT[k].vals, P.rules[k], OPT[k].txt, v => { P.rules[k] = v; saveP(); });
       box.appendChild(segRow(T('oBots'), BOTV, P.bot, botTxt, v => { P.bot = v; saveP(); }));
       if (solo) box.appendChild(segRow(T('oSpeed'), ['fast', 'normal', 'slow'], P.speed, v => T(v === 'fast' ? 'spFast' : v === 'slow' ? 'spSlow' : 'spNormal'), v => { P.speed = v; saveP(); }));
+      box.appendChild(rule('team'));
+      if (P.rules.team) box.appendChild(rule('tswap'));
       box.appendChild(rule('rounds'));
       box.appendChild(rule('cap'));
       if (!solo) box.appendChild(rule('timer'));
@@ -259,7 +268,7 @@
     function roomInfo(s) {
       const R = tb.T.R;
       let clock = null;
-      if (R && R.phase !== 'end' && tb.T.rules.timer > 0 && !paused) {
+      if (R && R.phase !== 'end' && !paused) {
         const ps = tb.T.pending().filter(x => deadline[x] && !tb.T.seats[x].bot);
         if (ps.length) clock = { seats: ps, left: Math.max(0, Math.max(...ps.map(x => deadline[x])) - Date.now()) };
       }
@@ -291,6 +300,7 @@
       let k = 1;
       if (R.phase === 'swap' || R.phase === 'que') k = 1.6;
       else if (R.stage === 'claim') k = 0.65;
+      else if (R.stage === 'offer') k = 0.9;
       if (R.hu[0] && !solo === false) k *= 0.7;
       if (R.hu[0]) k *= 0.75;
       return (base[0] + Math.random() * (base[1] - base[0])) * k;
@@ -309,6 +319,12 @@
         clearTimer(s);
         if (p.bot || p.auto) timers[s] = { key, id: setTimeout(() => move(s, key, p.bot ? p.lv : 3, false), think(s)) };
         else if (!p.conn) timers[s] = { key, id: setTimeout(() => move(s, key, 3, false), 6000) };
+        else if (R.stage === 'offer') {
+          // 队友来要牌：20 秒不回就当不换
+          const ms = 20000;
+          deadline[s] = Date.now() + ms;
+          timers[s] = { key, id: setTimeout(() => move(s, key, 3, 'offer'), ms + 300) };
+        }
         else if (Tb.rules.timer > 0) {
           const ms = Tb.rules.timer * 1000 * (R.phase === 'play' ? 1 : 2);
           deadline[s] = Date.now() + ms;
@@ -322,15 +338,17 @@
       if (!R || paused || key !== s + ':' + Tb.evn + ':' + R.phase + ':' + R.stage) return;
       const v = Tb.view(s);
       let a = null;
-      try { a = AI.decide(v, lv, Math.random); } catch (e) { a = null; }
+      if (timedOut === 'offer') a = { k: 'tsno' };
+      else try { a = AI.decide(v, lv, Math.random); } catch (e) { a = null; }
       let r = a ? Tb.act(s, a) : 'bad';
       if (r !== 'ok') r = fallback(s, v);
-      if (timedOut) { timeouts[s]++; if (timeouts[s] >= 2 && !Tb.seats[s].auto) { Tb.seats[s].auto = true; } }
+      if (timedOut === true) { timeouts[s]++; if (timeouts[s] >= 2 && !Tb.seats[s].auto) { Tb.seats[s].auto = true; } }
       changed();
     }
     function fallback(s, v) {
       const Tb = tb.T, o = v.opt; if (!o) return 'no';
       if (o.k === 'claim') return Tb.act(s, { k: o.hu ? 'hu' : 'pass' });
+      if (o.k === 'offer') return Tb.act(s, { k: 'tsno' });
       if (o.k === 'swap') { const h = v.R.hand; for (let su = 0; su < 3; su++) { const ids = h.filter(id => MJ.SU(MJ.TY(id)) === su); if (ids.length >= 3) return Tb.act(s, { k: 'swap', ids: ids.slice(0, 3) }); } }
       if (o.k === 'que') return Tb.act(s, { k: 'que', s: 0 });
       if (o.k === 'turn') { const h = v.R.hand; const q = v.R.que[s]; const id = (o.que ? h.filter(x => MJ.SU(MJ.TY(x)) === q) : h).slice(-1)[0]; return Tb.act(s, { k: 'discard', id }); }
@@ -383,6 +401,19 @@
     S.setBotLv = (s, lv) => { const p = tb.T.seats[s]; if (p && p.bot) { p.lv = lv; changed(); } };
     S.kick = s => kick(s);
     S.addBot = s => { if (!started && !tb.T.seats[s]) { addBot(s); changed(); } };
+    // 2v2：开局前把某个人换到对家（成为房主的队友）
+    S.makeMate = s => {
+      const Tb = tb.T;
+      if (started || !Tb.rules.team || (s !== 1 && s !== 3)) return;
+      [Tb.seats[s], Tb.seats[2]] = [Tb.seats[2], Tb.seats[s]];
+      [seen[s], seen[2]] = [seen[2], seen[s]];
+      [ready[s], ready[2]] = [ready[2], ready[s]];
+      const ca = conns.get(s), cb = conns.get(2);
+      conns.delete(s); conns.delete(2);
+      if (ca) { ca._s = 2; conns.set(2, ca); try { ca.send({ t: 'welcome', seat: 2 }); } catch (e) {} }
+      if (cb) { cb._s = s; conns.set(s, cb); try { cb.send({ t: 'welcome', seat: s }); } catch (e) {} }
+      changed();
+    };
     S.start = () => start();
     S.togglePause = () => { paused = !paused; changed(); };
     S.setSpeed = sp => { P.speed = sp; saveP(); };
@@ -464,6 +495,8 @@
         if (m.a.t != null) a.t = m.a.t | 0;
         if (m.a.s != null) a.s = m.a.s | 0;
         if (Array.isArray(m.a.ids)) a.ids = m.a.ids.slice(0, 3).map(x => x | 0);
+        if (m.a.give != null) a.give = m.a.give | 0;
+        if (m.a.take != null) a.take = m.a.take | 0;
         const r = Tb.act(s, a);
         if (r === 'ok') { timeouts[s] = 0; changed(); } else { try { conn.send({ t: 'err', code: r }); } catch (e) {} sync(); }
       }
@@ -646,8 +679,12 @@
     $('roomCode').textContent = room.code;
     const g = $('seats4'); g.innerHTML = '';
     const isHost = S.isHost;
-    for (let s = 0; s < 4; s++) {
+    // 2v2：我方一排（我和对家），对方一排
+    const team = !!v.rules.team, me = v.me >= 0 ? v.me : 0;
+    const order = team ? [me, (me + 2) % 4, (me + 1) % 4, (me + 3) % 4] : [0, 1, 2, 3];
+    order.forEach((s, i) => {
       const p = v.seats[s];
+      if (team && i % 2 === 0) { const l = document.createElement('div'); l.className = 'tlab ' + (i ? 'them' : 'us'); l.textContent = T(i ? 'teamThem' : 'teamUs'); g.appendChild(l); }
       const d = document.createElement('div');
       if (!p) {
         d.className = 'rs empty';
@@ -655,14 +692,18 @@
       } else {
         d.className = 'rs';
         const tags = (s === 0 ? `<span class="tag">${T('hostTag')}</span>` : '') + (s === v.me ? `<span class="tag me">${T('youTag')}</span>` : '');
-        d.innerHTML = `${tags}<div class="av">${UIM.avSvg(p, s)}</div><div class="nm">${esc(p.name)}</div><div class="sub">${p.bot ? `<button class="lvb" data-lv="${s}">${T('lv')[p.lv]}</button>` : (p.conn ? '' : T('stOff'))}</div>` + (isHost && s !== 0 ? `<button class="x" data-kick="${s}"><svg viewBox="0 0 24 24"><use href="#i-close"/></svg></button>` : '');
+        d.innerHTML = `${tags}<div class="av">${UIM.avSvg(p, s)}</div><div class="nm">${esc(p.name)}</div><div class="sub">${p.bot ? `<button class="lvb" data-lv="${s}">${T('lv')[p.lv]}</button>` : (p.conn ? '' : T('stOff'))}</div>` + (isHost && s !== 0 ? `<button class="x" data-kick="${s}"><svg viewBox="0 0 24 24"><use href="#i-close"/></svg></button>` : '')
+          + (isHost && team && (s === 1 || s === 3) ? `<button class="btn glass sm mk" data-mate="${s}">${T('makeMate')}</button>` : '');
       }
+      if (team) d.classList.add(i < 2 ? 'us' : 'them');
       g.appendChild(d);
-    }
+    });
+    g.classList.toggle('team', team);
+    g.querySelectorAll('[data-mate]').forEach(b => b.onclick = () => { S.makeMate(+b.dataset.mate); SND.play('tap'); });
     g.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { S.addBot(+b.dataset.add); SND.play('tap'); });
     g.querySelectorAll('[data-kick]').forEach(b => b.onclick = () => { S.kick(+b.dataset.kick); SND.play('tap'); });
     g.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => { if (!isHost) return; const s = +b.dataset.lv; const p = v.seats[s]; S.setBotLv(s, p.lv % 4 + 1); SND.play('tap'); });
-    $('rulesSum').innerHTML = rulesSummary(v.rules);
+    $('rulesSum').innerHTML = (team ? `<div class="tnote">${esc(T('teamNote'))}</div>` : '') + rulesSummary(v.rules);
     const a = $('roomActs'); a.innerHTML = '';
     if (isHost) {
       const empty = v.seats.filter(x => !x).length;
@@ -674,7 +715,7 @@
     }
   }
   function rulesSummary(r) {
-    return [r.rounds ? T('sumRounds', { n: r.rounds }) : T('sumNoLimit'), r.cap ? T('sumCap', { n: r.cap }) : T('sumNoCap'), T(r.zimo === 'di' ? 'sumDi' : 'sumFan'), T(r.swap ? 'sumSwap' : 'sumNoSwap'), r.base > 1 ? T('sumBase', { n: r.base }) : '', r.timer ? T('sumTimer', { n: r.timer }) : '']
+    return [r.team ? T('sumTeam') : '', r.team ? (r.tswap ? T('sumTsw', { n: r.tswap }) : T('sumTswInf')) : '', r.rounds ? T('sumRounds', { n: r.rounds }) : T('sumNoLimit'), r.cap ? T('sumCap', { n: r.cap }) : T('sumNoCap'), T(r.zimo === 'di' ? 'sumDi' : 'sumFan'), T(r.swap ? 'sumSwap' : 'sumNoSwap'), r.base > 1 ? T('sumBase', { n: r.base }) : '', r.timer ? T('sumTimer', { n: r.timer }) : '']
       .filter(Boolean).map(esc).join(' · ');
   }
   $('roomBack').onclick = async () => { if (S && S.leave) await S.leave(); goLobby(); };
@@ -811,7 +852,7 @@
   }
   function showRules() {
     let h = head(T('rulesTitle'));
-    h += `<div class="rules-txt">${T('rulesHTML')}<h4>${T('fanH')}</h4><table>${T('fanTable').map(([a, b]) => `<tr><td>${esc(a)}</td><td>${T('nFan', { n: b })}</td></tr>`).join('')}</table><p class="note">${T('fanNote')}</p></div>`;
+    h += `<div class="rules-txt">${T('rulesHTML')}${T('rulesTeam')}<h4>${T('fanH')}</h4><table>${T('fanTable').map(([a, b]) => `<tr><td>${esc(a)}</td><td>${T('nFan', { n: b })}</td></tr>`).join('')}</table><p class="note">${T('fanNote')}</p></div>`;
     sheet(h, { id: 'rules' });
   }
 
@@ -828,6 +869,7 @@
   else setTab(P.tab || 'solo');
   show('lobby');
   // 调试：?auto=1 自动开练习（截图测试用）
+  if (qs.get('team') != null) { P.rules.team = qs.get('team') === '1'; renderOpts(); }
   if (qs.get('autosolo')) { if (!myName) { myName = 'Me'; $('nick').value = myName; } startHost({ solo: true }); }
   W.MJAPP = { get S() { return S; }, ui, store };
 })();

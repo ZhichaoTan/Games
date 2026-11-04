@@ -1,6 +1,8 @@
 // ===== 四川麻将 · 血战到底：规则引擎（浏览器和 Node 通用，没有 DOM） =====
 // 牌：id 0..107，种类 t = id >> 2（0..26），花色 s = t / 9 | 0（0 万 1 条 2 筒），点数 r = t % 9 + 1
 // 座位 0..3，出牌顺序 s → s+1（下家）→ s+2（对家）→ s+3（上家）
+// 2v2（rules.team）：对家是队友（0 和 2 一队，1 和 3 一队），互相看得到手牌，轮到自己时可以跟队友换一张牌；
+// 队友之间不给钱、不能胡队友打的牌，只剩一队还在打时这一局结束
 (function (G) {
   'use strict';
 
@@ -22,6 +24,8 @@
     base: 1,           // 底分
     rounds: 8,         // 局数，0 = 不限
     timer: 0,          // 真人每步限时（秒），0 = 不限时
+    team: false,       // 2v2 组队
+    tswap: 3,          // 2v2：每人每局能跟队友换几次牌，0 = 不限
   };
   const RULE_KEYS = Object.keys(DEFAULT_RULES);
   function cleanRules(r) {
@@ -37,6 +41,8 @@
     if ([1, 2, 5, 10].includes(+r.base)) o.base = +r.base;
     if ([0, 4, 8, 12, 16].includes(+r.rounds)) o.rounds = +r.rounds;
     if ([0, 10, 15, 20, 30].includes(+r.timer)) o.timer = +r.timer;
+    if ('team' in r) o.team = !!r.team;
+    if ([0, 1, 2, 3, 5].includes(+r.tswap)) o.tswap = +r.tswap;
     return o;
   }
 
@@ -200,6 +206,13 @@
       return e;
     }
     active() { const R = this.R; return [0, 1, 2, 3].filter(s => !R.hu[s]); }
+    // 2v2：队友是对家
+    mate(s) { return (s + 2) % 4; }
+    isMate(a, b) { return !!this.rules.team && a !== b && (a & 1) === (b & 1); }
+    // a 和 b 是对手（会互相给钱）
+    foes(a, b) { return a !== b && !this.isMate(a, b); }
+    // 这一局还要不要接着打：只剩一家，或者 2v2 只剩一队
+    roundDone() { const a = this.active(); return a.length <= 1 || (!!this.rules.team && a.every(s => (s & 1) === (a[0] & 1))); }
     hasQue(s) { const R = this.R; return R.que[s] >= 0 && R.hands[s].some(id => SU(TY(id)) === R.que[s]); }
     allCounts(s) { const R = this.R; const c = counts(R.hands[s]); for (const m of R.melds[s]) c[m.t] += meldN(m); return c; }
     // ----- 开局 -----
@@ -219,6 +232,7 @@
         hu: [0, 0, 0, 0], huN: 0, wins: [], passHu: [false, false, false, false],
         deltas: [0, 0, 0, 0], ledger: [], discards: 0, claims: 0, firstDone: [false, false, false, false],
         afterKong: -1, lastKong: null, lastDiscard: null, ev: [], result: null,
+        tsLeft: [0, 1, 2, 3].map(() => (this.rules.team ? (this.rules.tswap || 99) : 0)), tsUsed: -1, offer: null,
       };
       for (let i = 0; i < 13; i++) for (let k = 0; k < 4; k++) R.hands[(dealer + k) % 4].push(wall.pop());
       R.hands[dealer].push(wall.pop());
@@ -239,6 +253,9 @@
         case 'angang': return this.actAnGang(s, a.t);
         case 'bugang': return this.actBuGang(s, a.t);
         case 'hu': case 'peng': case 'gang': case 'pass': return this.actClaim(s, a.k);
+        case 'tswap': return this.actTSwap(s, a.give, a.take);
+        case 'tsyes': case 'tsno': return this.actTSAnswer(s, a.k === 'tsyes');
+        case 'tsback': return this.actTSBack(s);
       }
       return 'bad';
     }
@@ -297,19 +314,20 @@
       R.river[s].push(id);
       R.discards++; R.firstDone[s] = true;
       const gangPao = R.afterKong === s;
-      R.afterKong = -1; R.canSelf = false; R.drawn = null;
+      R.afterKong = -1; R.canSelf = false; R.drawn = null; R.tsUsed = -1;
       R.lastDiscard = { s, id };
       this.emit('discard', { s, id });
       this.openClaim('discard', s, id, gangPao);
       return 'ok';
     }
     // 别人打出（或补杠）一张牌：看谁能胡/碰/杠
-    claimOpts(o, t, kind) {
+    claimOpts(o, t, kind, from) {
       const R = this.R;
       if (R.hu[o]) return null;
       const isQ = SU(t) === R.que[o];
       const op = {};
-      if (!isQ && !R.passHu[o] && !this.hasQue(o)) {
+      // 2v2：不能胡队友打的（或者抢队友的杠）
+      if (!isQ && !R.passHu[o] && !this.hasQue(o) && !this.isMate(o, from)) {
         const c = counts(R.hands[o]); c[t]++;
         if (isHu(c, R.melds[o].length, R.que[o])) op.hu = true;
       }
@@ -324,7 +342,7 @@
       const R = this.R, t = TY(id);
       const opts = [null, null, null, null];
       let any = false;
-      for (let k = 1; k < 4; k++) { const o = (from + k) % 4; opts[o] = this.claimOpts(o, t, kind); if (opts[o]) any = true; }
+      for (let k = 1; k < 4; k++) { const o = (from + k) % 4; opts[o] = this.claimOpts(o, t, kind, from); if (opts[o]) any = true; }
       if (!any) {
         if (kind === 'discard') return this.nextTurn(from);
         return this.completeBuGang(from, id);
@@ -374,7 +392,7 @@
       // 呼叫转移：杠完放炮，那次杠的钱给胡的人（一炮多响给第一个）
       if (C.gangPao && R.lastKong && R.lastKong.s === C.from) this.transferKong(R.lastKong, winners[0]);
       if (multi) this.emit('multi', { from: C.from, n: winners.length });
-      if (this.active().length <= 1) return this.endRound('hu');
+      if (this.roundDone()) return this.endRound('hu');
       this.nextTurn(winners[winners.length - 1]);
     }
     doPeng(s, C) {
@@ -402,7 +420,7 @@
     // 刮风下雨：马上给钱。payers 里已经胡了的人不给
     kongPay(s, kind, t, payers, mult) {
       const R = this.R, amt = this.rules.base * mult;
-      const from = payers.filter(p => p !== s && !R.hu[p]).map(p => ({ s: p, amt }));
+      const from = payers.filter(p => this.foes(p, s) && !R.hu[p]).map(p => ({ s: p, amt }));
       for (const f of from) this.pay(f.s, s, f.amt);
       const L = { k: 'gang', kind, to: s, t, from, moved: false };
       R.ledger.push(L);
@@ -423,7 +441,8 @@
     selfOpts(s) {
       const R = this.R;
       if (R.phase !== 'play' || R.stage !== 'discard' || R.turn !== s) return null;
-      const o = { hu: false, an: [], bu: [], que: this.hasQue(s) };
+      const o = { hu: false, an: [], bu: [], que: this.hasQue(s), ts: this.canTSwap(s) };
+      if (o.ts) o.tsLeft = R.tsLeft[s];
       if (!R.canSelf) return o;
       const c = counts(R.hands[s]);
       if (!o.que && isHu(c, R.melds[s].length, R.que[s])) o.hu = true;
@@ -437,7 +456,7 @@
       const o = this.selfOpts(s); if (!o || !o.hu) return 'no';
       const R = this.R;
       this.recordWin(s, 'zimo', -1, R.drawn != null ? R.drawn : R.hands[s][R.hands[s].length - 1], {});
-      if (this.active().length <= 1) { this.endRound('hu'); return 'ok'; }
+      if (this.roundDone()) { this.endRound('hu'); return 'ok'; }
       this.nextTurn(s);
       return 'ok';
     }
@@ -475,6 +494,45 @@
       this.emit('gang', { s, kind: 'bu', t, id });
       this.drawFor(s, true);
     }
+    // ----- 2v2：跟队友换一张牌（轮到自己出牌时，每回合一次，队友同意才换） -----
+    canTSwap(s) {
+      const R = this.R;
+      if (!this.rules.team || !R || R.phase !== 'play' || R.stage !== 'discard' || R.turn !== s) return false;
+      if (R.offer || R.tsUsed === s || !(R.tsLeft && R.tsLeft[s] > 0)) return false;
+      return !R.hu[s] && !R.hu[this.mate(s)];
+    }
+    actTSwap(s, give, take) {
+      if (!this.canTSwap(s)) return 'no';
+      const R = this.R, m = this.mate(s);
+      give = give | 0; take = take | 0;
+      if (!R.hands[s].includes(give) || !R.hands[m].includes(take)) return 'bad';
+      if (TY(give) === TY(take)) return 'bad';
+      R.offer = { from: s, to: m, give, take };
+      R.stage = 'offer';
+      this.emit('tsAsk', { s, to: m, give, take });
+      return 'ok';
+    }
+    actTSAnswer(s, yes) {
+      const R = this.R, O = R.offer;
+      if (!R || R.phase !== 'play' || R.stage !== 'offer' || !O || O.to !== s) return 'no';
+      R.offer = null; R.stage = 'discard'; R.tsUsed = O.from;
+      if (!yes) { this.emit('tswap', { s: O.from, to: O.to, give: O.give, take: O.take, ok: false }); return 'ok'; }
+      const a = R.hands[O.from], b = R.hands[O.to];
+      a.splice(a.indexOf(O.give), 1); b.splice(b.indexOf(O.take), 1);
+      a.push(O.take); b.push(O.give);
+      R.tsLeft[O.from]--;
+      // 换来的那张当成刚摸的：可以自摸、可以暗杠/补杠；不算杠上开花，也不再有天胡地胡
+      R.drawn = O.take; R.canSelf = true; R.afterKong = -1; R.claims++;
+      this.emit('tswap', { s: O.from, to: O.to, give: O.give, take: O.take, ok: true });
+      return 'ok';
+    }
+    actTSBack(s) {
+      const R = this.R, O = R.offer;
+      if (!R || R.phase !== 'play' || R.stage !== 'offer' || !O || O.from !== s) return 'no';
+      R.offer = null; R.stage = 'discard'; R.tsUsed = s;
+      this.emit('tswap', { s, to: O.to, give: O.give, take: O.take, ok: false, back: true });
+      return 'ok';
+    }
     // ----- 摸牌 -----
     nextTurn(after) {
       const R = this.R;
@@ -505,12 +563,12 @@
         di: zimo && s !== R.dealer && !R.firstDone[s] && R.claims === 0,
       };
       // 点杠花算点炮：直杠补上来的牌自摸，只有放杠的人给，按点炮算（不加自摸）
-      const dgPao = ctx.gangHua && R.lastKong && R.lastKong.kind === 'ming' && rules.dgh === 'pao' && !R.hu[R.lastKong.from];
+      const dgPao = ctx.gangHua && R.lastKong && R.lastKong.kind === 'ming' && rules.dgh === 'pao' && !R.hu[R.lastKong.from] && this.foes(R.lastKong.from, s);
       const f = calcFan(conc, R.melds[s], dgPao ? Object.assign({}, ctx, { zimo: false }) : ctx, rules);
       const base = rules.base;
       let amt = base * Math.pow(2, f.fan);
       let payers;
-      if (zimo && !dgPao) { payers = this.active().filter(p => p !== s); if (rules.zimo === 'di') amt += base; }
+      if (zimo && !dgPao) { payers = this.active().filter(p => this.foes(p, s)); if (rules.zimo === 'di') amt += base; }
       else payers = [dgPao ? R.lastKong.from : from];
       const L = { k: 'hu', to: s, how: dgPao ? 'dgh' : how, from: payers.map(p => ({ s: p, amt })), title: f.title, items: f.items, fan: f.fan, raw: f.raw, t, multi: !!x.multi, by: from };
       for (const p of payers) this.pay(p, s, amt);
@@ -539,18 +597,18 @@
     endRound(reason) {
       const R = this.R, rules = this.rules;
       if (R.phase === 'end') return;
-      R.phase = 'end'; R.stage = null; R.claim = null; R.endReason = reason;
+      R.phase = 'end'; R.stage = null; R.claim = null; R.offer = null; R.endReason = reason;
       const act = this.active();
       const info = [null, null, null, null];
-      if (reason === 'wall' && act.length >= 2) {
+      if (reason === 'wall' && act.length >= 2 && act.some(a => act.some(b => this.foes(a, b)))) {
         for (const s of act) info[s] = this.tingInfo(s);
         const pigAmt = rules.base * Math.pow(2, rules.cap || 6);
         // 查花猪：花猪赔给每个不是花猪的人封顶番
-        for (const a of act) if (info[a].hua) for (const b of act) if (b !== a && !info[b].hua) {
+        for (const a of act) if (info[a].hua) for (const b of act) if (this.foes(a, b) && !info[b].hua) {
           this.pay(a, b, pigAmt); R.ledger.push({ k: 'pig', to: b, from: [{ s: a, amt: pigAmt }] });
         }
         // 查大叫：没听牌的赔给听牌的人（按他最大的番）
-        for (const a of act) if (!info[a].hua && !info[a].ting) for (const b of act) if (info[b].ting) {
+        for (const a of act) if (!info[a].hua && !info[a].ting) for (const b of act) if (this.foes(a, b) && info[b].ting) {
           const amt = rules.base * Math.pow(2, info[b].max);
           this.pay(a, b, amt); R.ledger.push({ k: 'cha', to: b, from: [{ s: a, amt }], fan: info[b].max, title: info[b].best ? info[b].best.title : '' });
         }
@@ -579,6 +637,7 @@
       if (R.phase === 'que') return [0, 1, 2, 3].filter(s => R.que[s] < 0);
       if (R.phase === 'play') {
         if (R.stage === 'discard') return [R.turn];
+        if (R.stage === 'offer' && R.offer) return [R.offer.to];
         if (R.stage === 'claim' && R.claim) {
           const C = R.claim, out = [];
           const anyHu = [0, 1, 2, 3].some(o => C.resp[o] === 'hu');
@@ -598,6 +657,7 @@
       if (R.phase === 'que') return R.que[s] >= 0 ? null : { k: 'que' };
       if (R.phase !== 'play') return null;
       if (R.stage === 'discard' && R.turn === s) return Object.assign({ k: 'turn' }, this.selfOpts(s));
+      if (R.stage === 'offer' && R.offer && R.offer.to === s) return { k: 'offer', from: R.offer.from, give: R.offer.give, take: R.offer.take };
       if (R.stage === 'claim' && R.claim && R.claim.opts[s] && !R.claim.resp[s] && this.pending().includes(s))
         return Object.assign({ k: 'claim', id: R.claim.id, t: R.claim.t, kind: R.claim.kind }, R.claim.opts[s]);
       return null;
@@ -605,6 +665,9 @@
     // ----- 给某个座位看的画面（藏住别人的手牌） -----
     view(me) {
       const R = this.R, rules = this.rules;
+      const mine = me >= 0 && me < 4;
+      const mate = mine && rules.team ? this.mate(me) : -1;
+      const sees = s => s === me || s === mate;   // 自己和队友的牌都看得到
       const v = { rules, roundNo: this.roundNo, over: this.over, dealer: this.dealer, me, hist: this.hist, evn: this.evn };
       v.seats = this.seats.map(p => p && { id: p.id, name: p.name, av: p.av, bot: !!p.bot, lv: p.lv || 0, score: p.score, conn: p.conn !== false, auto: !!p.auto, ready: !!p.ready });
       if (!R) return v;
@@ -613,9 +676,9 @@
       v.R = {
         no: R.no, dealer: R.dealer, phase: R.phase, stage: R.stage, turn: R.turn, wall: R.wall.length, dice: R.dice,
         swapDir: R.phase === 'swap' ? 0 : R.swapDir, swapDone: R.swapPick.map(Boolean), queDone: R.que.map(q => q >= 0),
-        que: R.que.map((q, s) => (showQue || s === me ? q : -1)),
+        que: R.que.map((q, s) => (showQue || sees(s) ? q : -1)),
         river: R.river.map(r => r.slice()),
-        melds: R.melds.map((ms, s) => ms.map(m => ({ k: m.k, t: (m.k === 'angang' && s !== me && !end) ? -1 : m.t, ids: (m.k === 'angang' && s !== me && !end) ? [] : m.ids.slice(), from: m.from }))),
+        melds: R.melds.map((ms, s) => ms.map(m => ({ k: m.k, t: (m.k === 'angang' && !sees(s) && !end) ? -1 : m.t, ids: (m.k === 'angang' && !sees(s) && !end) ? [] : m.ids.slice(), from: m.from }))),
         counts: R.hands.map(h => h.length),
         hu: R.hu.slice(),
         wins: R.wins.map(w => ({ s: w.s, how: w.how, from: w.from, id: w.id, t: w.t, fan: w.fan, title: w.title, items: w.items, amt: w.amt, payers: w.payers, order: w.order, multi: w.multi })),
@@ -624,12 +687,23 @@
         claimTile: R.stage === 'claim' && R.claim ? { id: R.claim.id, from: R.claim.from, kind: R.claim.kind } : null,
         // 胡了的人把牌亮出来（推倒）；一局结束全亮
         shown: R.hands.map((h, s) => (end || R.hu[s]) ? h.slice() : null),
-        ev: R.ev.map(e => (e.k === 'draw' && e.s !== me) ? { n: e.n, k: 'draw', s: e.s, kong: e.kong, left: e.left }
-          : (e.k === 'gang' && e.kind === 'an' && e.s !== me && !end) ? { n: e.n, k: 'gang', s: e.s, kind: 'an', t: -1 } : e),
+        ev: R.ev.map(e => (e.k === 'draw' && !sees(e.s)) ? { n: e.n, k: 'draw', s: e.s, kong: e.kong, left: e.left }
+          : (e.k === 'gang' && e.kind === 'an' && !sees(e.s) && !end) ? { n: e.n, k: 'gang', s: e.s, kind: 'an', t: -1 }
+          : ((e.k === 'tswap' || e.k === 'tsAsk') && !sees(e.s)) ? { n: e.n, k: e.k, s: e.s, to: e.to, ok: e.ok, back: e.back } : e),
+        team: !!rules.team,
+        tsLeft: (R.tsLeft || [0, 0, 0, 0]).slice(),
+        offer: R.offer ? (sees(R.offer.from) ? Object.assign({}, R.offer) : { from: R.offer.from, to: R.offer.to }) : null,
       };
-      if (me >= 0 && me < 4) {
+      if (mine) {
         v.R.hand = R.hands[me].slice();
-        v.R.drawn = (R.turn === me && R.stage === 'discard') ? R.drawn : null;
+        if (mate >= 0) {
+          // 队友的手牌（换三张时扣下的三张也知道是哪几张）
+          v.R.mate = mate;
+          v.R.mateHand = R.hands[mate].slice();
+          v.R.mateDrawn = (R.turn === mate && (R.stage === 'discard' || R.stage === 'offer')) ? R.drawn : null;
+          v.R.mateSwapPick = R.swapPick[mate];
+        }
+        v.R.drawn = (R.turn === me && (R.stage === 'discard' || R.stage === 'offer')) ? R.drawn : null;
         v.R.swapPick = R.swapPick[me];
         v.R.swapGot = R.phase === 'swap' ? null : R.swapGot[me];
         v.R.passHu = R.passHu[me];

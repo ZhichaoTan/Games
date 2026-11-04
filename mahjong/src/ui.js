@@ -42,6 +42,7 @@
     let v = null, me = 0, Gm = null, lastEv = 0, roundKey = '', fresh = true;
     let sel = null, swapSel = [], swapFor = '', queRec = -1, hintCache = null, hintKey = '';
     let selfSkip = '', showWaits = false, drag = null, endTimer = 0, gotIds = new Set(), gotUntil = 0;
+    let tsMode = false, tsTake = null, tsGive = null;   // 2v2：正在挑跟队友换的牌
 
     // ---------- 固定的元素 ----------
     root.innerHTML = '';
@@ -60,6 +61,8 @@
     const tingChip = div('tingchip'); tingChip.hidden = true; root.appendChild(tingChip);
     const autoBar = div('autobar', '<span></span><button></button>'); autoBar.hidden = true; root.appendChild(autoBar);
     const turnGlow = div('turnglow'); turnGlow.hidden = true; root.appendChild(turnGlow);
+    const tsPanel = div('tspanel'); tsPanel.hidden = true; root.appendChild(tsPanel);
+    const mateTray = div('matetray'); mateTray.hidden = true; root.appendChild(mateTray);
     autoBar.querySelector('button').onclick = () => onAct({ k: '_auto', on: false });
     tingChip.onclick = () => { showWaits = !showWaits; renderTip(); };
 
@@ -266,6 +269,17 @@
       const rest = ids.filter(id => id !== drawn).sort((a, b) => key(a) - key(b));
       return { rest, drawn };
     }
+    // 队友的手牌顺序（缺门放最后，刚摸的单独放右边）
+    function mateOrder() {
+      const R = v.R, s = R.mate, q = R.que[s];
+      let ids = R.mateHand.slice();
+      if (R.phase === 'swap' && R.mateSwapPick) ids = ids.filter(id => !R.mateSwapPick.includes(id));
+      if (R.claimTile && R.claimTile.kind === 'rob' && R.claimTile.from === s) ids = ids.filter(id => id !== R.claimTile.id);
+      const drawn = R.mateDrawn != null && ids.includes(R.mateDrawn) && ids.length % 3 === 2 ? R.mateDrawn : null;
+      const key = id => (q >= 0 && SU(TY(id)) === q && R.phase === 'play' ? 1000 : 0) + id;
+      const rest = ids.filter(id => id !== drawn).sort((a, b) => key(a) - key(b));
+      return { rest, drawn };
+    }
     function layoutMine(put, staged) {
       const R = v.R, g = Gm;
       const won = R.hu[me] > 0 || R.phase === 'end';
@@ -299,6 +313,10 @@
         if (myTurn && hasQ && SU(t) !== R.que[me]) cls += ' dim';
         if (swapping && swapSel.includes(id)) { y -= g.hh * 0.3; cls += ' sel'; }
         if (!swapping && sel === id) { y -= g.hh * 0.3; cls += ' sel'; }
+        // 2v2 换牌：我要给出去的、队友想要的
+        const O = R.offer, ask = v.opt && v.opt.k === 'offer' ? v.opt : null;
+        if ((tsMode && tsGive === id) || (O && O.from === me && O.give === id)) { y -= g.hh * 0.3; cls += ' sel give'; }
+        if (ask && ask.take === id) { y -= g.hh * 0.3; cls += ' sel want'; }
         if (gotIds.has(id) && Date.now() < gotUntil) cls += ' got';
         if (myTurn && prefs.hints && tingT && tingT.by[t] && !(hasQ && SU(t) !== R.que[me])) cls += tingT.best === t ? ' mkb' : ' mk';
         const p = { x: cx, y, k: g.hk, r: 0, pose: 'stand', o: 0, z: 10 + idx, cls, hand: true };
@@ -321,19 +339,41 @@
       const win = R.wins.find(w => w.s === s);
       const staged = R.phase === 'swap' && R.swapDone[s] ? 3 : 0;
       const hidden = shown ? 0 : Math.max(0, R.counts[s] - staged);
-      const drawnGap = !shown && R.phase === 'play' && R.turn === s && R.stage === 'discard' && (R.counts[s] % 3 === 2);
+      const drawnGap = !shown && R.phase === 'play' && R.turn === s && (R.stage === 'discard' || R.stage === 'offer') && (R.counts[s] % 3 === 2);
       const oh = ohands[rel];
       // 立着的牌背：用一个元素画一排
       if (rel === 2) {
-        const tw = g.tw, th = tw * 1.3, mwT = Math.min(g.rw * 0.95, tw * 1.08);
+        const tw = g.tw, th = tw * 1.3;
+        let mwT = Math.min(g.rw * 0.95, tw * 1.08);
+        const left = g.port ? g.L + g.A + 74 : g.topRow.l, right = g.port ? g.W - g.Rr : g.topRow.r;
+        // 2v2：队友的牌亮着给我看，尽量放大一点
+        const mh = !shown && R.mateHand && R.mate === s ? mateOrder() : null;
+        const mhN = mh ? mh.rest.length + (mh.drawn != null ? 1.35 : 0) : 0;
+        if (mh) mwT = clamp((right - left - 12 - (melds.length ? 6 + 4 * melds.length : 0)) / Math.max(1, mhN + 3 * melds.length + (win ? 1.4 : 0)), mwT, Math.min(g.rw * 1.1, g.port ? 26 : 32));
         const shownN = shown ? shown.length : 0;
-        const handW = shown ? shownN * mwT : hidden * tw + (drawnGap ? tw * 0.4 : 0);
+        const handW = mh ? mhN * mwT : shown ? shownN * mwT : hidden * tw + (drawnGap ? tw * 0.4 : 0);
         const meldW = melds.length * (3 * mwT + 4);
         const winW = win ? mwT * 1.4 : 0;
-        const left = g.port ? g.L + g.A + 74 : g.topRow.l, right = g.port ? g.W - g.Rr : g.topRow.r;
         const tot = handW + meldW + winW + (melds.length ? 6 : 0);
         let x = left + Math.max(0, (right - left - tot) / 2);
-        if (shown) {
+        mateTray.hidden = !mh;
+        if (mh) {
+          const q = R.que[s], O = R.offer, ask = v.opt && v.opt.k === 'offer' ? v.opt : null;
+          const cl = id => {
+            let c = ' mate';
+            if (q >= 0 && SU(TY(id)) === q && R.phase === 'play') c += ' que';
+            if ((tsMode && tsTake === id) || (O && O.from === me && O.take === id)) c += ' want';
+            if (ask && ask.give === id) c += ' give';
+            if (gotIds.has(id) && Date.now() < gotUntil) c += ' got';
+            return c;
+          };
+          const place = (id, cx, i) => put(String(id), TY(id), { x: cx, y: g.topY, k: mwT / 60, r: 0, pose: 'flat', o: 0, z: 6 + i, cls: cl(id), mate: true });
+          mh.rest.forEach((id, i) => place(id, x + (i + 0.5) * mwT, i));
+          if (mh.drawn != null) place(mh.drawn, x + (mh.rest.length + 0.35 + 0.5) * mwT, mh.rest.length);
+          oh.hidden = true;
+          const hT = mwT * 82 / 60;
+          Object.assign(mateTray.style, { left: (x - 6) + 'px', top: (g.topY - hT / 2 - 5) + 'px', width: (handW + 12) + 'px', height: (hT + mwT * 0.2 + 10) + 'px' });
+        } else if (shown) {
           shown.slice().sort((a, b) => a - b).forEach((id, i) => put(String(id), TY(id), { x: x + (i + 0.5) * mwT, y: g.topY, k: mwT / 60, r: 0, pose: 'flat', o: 0, z: 6 + i }));
           oh.hidden = true;
         } else {
@@ -524,7 +564,7 @@
       tingChip.hidden = !(h && h.mode === 'wait' && h.waits.length && !R.hu[me] && R.phase === 'play');
       tingChip.textContent = T('ting');
       if (!tingChip.hidden) Object.assign(tingChip.style, { left: (g.plate0.x + g.A0 / 2 + 70) + 'px', top: (g.plate0.y - 12) + 'px' });
-      if (!html) { tip.hidden = true; return; }
+      if (!html || !tsPanel.hidden) { tip.hidden = true; return; }
       tip.innerHTML = html; tip.hidden = false;
       const w = tip.offsetWidth, ht = tip.offsetHeight;
       Object.assign(tip.style, { left: clamp(ax - w / 2, 8, g.W - w - 8) + 'px', top: (g.port ? g.plate0.y - g.A0 / 2 - ht - 8 : g.handTop - g.hh * 0.42 - ht - 10) + 'px' });
@@ -549,12 +589,15 @@
           else if (p.auto && !p.bot) st = `<span class="stat">${T('stAuto')}</span>`;
           else if (R.phase === 'swap') st = `<span class="stat">${T(R.swapDone[s] ? 'stPicked' : 'stPicking')}</span>`;
           else if (R.phase === 'que') st = `<span class="stat">${T(R.queDone[s] ? 'stQued' : 'stQuing')}</span>`;
+          else if (R.offer && (R.offer.from === s || R.offer.to === s)) st = `<span class="stat ts">${T('stTs')}</span>`;
+          else if (R.team && rel === 2) st = `<span class="stat mate">${T('mateTag')}</span>`;
         }
+        const team = R && R.team ? (rel % 2 === 0 ? ' us' : ' them') : '';
         const turn = R && R.phase === 'play' && R.stage === 'discard' && R.turn === s && !R.hu[s];
         const vert = g.port ? rel === 1 || rel === 3 : rel === 2;
         const rev = !g.port && rel === 1;
         const key = [p.name, p.av, p.bot, p.lv, score, que, st, R && R.dealer === s, turn, A, vert, rev, I18.lang].join('|');
-        el.className = 'seat' + (vert ? ' vert' : '') + (rev ? ' rev' : '') + (turn ? ' turn' : '') + (R && R.hu[s] ? ' won' : '');
+        el.className = 'seat' + (vert ? ' vert' : '') + (rev ? ' rev' : '') + (turn ? ' turn' : '') + (R && R.hu[s] ? ' won' : '') + team;
         el.style.setProperty('--a', A + 'px');
         if (el._k !== key) {
           el._k = key;
@@ -588,11 +631,11 @@
     function renderActs() {
       const g = Gm, o = v.opt, R = v.R;
       gopts.hidden = true;
-      const key = o ? JSON.stringify(o) + v.evn + I18.lang : '';
+      const key = o ? JSON.stringify(o) + v.evn + I18.lang + (tsMode ? 'ts' : '') : '';
       if (acts._k === key) return;
       acts._k = key;
       acts.innerHTML = '';
-      if (!o || !R || R.phase !== 'play') { acts.hidden = true; return; }
+      if (!o || !R || R.phase !== 'play' || tsMode) { acts.hidden = true; return; }
       if (o.k === 'claim') {
         if (o.peng) acts.appendChild(btn('peng', T('bPeng'), () => onAct({ k: 'peng' }), o.hu || o.gang ? null : o.t));
         if (o.gang) acts.appendChild(btn('gang', T('bGang'), () => onAct({ k: 'gang' }), o.hu ? null : o.t));
@@ -612,6 +655,14 @@
           if (o.hu) acts.appendChild(btn('hu', T('bHu'), () => onAct({ k: 'zimo' })));
           acts.appendChild(btn('pass', T('bPass'), () => { selfSkip = key; acts._k = ''; renderActs(); }));
           if (o.hu) SND.vib([40, 60, 40]);
+        }
+        // 2v2：跟队友换一张
+        if (o.ts && !tsMode) {
+          const wins = prefs.hints ? tsWinTiles() : [];
+          const b = btn('ts' + (wins.length ? ' can' : ''), T('bTs'), () => { tsMode = true; tsTake = wins.length === 1 ? tsTakeId(wins[0]) : null; tsGive = tsGiveFor(tsTake); sel = null; acts._k = ''; render(true); });
+          if (o.tsLeft < 99) b.insertAdjacentHTML('beforeend', `<span class="cnt">${o.tsLeft}</span>`);
+          if (wins.length) b.insertAdjacentHTML('beforeend', `<span class="tag">${T('tsCanWin')}</span>`);
+          acts.insertBefore(b, acts.firstChild);
         }
       }
       acts.hidden = !acts.children.length;
@@ -659,6 +710,101 @@
       }
       banner.style.top = clamp(top, g.midTop, g.handTop - ht - g.hh * 0.6) + 'px';
     }
+    // ======================= 2v2：跟队友换牌 =======================
+    let twKey = '', twCache = [];
+    function tsWinTiles() {
+      const R = v.R; if (!R || !R.mateHand) return [];
+      const k = v.evn + ':' + R.hand.join(',') + '|' + R.mateHand.join(',');
+      if (k !== twKey) { twKey = k; try { twCache = AI.tsWins(v); } catch (e) { twCache = []; } }
+      return twCache;
+    }
+    const tsTakeId = t => { const h = v.R.mateHand; for (let i = h.length - 1; i >= 0; i--) if (TY(h[i]) === t) return h[i]; return null; };
+    // 换来 take 能胡的话，挑一张给出去的（先挑刚摸的）
+    function tsGiveFor(take) {
+      const R = v.R; if (take == null) return null;
+      const ids = R.drawn != null ? [R.drawn].concat(R.hand.filter(x => x !== R.drawn)) : R.hand.slice();
+      for (const id of ids) { try { const pv = AI.tsPreview(v, 'me', TY(id), TY(take)); if (pv && pv.win) return id; } catch (e) { return null; } }
+      return null;
+    }
+    const tmBtn = (id, cls) => `<button class="tm${cls || ''}" data-id="${id}">${face(TY(id))}</button>`;
+    const tmTile = (t, cls) => `<span class="tm${cls || ''}">${face(t)}</span>`;
+    function pvHTML(pv, asker) {
+      if (!pv) return '';
+      const one = (n, n0) => `<b class="${n < n0 ? 'up' : n > n0 ? 'dn' : ''}">${n < 0 ? T('tsWin') : n === 0 ? T('tsReady') : T('tsAway', { n })}</b>`;
+      const mine = asker === 'me' ? one(pv.asker, pv.asker0) : one(pv.other, pv.other0);
+      const mate = asker === 'me' ? one(pv.other, pv.other0) : one(pv.asker, pv.asker0);
+      return T('tsAfter', { a: mine, b: mate });
+    }
+    function renderTs() {
+      const R = v.R, o = v.opt, g = Gm;
+      let html = '', k = '';
+      const O = R && R.offer;
+      if (!R || R.phase !== 'play' || !R.team) html = '';
+      else if (o && o.k === 'offer') {
+        // 队友来要牌：同意 / 不换
+        let pv = null; try { pv = AI.tsPreview(v, 'mate', TY(o.give), TY(o.take)); } catch (e) {}
+        const left = v.clock && v.clock.end && v.clock.seats && v.clock.seats.includes(me) ? Math.max(0, v.clock.end - Date.now()) : 0;
+        k = 'ask' + o.give + ':' + o.take + I18.lang + ':' + Math.round(left / 1000);
+        html = `<div class="h">${T('tsAskH')}</div><div class="swap2"><div><span class="lab">${T('tsGiveYou')}</span>${tmTile(TY(o.give), ' big')}</div><div class="arr">⇄</div><div><span class="lab">${T('tsWantYour')}</span>${tmTile(TY(o.take), ' big')}</div></div>` +
+          `<div class="s">${pvHTML(pv, 'mate')}</div><div class="row"><button class="btn glass sm" data-a="tsno">${T('tsNo')}</button><button class="btn gold sm" data-a="tsyes">${T('tsYes')}</button></div>` +
+          (left ? `<div class="tbar"><i style="animation-duration:${left}ms"></i></div>` : '');
+      } else if (O && O.from === me && R.stage === 'offer' && O.give != null) {
+        // 我在等队友回话
+        k = 'wait' + O.give + ':' + O.take + I18.lang;
+        html = `<div class="h">${T('tsWaitH')}</div><div class="swap2 sm"><div><span class="lab">${T('tsYouGive')}</span>${tmTile(TY(O.give))}</div><div class="arr">⇄</div><div><span class="lab">${T('tsYouTake')}</span>${tmTile(TY(O.take))}</div></div><div class="row"><button class="btn glass sm" data-a="tsback">${T('tsBack')}</button></div>`;
+      } else if (tsMode && o && o.k === 'turn' && o.ts && R.mateHand) {
+        // 挑牌：上面点队友的一张，下面点自己的一张
+        const mh = mateOrder();
+        const ids = mh.rest.concat(mh.drawn != null ? [mh.drawn] : []);
+        const wins = prefs.hints ? tsWinTiles() : [];
+        let s2;
+        if (tsTake == null) s2 = T('tsPick1');
+        else if (tsGive == null) s2 = T('tsPick2');
+        else { let pv = null; try { pv = AI.tsPreview(v, 'me', TY(tsGive), TY(tsTake)); } catch (e) {} s2 = pvHTML(pv, 'me'); }
+        k = 'pick' + ids.join(',') + ':' + tsTake + ':' + tsGive + I18.lang + wins.join(',');
+        html = `<div class="h">${T('tsH')}${o.tsLeft < 99 ? `<small>${T('tsLeftN', { n: o.tsLeft })}</small>` : ''}</div>` +
+          `<div class="mrow2">${ids.map(id => tmBtn(id, (id === tsTake ? ' on' : '') + (wins.includes(TY(id)) ? ' win' : ''))).join('')}</div>` +
+          `<div class="s">${s2}</div><div class="row"><button class="btn glass sm" data-a="tsx">${T('cancel')}</button><button class="btn gold sm" data-a="tsgo"${tsTake != null && tsGive != null ? '' : ' disabled'}>${T('tsSend')}</button></div>`;
+      }
+      if (!html) { tsPanel.hidden = true; tsPanel._k = ''; return; }
+      tsPanel.hidden = false;
+      if (tsPanel._k !== k) {
+        tsPanel._k = k; tsPanel.innerHTML = html;
+        tsPanel.querySelectorAll('[data-id]').forEach(b => b.onclick = e => {
+          e.stopPropagation();
+          const id = +b.dataset.id;
+          tsTake = tsTake === id ? null : id;
+          if (tsTake != null && tsGive == null && tsWinTiles().includes(TY(tsTake))) tsGive = tsGiveFor(tsTake);
+          SND.play('select'); render(true);
+        });
+        tsPanel.querySelectorAll('[data-a]').forEach(b => b.onclick = e => {
+          e.stopPropagation(); SND.play('tap');
+          const a = b.dataset.a;
+          if (a === 'tsx') { tsMode = false; tsTake = tsGive = null; acts._k = ''; render(true); }
+          else if (a === 'tsgo') { if (tsTake != null && tsGive != null) { const x = { k: 'tswap', give: tsGive, take: tsTake }; tsMode = false; tsTake = tsGive = null; onAct(x); } }
+          else onAct({ k: a });
+        });
+      }
+      // 放在自己手牌上面，不挡手牌（要点自己的牌）
+      const ht = tsPanel.offsetHeight;
+      const bottomY = g.port ? g.plate0.y - g.A0 / 2 - 10 : g.handTop - g.hh * 0.42 - 8;
+      tsPanel.style.top = Math.max(g.port ? g.midTop - 24 : g.tbH + 2, bottomY - ht) + 'px';
+    }
+    // 对手看不到换了哪两张：两张牌背在两个人之间飞一下
+    function flyBacks(ra, rb) {
+      const g = Gm; if (!g) return;
+      const pa = g['oh' + ra] || anchor(ra, 'hand'), pb = g['oh' + rb] || anchor(rb, 'hand');
+      [[pa, pb], [pb, pa]].forEach(([a, b], i) => {
+        const d = div('flyback'); root.appendChild(d);
+        const mx = (a.x + b.x) / 2 + (i ? 16 : -16), my = (a.y + b.y) / 2;
+        const an = d.animate([
+          { transform: `translate(${a.x}px,${a.y}px) scale(.7)`, opacity: 0 },
+          { transform: `translate(${mx}px,${my}px) scale(1.05)`, opacity: 1, offset: 0.5 },
+          { transform: `translate(${b.x}px,${b.y}px) scale(.7)`, opacity: 0 },
+        ], { duration: 760, easing: 'cubic-bezier(.45,.05,.55,.95)' });
+        an.onfinish = () => d.remove(); setTimeout(() => d.remove(), 1100);
+      });
+    }
     function renderStatus() {
       const R = v.R, g = Gm;
       let txt = '';
@@ -667,7 +813,7 @@
         else if (v.opt && v.opt.k === 'turn' && v.opt.que) txt = T('queFirst', { s: T('suit')[R.que[me]] });
       }
       const auto = v.seats[me] && v.seats[me].auto && R && R.phase !== 'end' && !R.hu[me];
-      if (auto || !tip.hidden) txt = '';
+      if (auto || !tip.hidden || !tsPanel.hidden) txt = '';
       status.hidden = !txt;
       status.classList.toggle('intb', !g.port);
       if (txt) { status.textContent = txt; Object.assign(status.style, { left: g.W / 2 + 'px', top: (g.port ? g.plate0.y - g.A0 / 2 - 24 : g.sf.t + 22) + 'px' }); }
@@ -810,6 +956,17 @@
             break;
           }
           case 'multi': setTimeout(() => callout(relOf(e.from), T(e.n === 3 ? 'cMulti3' : 'cMulti2'), 'c-hu', null, 'mid'), delay + 200); break;
+          case 'tsAsk': if (e.to === me) { SND.play('turn'); SND.vib([30, 50, 30]); } break;
+          case 'tswap':
+            if (e.ok) {
+              SND.play('swap');
+              callout(relOf(e.s), T('cTs'), 'c-rain', null, 'sm');
+              if (e.s !== me && e.to !== me) flyBacks(relOf(e.s), relOf(e.to));
+            } else if (!e.back) {
+              callout(relOf(e.to), T('cTsNo'), 'c-wind', null, 'sm');
+              if (e.s === me) opt.toast && opt.toast(T('tsNoT'));
+            }
+            break;
           case 'zhuan': setTimeout(() => { callout(relOf(e.to), T('cZhuan'), 'c-rain', null, 'sm'); flyMoney(e.to, e.amt); flyMoney(e.from, -e.amt); coins(e.from, e.to, 3, 0); }, delay + 900); break;
           case 'end': {
             if (e.reason === 'wall') { SND.play('end'); callout(0, T(R.wins.length ? 'cWall' : 'cDraw'), 'c-wind', R.result && R.result.info.some(x => x && (x.hua || !x.ting)) ? T('cCha') : null, 'mid'); }
@@ -822,7 +979,7 @@
     // ======================= 手势：点选、滑动、上拖出牌 =======================
     function canDiscard(id) {
       const R = v.R, o = v.opt;
-      if (!o || o.k !== 'turn' || !R.hand.includes(id)) return false;
+      if (!o || o.k !== 'turn' || !R.hand.includes(id) || tsMode) return false;
       if (o.que && SU(TY(id)) !== R.que[me]) return false;
       return true;
     }
@@ -846,6 +1003,7 @@
     function tapTile(id) {
       const R = v.R, o = v.opt;
       if (!o) return;
+      if (tsMode && o.k === 'turn') { tsGive = tsGive === id ? null : id; SND.play('select'); render(true); return; }
       if (o.k === 'swap') {
         const su = SU(TY(id));
         const i = swapSel.indexOf(id);
@@ -870,6 +1028,9 @@
       const rr = root.getBoundingClientRect();
       const x = e.clientX - rr.left, y = e.clientY - rr.top;
       if (y < Gm.handTop - Gm.hh * 0.8) {
+        // 挑换牌时，可以直接点上面队友的牌
+        const te = tsMode && e.target.closest ? e.target.closest('.t.mate') : null;
+        if (te) { const id = +te.dataset.k; tsTake = tsTake === id ? null : id; if (tsTake != null && tsGive == null && tsWinTiles().includes(TY(tsTake))) tsGive = tsGiveFor(tsTake); SND.play('select'); render(true); return; }
         if (e.target === root || e.target.classList.contains('t') || e.target.closest('.t')) { if (sel != null && v.opt && v.opt.k !== 'swap') { sel = null; render(true); } }
         return;
       }
@@ -926,6 +1087,7 @@
       renderCompass();
       renderActs();
       renderBanner();
+      renderTs();
       renderTip();
       renderStatus();
       fresh = false;
@@ -941,7 +1103,7 @@
       if (rk !== roundKey) {
         // 新的一局：清掉上一局的牌
         clearTiles();
-        roundKey = rk; sel = null; swapSel = []; swapFor = ''; queRec = -1; selfSkip = ''; showWaits = false; gotIds = new Set(); swapFrom = -1;
+        roundKey = rk; sel = null; swapSel = []; swapFor = ''; queRec = -1; selfSkip = ''; showWaits = false; gotIds = new Set(); swapFrom = -1; tsMode = false; tsTake = tsGive = null;
         fresh = !evs.some(e => e.k === 'deal') || gap;
         if (!fresh) dealUntil = Date.now() + 300;
       } else if (gap && evs.length > 25) fresh = true;
@@ -978,6 +1140,12 @@
         setTimeout(() => render(true), 2700);
       }
       if (v.opt && v.opt.k === 'que' && queRec < 0) queRec = -1;
+      // 2v2：不是我出牌（或者不能换了）就收起换牌；换完的两张亮一下
+      if (!(v.opt && v.opt.k === 'turn' && v.opt.ts)) { tsMode = false; tsTake = tsGive = null; }
+      if (tsTake != null && !(R.mateHand || []).includes(tsTake)) tsTake = null;
+      if (tsGive != null && !(R.hand || []).includes(tsGive)) tsGive = null;
+      const tsw = evs.find(e => e.k === 'tswap' && e.ok && (e.s === me || e.to === me));
+      if (tsw && evs.length < 30) { gotIds = new Set([tsw.take, tsw.give]); gotUntil = Date.now() + 2600; swapFrom = -1; setTimeout(() => render(true), 2650); }
       if (sel != null && !(R.hand || []).includes(sel)) sel = null;
       if (!(v.opt && v.opt.k === 'turn')) { if (sel != null && R.phase === 'play' && !(v.opt && v.opt.k === 'turn')) sel = null; }
       // 摸到牌：如果没选，自动选中刚摸的那张？（不自动，留给玩家）
@@ -999,6 +1167,7 @@
       for (const st of stages) st.hidden = true;
       acts.innerHTML = ''; acts._k = ''; acts.hidden = true;
       banner.hidden = true; banner._k = ''; tip.hidden = true;
+      tsPanel.hidden = true; tsPanel._k = ''; mateTray.hidden = true;
     }
     function relayout() {
       if (!v) return;
@@ -1058,10 +1227,21 @@
     if (w) h += mini(w.t, 'gap win');
     return h;
   }
+  // 2v2：我方、对方各一行（头像、名字、合计）
+  function teamsHTML(v, vals, big) {
+    const me = v.me, us = [me, (me + 2) % 4], them = [(me + 1) % 4, (me + 3) % 4];
+    const one = (arr, lab, cls) => {
+      const d = arr.reduce((a, s) => a + (vals[s] || 0), 0);
+      return `<div class="tmx ${cls}"><div class="avs">${arr.map(s => `<span class="av">${avSvg(v.seats[s], s)}</span>`).join('')}</div>` +
+        `<div class="lb">${lab}<small>${arr.map(s => esc(s === me ? T('you') : (v.seats[s] ? v.seats[s].name : ''))).join(' · ')}</small></div><div class="d ${d > 0 ? 'p' : d < 0 ? 'm' : 'z'}">${fmt(d)}</div></div>`;
+    };
+    return `<div class="teams${big ? ' big' : ''}">${one(us, T('teamUs'), 'us')}${one(them, T('teamThem'), 'them')}</div>`;
+  }
   function resultHTML(v) {
     const R = v.R, me = v.me, res = R.result;
-    const order = [0, 1, 2, 3].map(k => (me + k) % 4);
+    const order = v.rules.team ? [me, (me + 2) % 4, (me + 1) % 4, (me + 3) % 4] : [0, 1, 2, 3].map(k => (me + k) % 4);
     let h = `<div class="res-head"><span class="t1">${T(res.reason === 'wall' && !R.wins.length ? 'resDraw' : 'resEnd')}</span><span class="t2">${v.rules.rounds ? T('roundOf', { r: R.no, n: v.rules.rounds }) : T('roundN', { r: R.no })}${v.over ? ' · ' + T('resLast') : ''}</span></div>`;
+    if (v.rules.team) h += teamsHTML(v, res.deltas);
     for (const s of order) {
       const p = v.seats[s]; if (!p) continue;
       const d = res.deltas[s];
@@ -1079,11 +1259,31 @@
       h += '</div>';
     }
     h += `<div class="tot">${order.map(s => v.seats[s] ? `<div>${esc(s === me ? T('you') : v.seats[s].name)}<b style="color:${v.seats[s].score >= 0 ? '#ffd36b' : '#ff8c7c'}">${fmt(v.seats[s].score)}</b></div>` : '').join('')}</div>`;
+    if (v.rules.team) {
+      const sc = s => (v.seats[s] ? v.seats[s].score : 0), us = sc(me) + sc((me + 2) % 4), them = sc((me + 1) % 4) + sc((me + 3) % 4);
+      h += `<div class="tot2">${T('teamTot', { a: fmt(us), b: fmt(them) })}</div>`;
+    }
     return h;
   }
   function finalHTML(v) {
     const ss = v.seats.map((p, s) => p && { s, p }).filter(Boolean).sort((a, b) => b.p.score - a.p.score);
     const me = v.me;
+    if (v.rules.team && me >= 0) {
+      // 2v2：先说哪队赢了，再列两队和每个人
+      const sc = v.seats.map(p => (p ? p.score : 0));
+      const us = sc[me] + sc[(me + 2) % 4], them = sc[(me + 1) % 4] + sc[(me + 3) % 4];
+      const r = us > them ? 'win' : us < them ? 'lose' : 'tie';
+      let h = `<div class="res-head"><span class="t1">${T('final')}</span><span class="t2">${T('finalRounds', { n: v.roundNo })}</span></div>`;
+      h += `<div class="tres ${r}">${T(r === 'win' ? 'teamWin' : r === 'lose' ? 'teamLose' : 'teamTie')}</div>` + teamsHTML(v, sc, true);
+      ss.forEach((x, i) => {
+        const wins = v.hist.reduce((a, rr) => a + rr.wins.filter(w => w.s === x.s).length, 0);
+        const zm = v.hist.reduce((a, rr) => a + rr.wins.filter(w => w.s === x.s && w.how === 'zimo').length, 0);
+        const big = v.hist.reduce((a, rr) => Math.max(a, ...rr.wins.filter(w => w.s === x.s).map(w => w.fan), 0), 0);
+        const mine = x.s === me || x.s === (me + 2) % 4;
+        h += `<div class="rp${x.s === me ? ' me' : ''}${mine ? ' us' : ''}"><div class="top"><div class="av">${avSvg(x.p, x.s)}</div><div class="nm">${esc(x.p.name)}${x.s === me ? T('youS') : x.s === (me + 2) % 4 ? ` · ${T('mateTag')}` : ''}<small>${T('finalLine', { w: wins, z: zm })}${big ? T('bigFan', { f: big }) : ''}</small></div><div class="d ${x.p.score > 0 ? 'p' : x.p.score < 0 ? 'm' : 'z'}">${fmt(x.p.score)}</div></div></div>`;
+      });
+      return h;
+    }
     const pod = [ss[1], ss[0], ss[2]].filter(Boolean);
     const H = { 0: 92, 1: 66, 2: 46 };
     let h = `<div class="res-head"><span class="t1">${T('final')}</span><span class="t2">${T('finalRounds', { n: v.roundNo })}</span></div><div class="podium">`;

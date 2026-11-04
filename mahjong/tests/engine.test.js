@@ -287,5 +287,166 @@ const P2B = FA, P3B = FB;
   console.log('  各等级平均每场得分', Object.keys(lvStat).map(k => `${k}:${(lvStat[k] / lvN[k]).toFixed(1)}`).join('  '));
 }
 
+// ================= 2v2 组队 =================
+const TEAM = { team: true };
+// 队友看得到对方的手牌，对手看不到
+{
+  const T = scenario({ hands: ['123m456m789m234s5s9s', FA, '5s1s1s6s7s8s2m3m4m5m6m7m9m', FB], rules: TEAM });
+  const v0 = T.view(0), v1 = T.view(1);
+  eq(v0.R.mate, 2, 'P0 的队友是 P2');
+  eq(v0.R.mateHand.slice().sort((a, b) => a - b), T.R.hands[2].slice().sort((a, b) => a - b), 'P0 看得到 P2 的手牌');
+  eq(v1.R.mate, 3, 'P1 的队友是 P3');
+  ok(!v1.R.mateHand.some(id => T.R.hands[0].includes(id) || T.R.hands[2].includes(id)), 'P1 看不到 P0、P2 的牌');
+  ok(T.options(0).ts, '轮到 P0 可以跟队友换牌');
+  eq(T.options(0).tsLeft, 3, '默认每局 3 次');
+}
+// 换牌：P0 用 9s 换 P2 的 5s，换完自摸；只有对手给钱
+{
+  const T = scenario({ hands: ['123m456m789m234s5s9s', FA, '5s1s1s6s7s8s2m3m4m5m6m7m9m', FB], rules: TEAM });
+  const give = id1(T, 0, '9s'), take = id1(T, 2, '5s');
+  eq(T.act(0, { k: 'tswap', give, take: id1(T, 0, '5s') }), 'bad', '要的牌得在队友手里');
+  eq(T.act(1, { k: 'tswap', give: T.R.hands[1][0], take: T.R.hands[3][0] }), 'no', '没轮到不能换');
+  eq(T.act(0, { k: 'tswap', give, take }), 'ok', '发出换牌请求');
+  eq(T.R.stage, 'offer', '等队友回答');
+  eq(T.pending(), [2], '轮到队友表态');
+  eq(T.options(2).k, 'offer', '队友看到请求');
+  eq(T.act(0, { k: 'discard', id: give }), 'turn', '等回答时不能出牌');
+  const v1 = T.view(1), v2 = T.view(2);
+  ok(v1.R.offer && v1.R.offer.give == null && v1.R.offer.take == null, '对手只知道在换，不知道换哪张');
+  ok(!v1.R.ev.some(e => e.k === 'tsAsk' && (e.give != null || e.take != null)), '对手的事件里也没有牌');
+  eq(v2.R.offer.take, take, '队友知道要哪张');
+  eq(T.act(2, { k: 'tsyes' }), 'ok', '队友同意');
+  ok(T.R.hands[0].includes(take) && !T.R.hands[0].includes(give), 'P0 拿到 5s');
+  ok(T.R.hands[2].includes(give) && !T.R.hands[2].includes(take), 'P2 拿到 9s');
+  eq(T.R.drawn, take, '换来的牌当成刚摸的');
+  eq(T.R.tsLeft[0], 2, '用掉一次');
+  const o = T.options(0);
+  ok(o.hu, '换完可以自摸');
+  ok(!o.ts, '这一回合不能再换');
+  eq(T.act(0, { k: 'zimo' }), 'ok', '自摸');
+  eq(T.R.wins[0].payers, [1, 3], '只有对手给钱');
+  eq(T.R.deltas, [4, -2, 0, -2], '平胡自摸加底：两家各 2，队友不给');
+  ok(!T.R.wins[0].items.some(x => x[0] === '天胡'), '换过牌就不算天胡');
+  eq(T.R.phase, 'play', '两队都还有人，接着打');
+  eq(T.R.turn, 1, '下家接着摸');
+  eq(conserve(T), 108, '牌守恒');
+}
+// 队友不同意、撤回、次数用完
+{
+  const T = scenario({ hands: ['123m456m789m234s5s9s', FA, '5s1s1s6s7s8s2m3m4m5m6m7m9m', FB], rules: { team: true, tswap: 1 } });
+  const give = id1(T, 0, '9s'), take = id1(T, 2, '5s');
+  const h0 = T.R.hands[0].slice(), h2 = T.R.hands[2].slice();
+  T.act(0, { k: 'tswap', give, take });
+  eq(T.act(2, { k: 'tsno' }), 'ok', '队友不换');
+  eq([T.R.hands[0], T.R.hands[2]], [h0, h2], '不换的话手牌不变');
+  eq(T.R.stage, 'discard', '回到出牌');
+  eq(T.R.tsLeft[0], 1, '没换成不扣次数');
+  eq(T.act(0, { k: 'tswap', give, take }), 'no', '同一回合只能问一次');
+  T.R.tsUsed = -1;
+  T.act(0, { k: 'tswap', give, take });
+  eq(T.act(1, { k: 'tsyes' }), 'no', '对手不能替队友回答');
+  eq(T.act(3, { k: 'tsno' }), 'no', '对手也不能拒绝');
+  eq(T.R.stage, 'offer', '还在等队友');
+}
+{
+  const T = scenario({ hands: ['123m456m789m234s5s9s', FA, '5s1s1s6s7s8s2m3m4m5m6m7m9m', FB], rules: { team: true, tswap: 1 } });
+  const give = id1(T, 0, '9s'), take = id1(T, 2, '5s');
+  T.act(0, { k: 'tswap', give, take });
+  eq(T.act(2, { k: 'tsback' }), 'no', '只有发起的人能撤回');
+  eq(T.act(0, { k: 'tsback' }), 'ok', '撤回');
+  eq(T.R.stage, 'discard', '撤回后接着出牌');
+  ok(!T.options(0).ts, '撤回也算问过了');
+  T.R.tsUsed = -1;
+  T.act(0, { k: 'tswap', give, take }); T.act(2, { k: 'tsyes' });
+  eq(T.R.tsLeft[0], 0, '次数用完');
+  T.R.tsUsed = -1;
+  ok(!T.canTSwap(0), '用完就不能再换');
+}
+// 不能胡队友打的牌（换成对手打就能胡）
+{
+  const hands = ['123m456m789m234s5s9s', FA, '123m456m789m234s5s', FB];
+  const T = scenario({ hands, rules: TEAM });
+  T.act(0, { k: 'discard', id: id1(T, 0, '5s') });
+  eq(T.R.stage, 'discard', 'P2 听 5s 也不能胡队友打的，没人能要');
+  eq(T.R.turn, 1, '直接轮到下家');
+  const T2 = scenario({ hands, rules: {} });
+  T2.act(0, { k: 'discard', id: id1(T2, 0, '5s') });
+  ok(T2.options(2) && T2.options(2).hu, '不组队的话 P2 能胡');
+}
+// 暗杠：只有对手给钱
+{
+  const T = scenario({ hands: ['1111m456m789m234s5s', FA, '5s1s1s6s7s8s2m3m4m5m6m7m9m', FB], rules: TEAM });
+  eq(T.act(0, { k: 'angang', t: 0 }), 'ok', '暗杠');
+  eq(T.R.deltas, [4, -2, 0, -2], '下雨：对手各给 2，队友不给');
+}
+// 一炮双响胡了一队的两个人：只剩一队，这局结束
+{
+  const T = scenario({ dealer: 1, hands: ['123m456m789m234s5s', '5s1m2m3m4m5m6m7m8m9m6s7s8s9s', '123m456m789m234s5s', FB], rules: TEAM });
+  eq(T.act(1, { k: 'discard', id: id1(T, 1, '5s') }), 'ok', 'P1 打 5s');
+  T.act(0, { k: 'hu' }); T.act(2, { k: 'hu' });
+  eq(T.R.phase, 'end', '只剩对手一队，这局结束');
+  eq(T.R.endReason, 'hu', '因为胡牌结束');
+  eq(T.R.deltas, [1, -2, 1, 0], 'P1 给两家');
+}
+// 流局查大叫：只赔对手
+{
+  const T = scenario({ hands: ['123m456m789m2s5s9s9p', '111m222m333m44m55m', '1s1s2s2s3s3s4s4s6s6s7s7s8s', '5m6m7m8m9m6m7m8m3s4s6s7s9s'], wallLen: 0, rules: { team: true, cap: 4 } });
+  T.act(0, { k: 'discard', id: id1(T, 0, '9p') });
+  eq(T.R.phase, 'end', '流局');
+  eq(T.R.deltas, [-8, 8, 16, -16], 'P0 只赔对手 P1，P3 只赔对手 P2');
+  ok(!T.R.ledger.some(L => L.from.some(f => T.isMate(f.s, L.to))), '账本里没有队友之间的钱');
+}
+// 机器人：能换来胡就换；队友来要能让他胡的牌就给
+{
+  const T = scenario({ hands: ['123m456m789m234s5s9s', FA, '5s1s1s6s7s8s2m3m4m5m6m7m9m', FB], rules: TEAM });
+  const a = AI.decide(T.view(0), 3, MJ.seeded(1));
+  eq(a && a.k, 'tswap', '电脑会找队友换');
+  eq(a && TY(a.take), types('5s')[0], '要的是 5s');
+  eq(T.act(0, a), 'ok', '请求合法');
+  const b = AI.decide(T.view(2), 3, MJ.seeded(1));
+  eq(b && b.k, 'tsyes', '队友电脑同意（能让对方胡）');
+  T.act(2, b);
+  eq(AI.decide(T.view(0), 3, MJ.seeded(1)).k, 'zimo', '换完就自摸');
+  eq(AI.tsWins(T.view(2)).length >= 0, true, 'tsWins 能算');
+}
+// 随机 2v2 对局：不卡死、零和、牌守恒、队友之间不给钱
+{
+  let rounds = 0, stuck = 0, sumErr = 0, conErr = 0, mateMoney = 0, asks = 0, yes = 0, swapWins = 0, huN = 0, early = 0;
+  const rnd = MJ.seeded(777);
+  for (let g = 0; g < 80; g++) {
+    const T = new Table({ rules: { swap: true, rounds: 4, cap: 4, team: true, tswap: [1, 2, 3, 5, 0][g % 5] }, seed: 5000 + g });
+    for (let s = 0; s < 4; s++) T.seats[s] = { id: 'b' + s, name: 'B' + s, score: 0, bot: true, lv: 1 + ((g + s) % 4) };
+    while (!T.over) {
+      T.startRound(); rounds++;
+      let steps = 0, swapped = false;
+      while (T.R.phase !== 'end' && steps < 3000) {
+        const p = T.pending();
+        if (!p.length) { stuck++; break; }
+        const s = p[Math.floor(rnd() * p.length)];
+        const v = T.view(s);
+        const a = AI.decide(v, T.seats[s].lv, rnd);
+        if (a.k === 'tswap') asks++;
+        if (a.k === 'tsyes') { yes++; swapped = true; }
+        if (a.k === 'zimo' && swapped && T.R.ev.slice(-2).some(e => e.k === 'tswap' && e.ok && e.s === s)) swapWins++;
+        const r = T.act(s, a);
+        if (r !== 'ok') { console.log('bad act', s, JSON.stringify(a), r, T.R.phase, T.R.stage); stuck++; break; }
+        steps++;
+        if (conserve(T) !== 108) { conErr++; break; }
+      }
+      if (T.R.phase !== 'end') { stuck++; break; }
+      if (T.R.deltas.reduce((a, b) => a + b, 0) !== 0) sumErr++;
+      if (T.R.ledger.some(L => L.from.some(f => T.isMate(f.s, L.to)))) mateMoney++;
+      huN += T.R.wins.length;
+      if (T.R.endReason === 'hu' && T.R.wins.length === 2) early++;
+    }
+  }
+  eq(stuck, 0, '2v2 随机对局不卡死');
+  eq(sumErr, 0, '2v2 每局零和');
+  eq(conErr, 0, '2v2 牌守恒');
+  eq(mateMoney, 0, '2v2 队友之间不给钱');
+  ok(asks > 0 && yes > 0, '电脑会换牌');
+  console.log(`  2v2：${rounds} 局，平均每局胡 ${(huN / rounds).toFixed(2)} 人，一队两人都胡提前结束 ${(100 * early / rounds).toFixed(1)}%，请求换牌 ${(asks / rounds).toFixed(2)} 次/局，同意 ${(100 * yes / Math.max(1, asks)).toFixed(0)}%，换完自摸占胡牌 ${(100 * swapWins / Math.max(1, huN)).toFixed(0)}%`);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -142,7 +142,7 @@
     } catch (e) {}
   }
   const hasVoice = () => !!(SS && voice());
-  function vib(p) { if (!P.vib) return; try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+  function vib(p) { if (!P.vib || !gestured) return; try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
 
   // iOS 要在手指点击里先开一次声音
   let unlocked = false;

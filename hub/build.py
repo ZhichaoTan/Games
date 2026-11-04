@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Builds the Games home page, the root index.html: inlines the fonts, the zoom guard, the shared artwork
-(poker/src/art.js and seal.svg) and the three mahjong tile faces the page draws (from mahjong/src/tiles.js)."""
+(poker/src/art.js and seal.svg) and the four mahjong tile faces the page draws (from mahjong/src/tiles.js)."""
 import base64, json, os, re
 here = os.path.dirname(os.path.abspath(__file__))
 pk = os.path.join(here, '..', 'poker', 'src')
@@ -20,7 +20,7 @@ fonts = '\n'.join([
 ])
 faces = re.findall(r"^'(.*)',?$", rd(mj, 'tiles.js'), re.M)
 assert len(faces) == 27, len(faces)
-tiles = ''.join(f'<symbol id="t{t}" viewBox="0 0 300 400">{faces[t]}</symbol>' for t in (4, 9, 22))
+tiles = ''.join(f'<symbol id="t{t}" viewBox="0 0 300 400">{faces[t]}</symbol>' for t in (4, 9, 13, 22))
 src = rd(here, 'index.html')
 subs = [('/*@@FONTS@@*/', fonts), ('/*@@NOZOOM@@*/', rd(pk, 'nozoom.js')), ('/*@@ART@@*/', rd(pk, 'art.js')),
         ("/*@@SEAL@@*/''", json.dumps(rd(pk, 'seal.svg'))), ("/*@@TILES@@*/''", json.dumps(tiles))]

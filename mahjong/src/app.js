@@ -149,6 +149,7 @@
     timer: { lab: 'oTimer', vals: [0, 15, 20, 30], txt: v => (v ? T('tSec', { n: v }) : T('tOff')) },
     team: { lab: 'oMode', vals: [false, true], txt: v => T(v ? 'mTeam' : 'mFree') },
     tswap: { lab: 'oTsw', vals: [1, 2, 3, 5, 0], txt: v => (v ? String(v) : T('noLimit')) },
+    queFirst: { lab: 'oQue', vals: [false, true], txt: v => T(v ? 'qFirst' : 'qFree') },
   };
   const BOTV = [1, 2, 3, 4, 0];
   const botTxt = v => (v ? T('lv')[v] : T('lvMix'));
@@ -189,7 +190,7 @@
       box.appendChild(rule('rounds'));
       box.appendChild(rule('cap'));
       if (!solo) box.appendChild(rule('timer'));
-      if (P.more) { box.appendChild(rule('zimo')); box.appendChild(rule('dgh')); box.appendChild(rule('swap')); box.appendChild(rule('base')); box.appendChild(extrasRow()); }
+      if (P.more) { box.appendChild(rule('zimo')); box.appendChild(rule('dgh')); box.appendChild(rule('swap')); box.appendChild(rule('queFirst')); box.appendChild(rule('base')); box.appendChild(extrasRow()); }
       const m = document.createElement('button'); m.className = 'more2'; m.textContent = P.more ? '−' : T('moreRules');
       m.onclick = () => { P.more = !P.more; saveP(); renderOpts(); };
       const sp = document.createElement('span'); box.appendChild(sp); box.appendChild(m);
@@ -261,6 +262,7 @@
     let autoStartT = 0, autoStartAt = 0, saveT = 0, syncQ = false;
 
     S = { mode: solo ? 'solo' : 'host', code, isHost: true, view: null, room: null };
+    S.table = () => tb.T;   // 开发测试用：房主自己这台机器上的牌桌
     const usedNames = () => new Set(tb.T.seats.filter(Boolean).map(p => p.name));
     function botName() { const u = usedNames(); return T('botNames').find(n => !u.has(n)) || ('Bot ' + rid(2)); }
     function botLv() { return P.bot || (2 + Math.floor(Math.random() * 3)); }
@@ -715,7 +717,7 @@
     }
   }
   function rulesSummary(r) {
-    return [r.team ? T('sumTeam') : '', r.team ? (r.tswap ? T('sumTsw', { n: r.tswap }) : T('sumTswInf')) : '', r.rounds ? T('sumRounds', { n: r.rounds }) : T('sumNoLimit'), r.cap ? T('sumCap', { n: r.cap }) : T('sumNoCap'), T(r.zimo === 'di' ? 'sumDi' : 'sumFan'), T(r.swap ? 'sumSwap' : 'sumNoSwap'), r.base > 1 ? T('sumBase', { n: r.base }) : '', r.timer ? T('sumTimer', { n: r.timer }) : '']
+    return [r.team ? T('sumTeam') : '', r.team ? (r.tswap ? T('sumTsw', { n: r.tswap }) : T('sumTswInf')) : '', r.rounds ? T('sumRounds', { n: r.rounds }) : T('sumNoLimit'), r.cap ? T('sumCap', { n: r.cap }) : T('sumNoCap'), T(r.zimo === 'di' ? 'sumDi' : 'sumFan'), T(r.swap ? 'sumSwap' : 'sumNoSwap'), r.queFirst ? T('sumQueFirst') : '', r.base > 1 ? T('sumBase', { n: r.base }) : '', r.timer ? T('sumTimer', { n: r.timer }) : '']
       .filter(Boolean).map(esc).join(' · ');
   }
   $('roomBack').onclick = async () => { if (S && S.leave) await S.leave(); goLobby(); };

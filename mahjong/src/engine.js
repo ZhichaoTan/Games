@@ -26,6 +26,7 @@
     timer: 0,          // 真人每步限时（秒），0 = 不限时
     team: false,       // 2v2 组队
     tswap: 3,          // 2v2：每人每局能跟队友换几次牌，0 = 不限
+    queFirst: false,   // 缺门牌必须先打完（false：什么时候打随你，只是打完才能胡）
   };
   const RULE_KEYS = Object.keys(DEFAULT_RULES);
   function cleanRules(r) {
@@ -43,6 +44,7 @@
     if ([0, 10, 15, 20, 30].includes(+r.timer)) o.timer = +r.timer;
     if ('team' in r) o.team = !!r.team;
     if ([0, 1, 2, 3, 5].includes(+r.tswap)) o.tswap = +r.tswap;
+    if ('queFirst' in r) o.queFirst = !!r.queFirst;
     return o;
   }
 
@@ -129,7 +131,8 @@
   const isTerm = t => t % 9 === 0 || t % 9 === 8;
   const meldN = m => (m.k === 'peng' ? 3 : 4);
 
-  // 算番。conc：暗牌（含胡的那张），melds：[{k,t}]，ctx：{zimo,gangHua,gangPao,rob,haidi,tian,di}
+  // 算番。conc：暗牌（含胡的那张），melds：[{k,t}]，ctx：{zimo,drew,gangHua,gangPao,rob,haidi,tian,di}
+  // drew：胡的那张是自己摸的（点杠花按点炮算时 zimo 是 false，但最后一张还是叫海底捞月）
   // 返回 { fan（封顶后）, raw, title, items:[[名字,番]] }
   function calcFan(conc, melds, ctx, rules) {
     rules = rules || DEFAULT_RULES; ctx = ctx || {};
@@ -177,7 +180,7 @@
     if (ctx.gangHua) items.push(['杠上开花', 1]);
     if (ctx.gangPao) items.push(['杠上炮', 1]);
     if (ctx.rob) items.push(['抢杠胡', 1]);
-    if (ctx.haidi) items.push([ctx.zimo ? '海底捞月' : '海底炮', 1]);
+    if (ctx.haidi) items.push([ctx.zimo || ctx.drew ? '海底捞月' : '海底炮', 1]);
     if (ctx.zimo && rules.zimo === 'fan') items.push(['自摸', 1]);
     const raw = items.reduce((a, x) => a + x[1], 0);
     const fan = rules.cap ? Math.min(rules.cap, raw) : raw;
@@ -229,7 +232,7 @@
         hands: [[], [], [], []], melds: [[], [], [], []], river: [[], [], [], []],
         que: [-1, -1, -1, -1], swapPick: [null, null, null, null], swapDir: 0, swapGot: [null, null, null, null],
         turn: dealer, drawn: null, canSelf: false, claim: null,
-        hu: [0, 0, 0, 0], huN: 0, wins: [], passHu: [false, false, false, false],
+        hu: [0, 0, 0, 0], huN: 0, wins: [], passHu: [false, false, false, false], passFan: [-1, -1, -1, -1],
         deltas: [0, 0, 0, 0], ledger: [], discards: 0, claims: 0, firstDone: [false, false, false, false],
         afterKong: -1, lastKong: null, lastDiscard: null, ev: [], result: null,
         tsLeft: [0, 1, 2, 3].map(() => (this.rules.team ? (this.rules.tswap || 99) : 0)), tsUsed: -1, offer: null,
@@ -309,7 +312,7 @@
       if (R.phase !== 'play' || R.stage !== 'discard' || R.turn !== s) return 'turn';
       id = id | 0;
       const i = R.hands[s].indexOf(id); if (i < 0) return 'bad';
-      if (this.hasQue(s) && SU(TY(id)) !== R.que[s]) return 'que';
+      if (this.rules.queFirst && this.hasQue(s) && SU(TY(id)) !== R.que[s]) return 'que';
       R.hands[s].splice(i, 1);
       R.river[s].push(id);
       R.discards++; R.firstDone[s] = true;
@@ -320,16 +323,25 @@
       this.openClaim('discard', s, id, gangPao);
       return 'ok';
     }
+    // o 胡别人打出（或补杠）的 t 能算几番
+    claimFan(o, t, kind, gangPao) {
+      const R = this.R, c = counts(R.hands[o]); c[t]++;
+      return calcFan(c, R.melds[o], { gangPao: kind === 'discard' && !!gangPao, rob: kind === 'rob', haidi: R.wall.length === 0 && kind !== 'rob' }, this.rules);
+    }
     // 别人打出（或补杠）一张牌：看谁能胡/碰/杠
-    claimOpts(o, t, kind, from) {
+    claimOpts(o, t, kind, from, gangPao) {
       const R = this.R;
       if (R.hu[o]) return null;
       const isQ = SU(t) === R.que[o];
       const op = {};
       // 2v2：不能胡队友打的（或者抢队友的杠）
-      if (!isQ && !R.passHu[o] && !this.hasQue(o) && !this.isMate(o, from)) {
+      if (!isQ && !this.hasQue(o) && !this.isMate(o, from)) {
         const c = counts(R.hands[o]); c[t]++;
-        if (isHu(c, R.melds[o].length, R.que[o])) op.hu = true;
+        if (isHu(c, R.melds[o].length, R.que[o])) {
+          // 过手胡：放过一手胡以后，自己摸牌之前只能胡番数更大的
+          if (!R.passHu[o]) op.hu = true;
+          else { const f = this.claimFan(o, t, kind, gangPao); if (f && f.fan > (R.passFan ? R.passFan[o] : 99)) op.hu = true; }
+        }
       }
       if (kind === 'discard' && R.wall.length > 0 && !isQ) {
         let n = 0; for (const x of R.hands[o]) if (TY(x) === t) n++;
@@ -342,7 +354,7 @@
       const R = this.R, t = TY(id);
       const opts = [null, null, null, null];
       let any = false;
-      for (let k = 1; k < 4; k++) { const o = (from + k) % 4; opts[o] = this.claimOpts(o, t, kind, from); if (opts[o]) any = true; }
+      for (let k = 1; k < 4; k++) { const o = (from + k) % 4; opts[o] = this.claimOpts(o, t, kind, from, gangPao); if (opts[o]) any = true; }
       if (!any) {
         if (kind === 'discard') return this.nextTurn(from);
         return this.completeBuGang(from, id);
@@ -358,7 +370,12 @@
       if (!op || C.resp[s]) return 'no';
       if (k !== 'pass' && !op[k]) return 'no';
       C.resp[s] = k;
-      if (op.hu && k !== 'hu') R.passHu[s] = true;  // 过手胡：这一圈不能再胡别人打的牌
+      // 过手胡：自己摸牌之前，只能胡比放过的这手番数更大的牌
+      if (op.hu && k !== 'hu') {
+        const f = this.claimFan(s, C.t, C.kind, C.gangPao);
+        if (!R.passFan) R.passFan = [-1, -1, -1, -1];
+        R.passHu[s] = true; R.passFan[s] = Math.max(R.passFan[s], f ? f.fan : 0);
+      }
       this.tryResolve();
       return 'ok';
     }
@@ -441,7 +458,9 @@
     selfOpts(s) {
       const R = this.R;
       if (R.phase !== 'play' || R.stage !== 'discard' || R.turn !== s) return null;
+      // que：手里还有缺门的牌（不能胡）；queLock：房间规定缺门要先打，只能打缺门
       const o = { hu: false, an: [], bu: [], que: this.hasQue(s), ts: this.canTSwap(s) };
+      o.queLock = !!this.rules.queFirst && o.que;
       if (o.ts) o.tsLeft = R.tsLeft[s];
       if (!R.canSelf) return o;
       const c = counts(R.hands[s]);
@@ -546,7 +565,7 @@
       if (R.wall.length === 0) return this.endRound('wall');
       const id = R.wall.pop();
       R.hands[s].push(id);
-      R.drawn = id; R.turn = s; R.stage = 'discard'; R.canSelf = true; R.passHu[s] = false;
+      R.drawn = id; R.turn = s; R.stage = 'discard'; R.canSelf = true; R.passHu[s] = false; if (R.passFan) R.passFan[s] = -1;
       R.afterKong = kong ? s : -1;
       this.emit('draw', { s, id, kong: !!kong, left: R.wall.length });
     }
@@ -557,7 +576,7 @@
       if (how !== 'zimo') conc[t]++;
       const zimo = how === 'zimo';
       const ctx = {
-        zimo, gangHua: zimo && R.afterKong === s, gangPao: how === 'pao' && !!x.gangPao, rob: how === 'rob',
+        zimo, drew: zimo, gangHua: zimo && R.afterKong === s, gangPao: how === 'pao' && !!x.gangPao, rob: how === 'rob',
         haidi: R.wall.length === 0 && how !== 'rob',
         tian: zimo && s === R.dealer && R.discards === 0 && R.claims === 0,
         di: zimo && s !== R.dealer && !R.firstDone[s] && R.claims === 0,
@@ -707,6 +726,7 @@
         v.R.swapPick = R.swapPick[me];
         v.R.swapGot = R.phase === 'swap' ? null : R.swapGot[me];
         v.R.passHu = R.passHu[me];
+        v.R.passFan = R.passFan ? R.passFan[me] : (R.passHu[me] ? 99 : -1);
         v.opt = this.options(me);
       }
       if (end) {

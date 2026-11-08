@@ -34,9 +34,12 @@
       nLeft: '{n} left', nFanS: '{n} fan', nAll: '{n} in all', tipDiscard: 'Discard to wait on', tipWait: 'Waiting on',
       bPeng: 'Pung', bGang: 'Kong', bHu: 'Hu', bPass: 'Pass',
       swapH: 'Swap Three', swapS: 'Pick three tiles of one suit to pass on.<br>A set is picked for you; tap tiles to change it.', swapOk: 'Swap these three', waitOthers: 'Waiting for the others…',
-      queH: 'Void Suit', queS: 'Choose a suit to give up. You must discard all of it first.', nTiles: '{n} tiles', rec: 'Suggested',
+      queH: 'Void Suit', queS: 'Choose a suit to give up. You can’t win until you’ve discarded all of it.', nTiles: '{n} tiles', rec: 'Suggested',
       suit: ['Characters', 'Bamboo', 'Dots'], suitS: ['C', 'B', 'D'],
       youWon: "You've won this round. Watch the others finish.", queFirst: 'Discard your {s} first',
+      queLeft: 'You can’t win until your {s} are gone ({n} left)',
+      passHuAny: 'You passed a win: no winning on discards until you draw', passHuMore: 'You passed a win: until you draw, only a win over {n} fan',
+      oQue: 'Void tiles', qFree: 'Any time', qFirst: 'Must go first', sumQueFirst: 'void suit goes first',
       dirAcross: 'Swap across', dirRight: 'Counter-clockwise · to the right', dirLeft: 'Clockwise · to the left',
       cPeng: 'Pung', cGang: 'Kong', cRain: 'Rain', cWind: 'Wind', cHu: 'Hu', cZimo: 'Self-drawn', cBloom: 'Kong bloom', cRob: 'Robbed', cMulti2: 'Double win', cMulti3: 'Triple win', cZhuan: 'Kong money moves', cDraw: 'Draw', cWall: 'Wall empty', cCha: 'Ready check',
       toastQue: 'Discard your void suit first: {s}',
@@ -67,14 +70,16 @@
       rulesTitle: 'How to play',
       rulesHTML: `<h4>The tiles</h4>108 tiles: Characters, Bamboo and Dots, 1 to 9, four of each. No chows; you can only pung, kong or win.
 <h4>Swap three</h4>After the deal, everyone picks three tiles of one suit. They are passed clockwise, counter-clockwise or across, chosen at random.
-<h4>Void suit</h4>Everyone gives up one suit. You must discard all of that suit first, and you can't win while you still hold any.
+<h4>Void suit</h4>Everyone gives up one suit. You can’t win while you still hold any of it, and you can’t pung or kong it. When you discard those tiles is up to you (a room can make them go first); anyone still holding some when the wall runs out is a flower pig.
 <h4>Bloody battle</h4>Whoever wins steps out and the others play on, until one player is left or the wall runs out. Several players can win on the same discard.
-<h4>A winning hand</h4>Four sets (runs or pungs) plus a pair, or seven pairs.
+<h4>A winning hand</h4>Four sets (runs or pungs) plus a pair, or seven pairs. Only two suits at most, since one suit is void.
+<h4>Passing a win</h4>If you could win on someone’s tile and don’t (you pass, pung or kong instead), then until your next draw you can only win on a discard worth more fan than the one you passed. Self-draws aren’t affected.
 <h4>Wind and rain</h4>Kongs pay at once. An exposed kong: the player who discarded pays 2× base. An added kong: everyone still playing pays 1×. A concealed kong: everyone still playing pays 2×. If you kong and then deal in, that kong money moves to the winner.
 <h4>When the wall runs out</h4>Anyone still holding their void suit is a flower pig and pays everyone else the capped amount. Players who are not ready pay each ready player for that player's best hand. Players who are not ready return their kong money.
-<h4>Scoring</h4>A win is worth base × 2<sup>fan</sup>, up to the fan cap. A self-draw is paid by everyone still playing, plus one base (or one fan, depending on the room).`,
-      fanTable: [['All Pungs', 1], ['Full Flush (one suit)', 2], ['Seven Pairs', 2], ['Quad, each four-of-a-kind', 1], ['Golden Hook (single tile left)', 1], ['2-5-8 Pungs', 2], ['Terminals Everywhere', 2], ['Kong Bloom / Kong Discard', 1], ['Robbing the Kong', 1], ['Last Tile Draw / Discard', 1], ['Heavenly / Earthly Hand', 5], ['Concealed, All Simples (optional)', 1]],
-      fanNote: 'Fan add up. Example: a full flush of all pungs is 3 fan.',
+<h4>Scoring</h4>A win is worth base × 2<sup>fan</sup>, up to the fan cap. A discard win is paid by the player who discarded. A self-draw is paid by everyone still playing, plus one base (or one fan, depending on the room). A kong bloom off an exposed kong is paid either by the player who gave the kong, as a discard win, or by everyone, as a self-draw (a room setting).
+<h4>Dealer</h4>The first dealer is random. After that, the first player to win deals the next round; if that first win was several players winning on one discard, the player who discarded deals. If nobody wins, the dealer stays.`,
+      fanTable: [['All Pungs', 1], ['Full Flush (one suit)', 2], ['Seven Pairs', 2], ['Quad: each set of four identical tiles, kongs included', 1], ['Golden Hook: four melds out, waiting on one tile', 1], ['2-5-8 Pungs: all pungs of 2, 5 and 8 (optional)', 2], ['Terminals Everywhere: a 1 or 9 in every set and the pair (optional)', 2], ['Kong Bloom (win on the kong’s replacement tile) / Kong Discard (win on the discard right after a kong)', 1], ['Robbing the Kong (win on the tile someone adds to a pung)', 1], ['Last Tile: win on the wall’s last tile, or on the discard after it', 1], ['Heavenly Hand (dealer wins on the deal) / Earthly Hand (another player self-draws on their first draw); no pung or kong before it (optional)', 5], ['Concealed (no pung or exposed kong), All Simples (no 1 or 9) (optional)', 1], ['Self-draw, when the room adds a fan for it', 1]],
+      fanNote: 'Fan add up. Examples: a full flush of all pungs is 3 fan; seven pairs with a set of four (Dragon Seven Pairs) is 3 fan; four kongs and a pair (Eighteen Arhats) is 6 fan, before the cap.',
       moreRules: 'More rules', idTaken: 'That room code is busy. Try again in a moment.', peek: 'View table', backRes: 'Results', lastRound: 'Last round', fanH: 'Fan',
       oMode: 'Mode', mFree: 'Free-for-all', mTeam: '2v2 teams', oTsw: 'Partner swaps', sumTeam: '2v2 teams', sumTsw: '{n} partner swaps a round', sumTswInf: 'unlimited partner swaps',
       mateTag: 'Partner', foeTag: 'Opponent', makeMate: 'Make partner', teamNote: 'Partners sit across from each other and can see each other\'s tiles.',
@@ -118,9 +123,12 @@
       nLeft: '{n}张', nFanS: '{n}番', nAll: '共 {n} 张', tipDiscard: '打这张听', tipWait: '听',
       bPeng: '碰', bGang: '杠', bHu: '胡', bPass: '过',
       swapH: '换三张', swapS: '挑三张同一花色的牌换给别人<br>已经帮你挑了一组，点牌可以改', swapOk: '确定换这三张', waitOthers: '等其他人…',
-      queH: '定缺', queS: '选一门不要的花色，这门的牌要先打完', nTiles: '{n} 张', rec: '推荐',
+      queH: '定缺', queS: '选一门不要的花色，这门的牌打完才能胡', nTiles: '{n} 张', rec: '推荐',
       suit: ['万', '条', '筒'], suitS: ['万', '条', '筒'],
       youWon: '你已经胡了，看他们打完这一局', queFirst: '先把缺的{s}打完',
+      queLeft: '缺的{s}还有 {n} 张，打完才能胡',
+      passHuAny: '过水：自己摸牌前不能胡别人打的牌', passHuMore: '过水：自己摸牌前只能胡大于 {n} 番的牌',
+      oQue: '缺门牌', qFree: '随时打', qFirst: '必须先打', sumQueFirst: '缺门先打',
       dirAcross: '对家互换', dirRight: '逆时针 · 换给下家', dirLeft: '顺时针 · 换给上家',
       cPeng: '碰', cGang: '杠', cRain: '下雨', cWind: '刮风', cHu: '胡', cZimo: '自摸', cBloom: '杠上花', cRob: '抢杠', cMulti2: '一炮双响', cMulti3: '一炮三响', cZhuan: '呼叫转移', cDraw: '流局', cWall: '牌摸完了', cCha: '查叫',
       toastQue: '先打缺门：{s}',
@@ -145,14 +153,16 @@
       rulesTitle: '怎么玩',
       rulesHTML: `<h4>牌</h4>一百零八张：万、条、筒，各 1 到 9，每种 4 张。不能吃，只能碰、杠、胡。
 <h4>换三张</h4>发完牌，每人挑三张同一花色的牌，随机顺时针、逆时针或者和对家交换。
-<h4>定缺</h4>每人选一门花色不要。缺的那门要先打完，手里还有缺门的牌不能胡。
+<h4>定缺</h4>每人选一门花色不要。手里还有这门的牌就不能胡，也不能碰、杠这门的牌。什么时候打掉随你（房间可以设成必须先打），牌摸完时手里还有就是花猪。
 <h4>血战到底</h4>有人胡了就退出这一局，其他人接着打，直到只剩一家或者牌摸完。一张牌可以同时被几家胡（一炮多响）。
-<h4>胡牌</h4>四组（顺子或刻子）加一对将，或者七对。
+<h4>胡牌</h4>四组（顺子或刻子）加一对将，或者七对。缺了一门，所以最多两门花色。
+<h4>过水</h4>别人打的牌能胡却没胡（点了过，或者去碰、杠），在自己下次摸牌之前，只能胡比放过的那手番数更大的牌。自摸不受影响。
 <h4>刮风下雨</h4>杠了马上收钱。直杠：放杠的人给 2 倍底分；补杠：还在打的每家给 1 倍；暗杠：还在打的每家给 2 倍。杠完打出去的牌被人胡了，这次杠的钱转给胡的人（呼叫转移）。
 <h4>牌摸完了</h4>手里还有缺门的是花猪，赔给其他人封顶的番；没听牌的赔给听牌的人（查大叫，按对方能胡的最大番）；没听牌的人把杠钱退回去（退税）。
-<h4>算分</h4>每次胡牌得 底分 × 2<sup>番数</sup>，最多到封顶。自摸是还在打的每家都给，另外加一底（或者加一番，看房间设置）。`,
-      fanTable: [['对对胡', 1], ['清一色（只有一门）', 2], ['七对', 2], ['根（每有四张一样的）', 1], ['金钩钓（只剩一张单钓）', 1], ['将对（全是 2、5、8 的刻子）', 2], ['带幺九', 2], ['杠上开花 / 杠上炮', 1], ['抢杠胡', 1], ['海底捞月 / 海底炮', 1], ['天胡 / 地胡', 5], ['门清、中张（可选）', 1]],
-      fanNote: '番数相加。比如清一色加对对胡（清对）是 3 番。',
+<h4>算分</h4>每次胡牌得 底分 × 2<sup>番数</sup>，最多到封顶。点炮由放炮的人给；自摸是还在打的每家都给，另外加一底（或者加一番，看房间设置）。直杠后杠上开花（点杠花）看房间设置：算点炮由放杠的人给，或者算自摸。
+<h4>坐庄</h4>第一局随机坐庄。之后第一个胡牌的人下一局坐庄；第一炮是一炮多响的话，放炮的人坐庄。没人胡就连庄。`,
+      fanTable: [['对对胡', 1], ['清一色（只有一门）', 2], ['七对', 2], ['根（每有四张一样的，杠也算）', 1], ['金钩钓（碰杠了四组，只剩一张单钓）', 1], ['将对（全是 2、5、8 的对对胡，可选）', 2], ['带幺九（每组和将都带 1 或 9，可选）', 2], ['杠上开花（杠完补的牌胡）/ 杠上炮（杠完打的牌被胡）', 1], ['抢杠胡（胡别人补杠的那张）', 1], ['海底捞月 / 海底炮（最后一张牌）', 1], ['天胡（庄家起手就胡）/ 地胡（闲家第一次摸牌就自摸），之前没人碰杠（可选）', 5], ['门清（没有碰和明杠）、中张（没有 1 和 9）（可选）', 1], ['自摸（房间设成自摸加番时）', 1]],
+      fanNote: '番数相加，最多到封顶。比如清一色加对对胡（清对）是 3 番，七对带一个根（龙七对）是 3 番，四个杠单钓（十八罗汉）是 6 番。',
       moreRules: '更多规则', idTaken: '这个房间码被占用了，稍后再试', peek: '看看牌桌', backRes: '结算', lastRound: '最后一局', fanH: '番数',
       oMode: '玩法', mFree: '各自为战', mTeam: '2v2 组队', oTsw: '每局换牌', sumTeam: '2v2 组队', sumTsw: '每局换牌 {n} 次', sumTswInf: '换牌不限次数',
       mateTag: '队友', foeTag: '对手', makeMate: '设为队友', teamNote: '对家是队友，互相看得到手牌',

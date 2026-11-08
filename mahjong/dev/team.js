@@ -14,6 +14,12 @@ const { chromium } = require('playwright');
   const shots = new Set();
   const shot = async name => { if (shots.has(name)) return; shots.add(name); await p.screenshot({ path: `${out}-${name}.png` }); };
   const box = async sel => { const e = await p.$(sel); return e ? e.boundingBox() : null; };
+  // 牌停稳了再点：刚摸到的牌是从上面落下来的，半路上点会点到上面的"换"按钮
+  const still = async sel => {
+    let a = await box(sel);
+    for (let i = 0; i < 12 && a; i++) { await p.waitForTimeout(80); const b2 = await box(sel); if (b2 && Math.abs(b2.x - a.x) < 0.5 && Math.abs(b2.y - a.y) < 0.5) return b2; a = b2; }
+    return a;
+  };
   const tap = async sel => { const bb = await box(sel); if (!bb) return false; await p.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); return true; };
   const log = [];
   let n = 0, rounds = 0, lastEvn = -1, stuck = 0, asked = 0, answered = 0, waited = 0;
@@ -64,6 +70,10 @@ const { chromium } = require('playwright');
       await p.waitForTimeout(300);
       continue;
     }
+    // 换牌面板开着、但这一步不换：先点取消
+    if (o.k === 'turn' && d && d.k !== 'tswap' && await p.evaluate(() => { const e = document.querySelector('.tspanel'); return !!e && !e.hidden && !!e.querySelector('[data-a="tsx"]'); })) {
+      await tap('.tspanel [data-a="tsx"]'); log.push('ts-cancel'); await p.waitForTimeout(200); continue;
+    }
     if (o.k === 'turn' && d) {
       if (d.k === 'tswap') {
         await shot('turn-ts');
@@ -88,10 +98,10 @@ const { chromium } = require('playwright');
         log.push(d.k); continue;
       }
       if (d.k === 'discard') {
-        const bb = await box(`.t.stand[data-k="${d.id}"]`);
+        const bb = await still(`.t.stand[data-k="${d.id}"]`);
         if (!bb) { log.push('notile'); continue; }
         await p.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.waitForTimeout(200);
-        const b2 = await box(`.t.stand[data-k="${d.id}"]`);
+        const b2 = await still(`.t.stand[data-k="${d.id}"]`);
         if (b2) await p.touchscreen.tap(b2.x + b2.width / 2, b2.y + b2.height / 2);
         await p.waitForTimeout(220);
         continue;

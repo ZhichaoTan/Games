@@ -310,7 +310,7 @@
           return;
         }
         if (R.que[me] >= 0 && SU(t) === R.que[me] && R.phase === 'play') cls += ' que';
-        if (myTurn && hasQ && SU(t) !== R.que[me]) cls += ' dim';
+        if (myTurn && v.opt.queLock && SU(t) !== R.que[me]) cls += ' dim';
         if (swapping && swapSel.includes(id)) { y -= g.hh * 0.3; cls += ' sel'; }
         if (!swapping && sel === id) { y -= g.hh * 0.3; cls += ' sel'; }
         // 2v2 换牌：我要给出去的、队友想要的
@@ -810,7 +810,10 @@
       let txt = '';
       if (R && R.phase === 'play') {
         if (R.hu[me]) txt = T('youWon');
-        else if (v.opt && v.opt.k === 'turn' && v.opt.que) txt = T('queFirst', { s: T('suit')[R.que[me]] });
+        else if (v.opt && v.opt.k === 'turn' && v.opt.queLock) txt = T('queFirst', { s: T('suit')[R.que[me]] });
+        else if (v.opt && v.opt.k === 'turn' && v.opt.que) txt = T('queLeft', { s: T('suit')[R.que[me]], n: R.hand.filter(id => SU(TY(id)) === R.que[me]).length });
+        // 过手胡：放过了一手胡，自己摸牌之前只能胡番更大的
+        else if (R.passHu && R.turn !== me) txt = R.passFan >= 99 || (v.rules.cap && R.passFan >= v.rules.cap) ? T('passHuAny') : T('passHuMore', { n: Math.max(0, R.passFan) });
       }
       const auto = v.seats[me] && v.seats[me].auto && R && R.phase !== 'end' && !R.hu[me];
       if (auto || !tip.hidden || !tsPanel.hidden) txt = '';
@@ -980,7 +983,7 @@
     function canDiscard(id) {
       const R = v.R, o = v.opt;
       if (!o || o.k !== 'turn' || !R.hand.includes(id) || tsMode) return false;
-      if (o.que && SU(TY(id)) !== R.que[me]) return false;
+      if (o.queLock && SU(TY(id)) !== R.que[me]) return false;
       return true;
     }
     function doDiscard(id) {
@@ -1016,12 +1019,12 @@
       }
       if (o.k !== 'turn') { sel = sel === id ? null : id; SND.play('select'); render(true); return; }
       if (sel === id) { if (!doDiscard(id)) hintNoDiscard(id); return; }
-      if (o.que && SU(TY(id)) !== R.que[me]) { hintNoDiscard(id); }
+      if (o.queLock && SU(TY(id)) !== R.que[me]) { hintNoDiscard(id); }
       sel = id; SND.play('select'); render(true);
     }
     function hintNoDiscard(id) {
       const R = v.R;
-      if (v.opt && v.opt.que && SU(TY(id)) !== R.que[me]) opt.toast && opt.toast(T('toastQue', { s: T('suit')[R.que[me]] }));
+      if (v.opt && v.opt.queLock && SU(TY(id)) !== R.que[me]) opt.toast && opt.toast(T('toastQue', { s: T('suit')[R.que[me]] }));
     }
     root.addEventListener('pointerdown', e => {
       if (!v || !v.R || !Gm) return;

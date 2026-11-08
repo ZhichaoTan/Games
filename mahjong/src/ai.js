@@ -242,9 +242,11 @@
       if (j === me || (v.rules.team && j === (me + 2) % 4)) continue;   // 队友不能胡我打的牌
       const q = R.que[j];
       const rv = R.river[j];
-      // 打过非缺门的牌 = 缺门已经打完
+      // 缺门打完了才可能听牌。缺门不一定先打，所以从他最后一次打缺门之后、第一张别的牌算起
+      let lastQ = -1;
+      for (let i = 0; i < rv.length; i++) if (SU(TY(rv[i])) === q) lastQ = i;
       let clearAt = -1;
-      for (let i = 0; i < rv.length; i++) if (SU(TY(rv[i])) !== q) { clearAt = i; break; }
+      for (let i = lastQ + 1; i < rv.length; i++) if (SU(TY(rv[i])) !== q) { clearAt = i; break; }
       const melds = R.melds[j].length;
       if (clearAt < 0 && !melds) { out.push(null); continue; }
       const turns = rv.length - Math.max(0, clearAt);

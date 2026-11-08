@@ -118,11 +118,28 @@ const P1A = FA, P2A = '55s678s567m789m9s8s', P3A = FB;
   eq(T.options(2).hu, false, '碰完不能自摸');
   eq(conserve(T), 108, '牌守恒');
 }
-// 定缺：手里有缺门不能打别的
+// 定缺：默认缺门牌什么时候打都行；房间设成"必须先打"时只能打缺门
 {
   const T = scenario({ hands: ['123m456m789m234s5s9p', P1A, P2A, P3A] });
+  eq([T.options(0).que, T.options(0).queLock], [true, false], '手里有缺门，默认不锁');
+  eq(T.act(0, { k: 'discard', id: id1(T, 0, '5s') }), 'ok', '默认：留着缺门先打 5s 也行');
+}
+{
+  const T = scenario({ hands: ['123m456m789m234s5s9p', P1A, P2A, P3A], rules: { queFirst: true } });
+  eq(T.options(0).queLock, true, '必须先打缺门：锁住');
   eq(T.act(0, { k: 'discard', id: id1(T, 0, '5s') }), 'que', '有缺门牌不能打 5s');
   eq(T.act(0, { k: 'discard', id: id1(T, 0, '9p') }), 'ok', '先打缺门');
+}
+// 手里还有缺门：牌型够了也不能胡（点炮、自摸都不行），只能碰
+{
+  const T = scenario({ hands: ['123m456m789m234s5s9s', '123m456m789m55s9p9p', FA, FB] });
+  T.act(0, { k: 'discard', id: id1(T, 0, '5s') });
+  const o = T.options(1);
+  eq(!!o && [!!o.peng, !!o.hu], [true, false], '有缺门：能碰不能胡');
+}
+{
+  const T = scenario({ hands: ['123m456m789m555s9p9p', FA, FB, '7m7m8m8m1s1s2s2s3s3s4s4s6s'] });
+  eq(T.options(0).hu, false, '有缺门：自摸也不行');
 }
 // 点炮 + 一炮多响：P0 打 5s，P1 和 P3 都胡
 {
@@ -139,9 +156,9 @@ const P1A = FA, P2A = '55s678s567m789m9s8s', P3A = FB;
   ok(T.R.wins.every(w => w.multi), '标记一炮多响');
   eq(conserve(T), 108, '牌守恒（一炮多响）');
 }
-// 过手胡：P1 能胡 5s 但过了；P2 碰了打 2s，P1 这时不能胡；P1 自己摸牌后恢复
+// 过手胡：P1 能胡 5s 但过了；P2 碰了打 2s，一样的番数 P1 这时不能胡；P1 自己摸牌后恢复（这一局设成缺门先打）
 {
-  const T = scenario({ hands: ['123m456m789m234s5s9s', '123m456m789m234s5s', '55s2s5m5m6m6m7m7m8m8m9m1m', FA], wallTop: '9s9s' });
+  const T = scenario({ hands: ['123m456m789m234s5s9s', '123m456m789m234s5s', '55s2s5m5m6m6m7m7m8m8m9m1m', FA], wallTop: '9s9s', rules: { queFirst: true } });
   T.act(0, { k: 'discard', id: id1(T, 0, '5s') });
   eq(!!T.options(1) && T.options(1).hu, true, 'P1 能胡');
   eq(!!T.R.claim.opts[2] && T.R.claim.opts[2].peng, true, 'P2 能碰');
@@ -154,6 +171,35 @@ const P1A = FA, P2A = '55s678s567m789m9s8s', P3A = FB;
   eq(T.act(3, { k: 'discard', id: T.R.drawn }), 'que', 'P3 手里有缺门，不能打摸到的条');
   eq(T.act(3, { k: 'discard', id: id1(T, 3, '7p') }), 'ok', 'P3 打缺门');
   eq(T.R.turn, 0, '轮到 P0');
+}
+// 过手胡，番更大可以胡：P1 过了 5s（平胡 0 番），P2 碰了打 2s（还是 0 番）不能胡；
+// P3 摸到最后一张、打 2s：海底炮 1 番，比放过的大，可以胡。P3 留着缺门（筒）先打 2s 也行
+{
+  const T = scenario({ hands: ['123m456m789m234s5s9s', '123m456m789m234s5s', '55s2s5m5m6m6m7m7m8m8m9m1m', '1p1p2p2p3p3p4p4p5p5p6p6p2s'], wallTop: '9m', wallLen: 1 });
+  T.act(0, { k: 'discard', id: id1(T, 0, '5s') });
+  T.act(1, { k: 'pass' });
+  eq([T.R.passHu[1], T.R.passFan[1]], [true, 0], '记下放过的番数');
+  eq(T.view(1).R.passFan, 0, '画面上看得到过水');
+  T.act(2, { k: 'peng' });
+  T.act(2, { k: 'discard', id: id1(T, 2, '2s') });
+  eq(T.R.turn, 3, '同样 0 番的 2s 不能胡，轮到 P3');
+  eq(T.R.wall.length, 0, 'P3 摸了最后一张');
+  eq(T.act(3, { k: 'discard', id: id1(T, 3, '2s') }), 'ok', 'P3 手里有缺门也能先打 2s');
+  eq(!!T.options(1) && T.options(1).hu, true, '海底炮 1 番 > 0 番：P1 可以胡');
+  T.act(1, { k: 'hu' });
+  const w = T.R.wins[0];
+  eq(w && [w.s, w.fan, w.items.some(x => x[0] === '海底炮')], [1, 1, true], 'P1 海底炮 1 番');
+}
+// 点杠花算点炮又正好是最后一张：叫海底捞月（是自己摸的），只有放杠的人给
+{
+  const T = scenario({ hands: ['123m456m789m234s5s9s', '555s123m456m789m9s', FA, FB], wallTop: '9s', wallLen: 1 });
+  T.act(0, { k: 'discard', id: id1(T, 0, '5s') });
+  T.act(1, { k: 'gang' });
+  eq(T.R.wall.length, 0, '杠完补的是最后一张');
+  T.act(1, { k: 'zimo' });
+  const w = T.R.wins[0];
+  eq(w && w.items.map(x => x[0]), ['根', '杠上开花', '海底捞月'], '根 + 杠上开花 + 海底捞月');
+  eq([w.fan, w.amt, w.payers], [3, 8, [0]], '3 番 8 分，只有放杠的人给');
 }
 // 直杠：放杠的人给 2 分，补牌；杠上开花 + 点杠花（点炮）
 const P2B = FA, P3B = FB;
@@ -285,6 +331,64 @@ const P2B = FA, P3B = FB;
   eq(conErr, 0, '牌守恒');
   console.log(`  ${games} 场 ${rounds} 局，平均每局胡 ${(huN / rounds).toFixed(2)} 人，流局 ${(100 * liuju / rounds).toFixed(1)}%，一炮多响 ${multi}，抢杠 ${rob}，呼叫转移 ${zhuan}`);
   console.log('  各等级平均每场得分', Object.keys(lvStat).map(k => `${k}:${(lvStat[k] / lvN[k]).toFixed(1)}`).join('  '));
+}
+
+// 随机对局，其中一家像随手乱打的真人：留着缺门不打、放过能胡的牌。检查过水只放行番更大的胡、花猪会出现、零和守恒
+{
+  let rounds = 0, stuck = 0, sumErr = 0, conErr = 0, pigs = 0, passes = 0, bigger = 0, leak = 0, locked = 0;
+  const rnd = MJ.seeded(777);
+  for (let g = 0; g < 60; g++) {
+    const lockQ = g % 3 === 2;
+    const T = new Table({ rules: { swap: true, rounds: 4, cap: g % 2 ? 4 : 0, queFirst: lockQ }, seed: 5000 + g });
+    for (let s = 0; s < 4; s++) T.seats[s] = { id: 'b' + s, name: 'B' + s, score: 0, bot: true, lv: 3 };
+    const sloppy = g % 4;
+    while (!T.over) {
+      T.startRound(); rounds++;
+      let steps = 0;
+      while (T.R.phase !== 'end' && steps < 3000) {
+        const p = T.pending();
+        if (!p.length) { stuck++; break; }
+        const s = p[Math.floor(rnd() * p.length)];
+        const v = T.view(s), o = v.opt;
+        // 过水期间引擎给出的胡，番数必须比放过的大
+        if (o && o.k === 'claim' && o.hu && T.R.passHu[s]) {
+          bigger++;
+          const f = T.claimFan(s, o.t, o.kind, T.R.claim.gangPao);
+          if (!(f && f.fan > T.R.passFan[s])) leak++;
+        }
+        let a;
+        if (s === sloppy && o && o.k === 'turn') {
+          if (o.hu && rnd() < 0.6) a = { k: 'zimo' };
+          else if (rnd() < 0.6) { a = AI.decide(v, 3, rnd); if (o.queLock) locked++; }
+          else {
+            const q = T.R.que[s], h = T.R.hands[s];
+            let pool = o.queLock ? h.filter(id => MJ.SU(TY(id)) === q) : h.filter(id => MJ.SU(TY(id)) !== q);
+            if (!pool.length) pool = h;
+            if (o.queLock) locked++;
+            a = { k: 'discard', id: pool[Math.floor(rnd() * pool.length)] };
+          }
+        } else if (s === sloppy && o && o.k === 'claim') {
+          if (o.hu && rnd() < 0.5) { a = { k: 'pass' }; passes++; }
+          else a = { k: o.hu ? 'hu' : o.peng && rnd() < 0.5 ? 'peng' : 'pass' };
+        } else a = AI.decide(v, 3, rnd);
+        const r = T.act(s, a);
+        if (r !== 'ok') { console.log('bad act', s, JSON.stringify(a), r, T.R.phase, T.R.stage); stuck++; break; }
+        steps++;
+        if (conserve(T) !== 108) { conErr++; break; }
+      }
+      if (T.R.phase !== 'end') { stuck++; break; }
+      if (T.R.deltas.reduce((a, b) => a + b, 0) !== 0) sumErr++;
+      if (T.R.ledger.some(L => L.k === 'pig')) pigs++;
+    }
+  }
+  eq(stuck, 0, '乱打的真人：不卡死');
+  eq(sumErr, 0, '乱打的真人：零和');
+  eq(conErr, 0, '乱打的真人：牌守恒');
+  eq(leak, 0, '过水期间只放行番更大的胡');
+  ok(passes > 10, `放过胡 ${passes} 次（过水后番更大又能胡 ${bigger} 次）`);
+  ok(pigs > 0, `留着缺门到流局成了花猪：${pigs} 局`);
+  ok(locked > 0, `缺门先打的房间里锁住 ${locked} 次`);
+  console.log(`  乱打：${rounds} 局，放过胡 ${passes} 次，过水后番更大又能胡 ${bigger} 次，花猪 ${pigs} 局`);
 }
 
 // ================= 2v2 组队 =================

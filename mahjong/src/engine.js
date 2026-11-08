@@ -539,7 +539,7 @@
       const a = R.hands[O.from], b = R.hands[O.to];
       a.splice(a.indexOf(O.give), 1); b.splice(b.indexOf(O.take), 1);
       a.push(O.take); b.push(O.give);
-      R.tsLeft[O.from]--;
+      if (this.rules.tswap) R.tsLeft[O.from]--;   // 不限次数的房间不扣
       // 换来的那张当成刚摸的：可以自摸、可以暗杠/补杠；不算杠上开花，也不再有天胡地胡
       R.drawn = O.take; R.canSelf = true; R.afterKong = -1; R.claims++;
       this.emit('tswap', { s: O.from, to: O.to, give: O.give, take: O.take, ok: true });

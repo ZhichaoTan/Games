@@ -466,6 +466,17 @@ const TEAM = { team: true };
   T.R.tsUsed = -1;
   ok(!T.canTSwap(0), '用完就不能再换');
 }
+// 不限次数的房间：换了也不扣次数
+{
+  const T = scenario({ hands: ['123m456m789m234s5s9s', FA, '5s1s1s6s7s8s2m3m4m5m6m7m9m', FB], rules: { team: true, tswap: 0 } });
+  const give = id1(T, 0, '9s'), take = id1(T, 2, '5s');
+  const before = T.R.tsLeft[0];
+  ok(before >= 99, '不限次数');
+  T.act(0, { k: 'tswap', give, take }); T.act(2, { k: 'tsyes' });
+  ok(T.R.hands[0].includes(take), '换成了');
+  eq(T.R.tsLeft[0], before, '不限次数的房间换完次数不变');
+  eq(T.view(0).R.tsLeft[0], before, '画面上也不变');
+}
 // 不能胡队友打的牌（换成对手打就能胡）
 {
   const hands = ['123m456m789m234s5s9s', FA, '123m456m789m234s5s', FB];

@@ -25,6 +25,23 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   };
   const tap = async (u, sel) => { const e = await u.p.$(sel); if (!e) return false; const bb = await e.boundingBox(); if (!bb) return false; await u.p.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); return true; };
   const view = u => u.p.evaluate(() => { const v = MJAPP.ui.view || (MJAPP.S && MJAPP.S.view); return v ? { me: v.me, phase: v.R && v.R.phase, stage: v.R && v.R.stage, team: v.rules.team, seats: v.seats.map(p => p && p.name), mate: v.R && v.R.mate, mateN: v.R && v.R.mateHand && v.R.mateHand.length, opt: v.opt && v.opt.k } : null; });
+  // 名字牌上的换牌次数：自己队两个人都有、跟 tsLeft 一致；对手那队没有
+  const plates = u => u.p.evaluate(() => {
+    const v = MJAPP.ui.view, R = v.R, me = v.me, zh = document.documentElement.lang !== 'en';
+    const over = R.hu[me] || R.hu[(me + 2) % 4];
+    return [...document.querySelectorAll('.seat')].filter(e => !e.hidden).map(e => {
+      const nm = e.querySelector('.nm').firstChild.textContent, s = v.seats.findIndex(p => p && p.name === nm);
+      const t = e.querySelector('.tsl'), txt = t ? t.textContent : null, n = R.tsLeft[s];
+      const want = (s !== me && s !== (me + 2) % 4) || R.phase === 'end' ? null : over || n <= 0 ? (zh ? '不能再换' : 'Swaps 0') : !v.rules.tswap ? (zh ? '换牌不限' : 'Swaps ∞') : (zh ? `可换${n}次` : `Swaps ${n}`);
+      return { nm, txt, want };
+    });
+  });
+  const checkPlates = async (label, us) => {
+    for (const u of us) {
+      const ps = await plates(u), bad = ps.filter(x => x.txt !== x.want);
+      console.log(`plates ${label} ${u.name}: ${bad.length ? 'BAD ' + JSON.stringify(bad) : 'ok'} ${ps.map(x => x.nm + '=' + x.txt).join(' ')}`);
+    }
+  };
   const H = await mk('Host', 'zh');
   await H.open();
   await H.p.click('#tabs [data-tab="host"]');
@@ -87,6 +104,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
         const okA = await A.p.evaluate(p => { const v = MJAPP.ui.view; return v.R.hand.includes(p.give) && v.R.mateHand.includes(p.take); }, pick);
         console.log('swap done on host:', ok, 'on Ann:', okA);
         await H.p.screenshot({ path: OUT + '-host-after.png' });
+        await A.p.screenshot({ path: OUT + '-ann-after.png' });
+        await checkPlates('after swap', [H, A, B, C]);
         swapped = true;
         continue;
       }
@@ -105,6 +124,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await A.p.waitForFunction(() => MJAPP.ui.view && MJAPP.ui.view.R, null, { timeout: 20000 });
   const av2 = await view(A);
   console.log('Ann back: me=' + av2.me + ' mate=' + av2.mate + ' mateN=' + av2.mateN);
+  await sleep(600);
+  await checkPlates('Ann back', [A, H]);
   for (const u of [H, A]) await u.p.evaluate(() => MJAPP.S.setAuto(true));
   let ended = false;
   for (let i = 0; i < 90 && !ended; i++) {

@@ -86,10 +86,10 @@
       stTs: 'Swapping', bTs: 'Swap', tsCanWin: 'Win', tsWin: 'win', tsReady: 'ready', tsAway: '{n} from ready', tsAfter: 'After the swap: you {a}, your partner {b}',
       tsAskH: 'Your partner wants to swap', tsGiveYou: 'You get', tsWantYour: 'You give', tsNo: 'No', tsYes: 'Swap',
       tsWaitH: 'Waiting for your partner…', tsYouGive: 'You give', tsYouTake: 'You get', tsBack: 'Take it back',
-      tsH: 'Swap with your partner', tsLeftN: '{n} left this round', tsPick1: "Tap the partner's tile you want", tsPick2: 'Now tap one of your tiles to give', tsSend: 'Ask',
+      tsH: 'Swap with your partner', tsLeftN: '{n} left this round', tslN: 'Swaps {n}', tslInf: 'Swaps ∞', tslNone: 'Swaps 0', tsPick1: "Tap the partner's tile you want", tsPick2: 'Now tap one of your tiles to give', tsSend: 'Ask',
       cTs: 'Swap', cTsNo: 'No swap', tsNoT: 'Your partner said no',
       teamUs: 'Your team', teamThem: 'Opponents', teamTot: 'Totals: your team {a} · opponents {b}', teamWin: 'Your team wins!', teamLose: 'The other team wins', teamTie: "It's a tie",
-      rulesTeam: `<h4>2v2 teams</h4>Partners sit across from each other and can see each other's tiles. On your turn you can ask your partner for one tile and give one of yours back; it only happens if your partner agrees. Each player has a few swaps a round (set by the room). If the tile you get completes your hand, you can declare a self-draw. Partners never pay each other, and you can't win on your partner's discard. The round ends when only one team is still playing, and the team with the higher total wins the game.`,
+      rulesTeam: `<h4>2v2 teams</h4>Partners sit across from each other and can see each other's tiles. On your turn you can ask your partner for one tile and give one of yours back; it only happens if your partner agrees. Each player has a few swaps a round (set by the room), and how many you and your partner have left is always shown under your names. Swaps stop once either of you has won. If the tile you get completes your hand, you can declare a self-draw. Partners never pay each other, and you can't win on your partner's discard. The round ends when only one team is still playing, and the team with the higher total wins the game.`,
     },
     zh: {
       title: '四川麻将', titleA: '四川麻将', titleB: '', allGames: '全部游戏', rules: '规则', langBtn: 'English',
@@ -169,10 +169,10 @@
       stTs: '换牌中', bTs: '换', tsCanWin: '能胡', tsWin: '胡了', tsReady: '听牌', tsAway: '差 {n} 张听牌', tsAfter: '换完：你{a}，队友{b}',
       tsAskH: '队友想跟你换牌', tsGiveYou: '你拿到', tsWantYour: '你给出', tsNo: '不换', tsYes: '换',
       tsWaitH: '等队友回话…', tsYouGive: '你给出', tsYouTake: '你拿到', tsBack: '撤回',
-      tsH: '跟队友换一张', tsLeftN: '这局还能换 {n} 次', tsPick1: '点一张你想要的队友的牌', tsPick2: '再点一张自己的牌给队友', tsSend: '请求换牌',
+      tsH: '跟队友换一张', tsLeftN: '这局还能换 {n} 次', tslN: '可换{n}次', tslInf: '换牌不限', tslNone: '不能再换', tsPick1: '点一张你想要的队友的牌', tsPick2: '再点一张自己的牌给队友', tsSend: '请求换牌',
       cTs: '换牌', cTsNo: '不换', tsNoT: '队友没同意',
       teamUs: '我方', teamThem: '对方', teamTot: '累计：我方 {a} · 对方 {b}', teamWin: '我方获胜！', teamLose: '对方获胜', teamTie: '打平了',
-      rulesTeam: `<h4>2v2 组队</h4>对家是队友，互相看得到手牌。轮到你出牌时，可以拿自己的一张牌换队友的一张，队友同意才换。每人每局能换几次看房间设置。换来的牌让你胡了，就算自摸。队友之间不给钱，也不能胡队友打的牌。只剩一队还在打时这一局就结束，最后两人总分高的那队赢。`,
+      rulesTeam: `<h4>2v2 组队</h4>对家是队友，互相看得到手牌。轮到你出牌时，可以拿自己的一张牌换队友的一张，队友同意才换。每人每局能换几次看房间设置，你和队友还能换几次一直写在名字下面；队里有人胡了就不能再换。换来的牌让你胡了，就算自摸。队友之间不给钱，也不能胡队友打的牌。只剩一队还在打时这一局就结束，最后两人总分高的那队赢。`,
     },
   };
   const read = () => { try { return JSON.parse(localStorage.getItem('mh_lang')); } catch (e) { return null; } };

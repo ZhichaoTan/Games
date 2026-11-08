@@ -78,7 +78,9 @@
       const g = { W, H, sf };
       const L = Math.max(6, sf.l + 4), Rr = Math.max(6, sf.r + 4);
       const port = H >= W * 1.05;
-      g.port = port; g.L = L; g.Rr = Rr;
+      // 2v2：自己和队友的名字牌下面多一行"可换几次"，竖屏时给它让点地方
+      const team = !!(v && v.rules && v.rules.team);
+      g.port = port; g.L = L; g.Rr = Rr; g.team = team;
       g.tbH = sf.t + 44;
       g.A0 = clamp(Math.round(Math.min(W, H) * 0.1), 34, 48);
       g.A = clamp(Math.round(Math.min(W, H) * 0.088), 30, 44);
@@ -88,7 +90,7 @@
         g.hh = g.hw * 82 / 60;
         g.handY = bot - g.hh / 2; g.handTop = bot - g.hh;
         g.handL = L; g.handR = W - Rr;
-        g.plate0 = { x: L + g.A0 / 2 + 2, y: g.handTop - 18 - g.A0 / 2 };
+        g.plate0 = { x: L + g.A0 / 2 + 2, y: g.handTop - 18 - g.A0 / 2 - (team ? 16 : 0) };
         g.topY = g.tbH + 4 + g.A / 2;
         g.midTop = g.tbH + g.A + 14;
         g.midBot = g.plate0.y - g.A0 / 2 - 6;
@@ -109,7 +111,7 @@
       g.colW = port ? Math.max(g.A, 34) + 4 : Math.max(g.A + 8, 56);
       g.colL = L + g.colW / 2; g.colR = W - Rr - g.colW / 2;
       if (port) {
-        g.sidePlateY = g.topY + g.A + 44;
+        g.sidePlateY = g.topY + g.A + 44 + (team ? 6 : 0);
         g.stackTop = g.sidePlateY + g.A / 2 + 66;
       } else {
         // 横屏：左右两家的头像放在上面两个角，牌从头像下面往下排
@@ -155,7 +157,7 @@
     function ensureGeom(force) {
       const need = riverNeed();
       const W = root.clientWidth, H = root.clientHeight;
-      if (!force && Gm && Gm.W === W && Gm.H === H && need.tb[0] <= Gm.cap.tb[0] && need.tb[1] <= Gm.cap.tb[1] && need.sd[0] <= Gm.cap.sd[0] && need.sd[1] <= Gm.cap.sd[1]) return false;
+      if (!force && Gm && Gm.W === W && Gm.H === H && Gm.team === !!(v && v.rules && v.rules.team) && need.tb[0] <= Gm.cap.tb[0] && need.tb[1] <= Gm.cap.tb[1] && need.sd[0] <= Gm.cap.sd[0] && need.sd[1] <= Gm.cap.sd[1]) return false;
       Gm = computeGeom(need);
       placeStatic();
       return true;
@@ -596,14 +598,24 @@
         const turn = R && R.phase === 'play' && R.stage === 'discard' && R.turn === s && !R.hu[s];
         const vert = g.port ? rel === 1 || rel === 3 : rel === 2;
         const rev = !g.port && rel === 1;
-        const key = [p.name, p.av, p.bot, p.lv, score, que, st, R && R.dealer === s, turn, A, vert, rev, I18.lang].join('|');
+        // 2v2：自己和队友这局还能换几次牌，一直写在名字牌上（有人胡了就不能再换）
+        let tsl = '', tsn = -1;
+        if (R && R.team && rel % 2 === 0 && R.phase !== 'end') {
+          const inf = !v.rules.tswap, n = R.tsLeft ? R.tsLeft[s] : 0;
+          tsn = R.hu[me] || R.hu[(me + 2) % 4] || !(n > 0) ? 0 : inf ? 99 : n;
+          tsl = !tsn ? `<div class="tsl off">${T('tslNone')}</div>` : `<div class="tsl">${inf ? T('tslInf') : T('tslN', { n: `<b>${tsn}</b>` })}</div>`;
+        }
+        const key = [p.name, p.av, p.bot, p.lv, score, que, st, R && R.dealer === s, turn, A, vert, rev, tsl, I18.lang].join('|');
         el.className = 'seat' + (vert ? ' vert' : '') + (rev ? ' rev' : '') + (turn ? ' turn' : '') + (R && R.hu[s] ? ' won' : '') + team;
         el.style.setProperty('--a', A + 'px');
         if (el._k !== key) {
           el._k = key;
+          // 次数刚少了一次：数字闪一下
+          if (tsl && el._tsn > tsn && tsn > 0 && tsn < 99) tsl = tsl.replace('class="tsl"', 'class="tsl bump"');
           el.innerHTML = `<div class="av">${avSvg(p, s)}${R && R.dealer === s ? `<span class="badge zhuang">${T('dealerB')}</span>` : ''}${que >= 0 ? `<span class="badge que" style="background:${QCOL[que]}">${suitMark(que)}</span>` : ''}${st}</div>` +
-            `<div class="info"><div class="nm">${esc(p.name)}${p.bot ? `<small>${T('lv')[p.lv] || ''}</small>` : ''}</div><div class="sc${score < 0 ? ' neg' : ''}">${score > 0 ? '+' : ''}${score}</div></div>`;
+            `<div class="info"><div class="nm">${esc(p.name)}${p.bot ? `<small>${T('lv')[p.lv] || ''}</small>` : ''}</div><div class="sc${score < 0 ? ' neg' : ''}">${score > 0 ? '+' : ''}${score}</div>${tsl}</div>`;
         }
+        el._tsn = tsn;
         const w = el.offsetWidth, h = el.offsetHeight;
         if (vert) Object.assign(el.style, { left: clamp(a.x - w / 2, 2, g.W - w - 2) + 'px', top: (a.y - A / 2) + 'px' });
         else if (rev) Object.assign(el.style, { left: (a.x + A / 2 - w) + 'px', top: (a.y - A / 2) + 'px' });
@@ -660,7 +672,7 @@
         if (o.ts && !tsMode) {
           const wins = prefs.hints ? tsWinTiles() : [];
           const b = btn('ts' + (wins.length ? ' can' : ''), T('bTs'), () => { tsMode = true; tsTake = wins.length === 1 ? tsTakeId(wins[0]) : null; tsGive = tsGiveFor(tsTake); sel = null; acts._k = ''; render(true); });
-          if (o.tsLeft < 99) b.insertAdjacentHTML('beforeend', `<span class="cnt">${o.tsLeft}</span>`);
+          if (v.rules.tswap) b.insertAdjacentHTML('beforeend', `<span class="cnt">${o.tsLeft}</span>`);
           if (wins.length) b.insertAdjacentHTML('beforeend', `<span class="tag">${T('tsCanWin')}</span>`);
           acts.insertBefore(b, acts.firstChild);
         }

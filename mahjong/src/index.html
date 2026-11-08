@@ -383,6 +383,11 @@ html[lang=en] .title .w1{font:italic 600 50px/0.98 "Fraunces",Georgia,serif;lett
 .seat.us.turn .av{box-shadow:0 0 0 2.5px #ffd36b,0 0 0 5px rgba(80,214,156,.55),0 0 18px rgba(255,211,107,.6)}
 .stat.mate{background:linear-gradient(180deg,#2fae78,#1b7a52);color:#fff}
 .stat.ts{background:linear-gradient(180deg,#3b8fd8,#22609f);color:#fff}
+.seat .tsl{font-size:10px;line-height:14px;color:#8fe6bd;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.seat .tsl b{display:inline-block;font:800 11.5px/14px "Manrope",var(--ui);color:#d6fbe9;margin:0 1px;font-variant-numeric:tabular-nums}
+.seat .tsl.off,.seat .tsl.off b{color:var(--ink3)}
+.seat .tsl.bump b{animation:tslBump .8s ease-out}
+@keyframes tslBump{0%{transform:scale(1.9);color:#ffd36b}100%{transform:scale(1)}}
 .matetray{position:absolute;z-index:4;border-radius:10px;background:linear-gradient(180deg,rgba(80,214,156,.16),rgba(80,214,156,.06));box-shadow:inset 0 0 0 1px rgba(80,214,156,.38),0 0 16px rgba(80,214,156,.12);pointer-events:none}
 .t.want .f,.t.give .f{box-shadow:0 0 0 3px #66d0ff,0 0 14px 2px rgba(102,208,255,.75),inset 0 1.5px 0 #fff}
 .t.mate.want{z-index:20}

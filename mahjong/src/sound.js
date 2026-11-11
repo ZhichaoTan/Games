@@ -7,12 +7,12 @@
   let ctx = null, out = null, nbuf = null;
 
   function ac() {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume().catch(() => {}); return ctx; }
+    if (ctx) { if (ctx.state === 'suspended' && P.on) ctx.resume().catch(() => {}); return ctx; }
     const AC = G.AudioContext || G.webkitAudioContext; if (!AC) return null;
     try { ctx = new AC(); } catch (e) { return null; }
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -14; comp.ratio.value = 4;
-    out = ctx.createGain(); out.gain.value = 0.8;
+    out = ctx.createGain(); out.gain.value = P.on ? 0.8 : 0;
     out.connect(comp); comp.connect(ctx.destination);
     const n = Math.floor(ctx.sampleRate * 0.6);
     nbuf = ctx.createBuffer(1, n, ctx.sampleRate);
@@ -138,7 +138,7 @@
     vEnd = 0;
     if (SS) { try { SS.cancel(); } catch (e) {} }
   }
-  // 跟着牌桌念，不拖后：碰杠胡这些马上念（打断正在念的牌名）；牌名要是前一句还没念完就等一小下，等不及就跳过
+  // 跟着牌桌念，不拖后：碰杠胡这些马上念（打断正在念的那张牌名）；牌名一张不落，前一句没念完就接着排，排队时念快一点
   function scSay(key, delay) {
     if (!P.on || !P.voice || !P.sc || !gestured || curLang() !== 'zh' || !ac()) return false;
     const ks = Object.keys(VBUF).filter(k => k === key || k.startsWith(key + '_'));
@@ -146,17 +146,17 @@
     const b = VBUF[ks[Math.floor(Math.random() * ks.length)]];
     const tile = key[0] === 't', now = ctx.currentTime + 0.005 + (delay || 0);
     let t0 = now;
+    let rate = 1.08;
     if (vEnd > now) {
       if (!tile && vTile) { if (vCur) { try { vCur.stop(now); } catch (e) {} } }
-      else if (vEnd - now > 0.25) return true;
-      else t0 = vEnd;
+      else { t0 = vEnd; rate = Math.min(1.4, 1.12 + (vEnd - now) * 0.5); } // 排着队就念快一点，追上牌桌
     }
     try {
       const src = ctx.createBufferSource(), g = ctx.createGain();
-      src.buffer = b; src.playbackRate.value = 1.08; g.gain.value = 1.15;
+      src.buffer = b; src.playbackRate.value = rate; g.gain.value = 1.15;
       src.connect(g); g.connect(out); src.start(t0);
       vCur = src; vTile = tile;
-      vEnd = t0 + b.duration / 1.08 - 0.04;
+      vEnd = t0 + b.duration / rate - 0.04;
     } catch (e) { return false; }
     return true;
   }
@@ -186,6 +186,12 @@
   const hasVoice = () => !!(SS && voice());
   function vib(p) { if (!P.vib || !gestured) return; try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
 
+  // 关声音：总音量直接拉到 0，已经排好的声音也一起停
+  function mute(m) {
+    if (!ctx || !out) return;
+    try { out.gain.cancelScheduledValues(ctx.currentTime); out.gain.setValueAtTime(m ? 0 : 0.8, ctx.currentTime); } catch (e) { out.gain.value = m ? 0 : 0.8; }
+    if (m) { try { ctx.suspend(); } catch (e) {} } else if (ctx.state !== 'running') { try { ctx.resume(); } catch (e) {} }
+  }
   // iOS 要在手指点击里先开一次声音
   let unlocked = false;
   function unlock() {
@@ -199,5 +205,5 @@
   }
   if (G.document) ['pointerdown', 'touchend', 'keydown'].forEach(k => G.document.addEventListener(k, unlock, { passive: true }));
 
-  G.MJSound = { play, say, scSay, scReady, vib, unlock, hasVoice, prefs: P, set(k, v) { P[k] = v; save(); if (k === 'on' && v) unlock(); if (!v && (k === 'on' || k === 'voice' || k === 'sc')) stopVoice(); } };
+  G.MJSound = { play, say, scSay, scReady, vib, unlock, hasVoice, prefs: P, set(k, v) { P[k] = v; save(); if (k === 'on') mute(!v); if (k === 'on' && v) unlock(); if (!v && (k === 'on' || k === 'voice' || k === 'sc')) stopVoice(); } };
 })(typeof window !== 'undefined' ? window : globalThis);

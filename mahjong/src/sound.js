@@ -132,24 +132,35 @@
       } catch (e) {}
     }
   }
-  let vEnd = 0;
-  // 一句接一句地念，不叠在一起；排得太久（快速连打）就跳过这一句
+  let vEnd = 0, vCur = null, vTile = false;
+  function stopVoice() {
+    if (vCur) { try { vCur.stop(); } catch (e) {} vCur = null; }
+    vEnd = 0;
+    if (SS) { try { SS.cancel(); } catch (e) {} }
+  }
+  // 跟着牌桌念，不拖后：碰杠胡这些马上念（打断正在念的牌名）；牌名要是前一句还没念完就等一小下，等不及就跳过
   function scSay(key, delay) {
-    if (!P.on || !P.sc || !gestured || curLang() !== 'zh' || !ac()) return false;
+    if (!P.on || !P.voice || !P.sc || !gestured || curLang() !== 'zh' || !ac()) return false;
     const ks = Object.keys(VBUF).filter(k => k === key || k.startsWith(key + '_'));
     if (!ks.length) return false;
     const b = VBUF[ks[Math.floor(Math.random() * ks.length)]];
-    const now = ctx.currentTime + 0.01 + (delay || 0), t0 = Math.max(now, vEnd);
-    if (t0 - now > 0.9) return true;
+    const tile = key[0] === 't', now = ctx.currentTime + 0.005 + (delay || 0);
+    let t0 = now;
+    if (vEnd > now) {
+      if (!tile && vTile) { if (vCur) { try { vCur.stop(now); } catch (e) {} } }
+      else if (vEnd - now > 0.25) return true;
+      else t0 = vEnd;
+    }
     try {
       const src = ctx.createBufferSource(), g = ctx.createGain();
-      src.buffer = b; g.gain.value = 1.15;
+      src.buffer = b; src.playbackRate.value = 1.08; g.gain.value = 1.15;
       src.connect(g); g.connect(out); src.start(t0);
-      vEnd = t0 + b.duration - 0.05;
+      vCur = src; vTile = tile;
+      vEnd = t0 + b.duration / 1.08 - 0.04;
     } catch (e) { return false; }
     return true;
   }
-  const scReady = () => !!(P.on && P.sc && curLang() === 'zh' && Object.keys(VSRC).length);
+  const scReady = () => !!(P.on && P.voice && P.sc && curLang() === 'zh' && Object.keys(VSRC).length);
 
   // ----- 语音（系统自带的语音，跟着界面语言选中文或英文；没有就不出声） -----
   const SS = G.speechSynthesis;
@@ -188,5 +199,5 @@
   }
   if (G.document) ['pointerdown', 'touchend', 'keydown'].forEach(k => G.document.addEventListener(k, unlock, { passive: true }));
 
-  G.MJSound = { play, say, scSay, scReady, vib, unlock, hasVoice, prefs: P, set(k, v) { P[k] = v; save(); if (k === 'on' && v) unlock(); } };
+  G.MJSound = { play, say, scSay, scReady, vib, unlock, hasVoice, prefs: P, set(k, v) { P[k] = v; save(); if (k === 'on' && v) unlock(); if (!v && (k === 'on' || k === 'voice' || k === 'sc')) stopVoice(); } };
 })(typeof window !== 'undefined' ? window : globalThis);

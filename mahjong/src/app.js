@@ -801,8 +801,11 @@
     h += toggleRow(T('mAuto'), v.seats[me] && v.seats[me].auto, null, 'auto');
     h += toggleRow(T('mHints'), P.hints, null, 'hints');
     h += toggleRow(T('mSound'), SND.prefs.on, null, 'on');
-    if (I18.lang === 'zh') h += toggleRow(T('mSc'), SND.prefs.sc, null, 'sc');
-    if (I18.lang !== 'zh' || !SND.prefs.sc) { h += toggleRow(T('mVoice'), SND.prefs.voice, null, 'voice'); h += toggleRow(T('mCall'), SND.prefs.call, null, 'call'); }
+    h += toggleRow(T('mVoice'), SND.prefs.voice, null, 'voice');
+    if (SND.prefs.voice) {
+      if (I18.lang === 'zh') h += toggleRow(T('mSc'), SND.prefs.sc, null, 'sc');
+      if (I18.lang !== 'zh' || !SND.prefs.sc) h += toggleRow(T('mCall'), SND.prefs.call, null, 'call');
+    }
     if ('vibrate' in navigator) h += toggleRow(T('mVib'), SND.prefs.vib, null, 'vib');
     h += `<div class="mrow"><span class="grow">${T('mLang')}</span><div class="seg"><button data-lang="en" class="${I18.lang === 'en' ? 'on' : ''}">English</button><button data-lang="zh" class="${I18.lang === 'zh' ? 'on' : ''}">中文</button></div></div>`;
     if (host) h += `<div class="mrow"><span class="grow">${T('mSpeed')}</span><div class="seg">${['fast', 'normal', 'slow'].map(x => `<button data-sp="${x}" class="${P.speed === x ? 'on' : ''}">${T(x === 'fast' ? 'spFast' : x === 'slow' ? 'spSlow' : 'spNormal')}</button>`).join('')}</div></div>`;
@@ -820,7 +823,7 @@
       b.classList.toggle('on', on); SND.play('tap');
       if (k === 'auto') S.setAuto(on);
       else if (k === 'hints') { P.hints = on; saveP(); ui.setPrefs({ hints: on }); }
-      else { SND.set(k, on); if (k === 'on') paintSound(); if (k === 'sc') { if (on) SND.scSay('t9'); setTimeout(showMenu, 50); } }
+      else { SND.set(k, on); if (k === 'on') paintSound(); if (k === 'sc' || k === 'voice') { if (on && SND.scReady()) SND.scSay('t9'); setTimeout(showMenu, 50); } }
     });
     sh.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => { I18.setLang(b.dataset.lang); refreshLang(); showMenu(); });
     sh.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { S.setSpeed(b.dataset.sp); showMenu(); });

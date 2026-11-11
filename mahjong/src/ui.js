@@ -949,7 +949,7 @@
           case 'deal': SND.play('deal'); break;
           case 'swap': SND.play('swap'); dirFx(e.dir); break;
           case 'que': SND.play('que'); setTimeout(() => plates.forEach(p => { const b = p.querySelector('.badge.que'); if (b) { b.classList.remove('pop'); b.offsetWidth; b.classList.add('pop'); } }), 30); break;
-          case 'discard': dropId = e.id; dropUntil = Date.now() + 700; SND.play('discard'); if (SND.scReady && SND.scReady()) SND.scSay('t' + TY(e.id), 0.12); else if (SND.prefs && SND.prefs.call) SND.say(I18.tile(TY(e.id)), 1.25); break;
+          case 'discard': dropId = e.id; dropUntil = Date.now() + 700; SND.play('discard'); if (SND.scReady && SND.scReady()) SND.scSay('t' + TY(e.id)); else if (SND.prefs && SND.prefs.call) SND.say(I18.tile(TY(e.id)), 1.25); break;
           case 'draw': if (e.s === me) SND.play('draw'); break;
           case 'peng': SND.play('peng'); if (!sc('peng')) SND.say(T('vPeng')); callout(rel, T('cPeng'), 'c-peng'); break;
           case 'gang': {

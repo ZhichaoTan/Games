@@ -939,6 +939,8 @@
       callout(0, txt, 'c-wind', null, 'sm');
     }
     function effects(evs) {
+      // 四川话开着就念四川话（中文界面），否则退回系统语音
+      const sc = (k, d) => !!(SND.scReady && SND.scReady() && SND.scSay(k, d));
       const R = v.R;
       let delay = 0;
       for (const e of evs) {
@@ -947,11 +949,11 @@
           case 'deal': SND.play('deal'); break;
           case 'swap': SND.play('swap'); dirFx(e.dir); break;
           case 'que': SND.play('que'); setTimeout(() => plates.forEach(p => { const b = p.querySelector('.badge.que'); if (b) { b.classList.remove('pop'); b.offsetWidth; b.classList.add('pop'); } }), 30); break;
-          case 'discard': dropId = e.id; dropUntil = Date.now() + 700; SND.play('discard'); if (SND.prefs && SND.prefs.call) SND.say(I18.tile(TY(e.id)), 1.25); break;
+          case 'discard': dropId = e.id; dropUntil = Date.now() + 700; SND.play('discard'); if (SND.scReady && SND.scReady()) SND.scSay('t' + TY(e.id), 0.12); else if (SND.prefs && SND.prefs.call) SND.say(I18.tile(TY(e.id)), 1.25); break;
           case 'draw': if (e.s === me) SND.play('draw'); break;
-          case 'peng': SND.play('peng'); SND.say(T('vPeng')); callout(rel, T('cPeng'), 'c-peng'); break;
+          case 'peng': SND.play('peng'); if (!sc('peng')) SND.say(T('vPeng')); callout(rel, T('cPeng'), 'c-peng'); break;
           case 'gang': {
-            SND.play('gang'); SND.say(T('vGang'));
+            SND.play('gang'); if (!sc(e.kind === 'an' ? 'an' : e.kind === 'ming' ? 'ming' : 'gang')) SND.say(T('vGang'));
             callout(rel, T('cGang'), 'c-gang', T(e.kind === 'an' ? 'cRain' : 'cWind'));
             const mult = e.kind === 'bu' ? 1 : 2, base = v.rules.base;
             if (e.kind === 'ming') { flyMoney(e.s, base * 2); flyMoney(e.from, -base * 2); coins(e.from, e.s, 3, 150); }
@@ -960,7 +962,7 @@
           }
           case 'hu': {
             const title = T(e.how === 'zimo' ? (e.items.some(x => x[0] === '杠上开花') ? 'cBloom' : 'cZimo') : e.how === 'rob' ? 'cRob' : 'cHu');
-            SND.play('hu', delay / 1000); SND.say(T(e.how === 'zimo' ? 'vZimo' : 'vHu'));
+            SND.play('hu', delay / 1000); if (!sc(e.items.some(x => x[0] === '杠上开花') ? 'bloom' : e.items.some(x => x[0] === '抢杠胡') ? 'rob' : e.items.some(x => x[0] === '杠上炮') ? 'pao' : e.how === 'zimo' ? 'zimo' : 'hu', delay / 1000)) SND.say(T(e.how === 'zimo' ? 'vZimo' : 'vHu'));
             setTimeout(() => callout(rel, title, 'c-hu', I18.fan(e.title) + (e.fan ? ' · ' + T('nFan', { n: e.fan }) : ''), 'big'), delay);
             const tot = e.amt * e.payers.length;
             flyMoney(e.s, tot, delay + 500);
@@ -970,7 +972,7 @@
             delay += 700;
             break;
           }
-          case 'multi': setTimeout(() => callout(relOf(e.from), T(e.n === 3 ? 'cMulti3' : 'cMulti2'), 'c-hu', null, 'mid'), delay + 200); break;
+          case 'multi': sc(e.n === 3 ? 'multi3' : 'multi2'); setTimeout(() => callout(relOf(e.from), T(e.n === 3 ? 'cMulti3' : 'cMulti2'), 'c-hu', null, 'mid'), delay + 200); break;
           case 'tsAsk': if (e.to === me) { SND.play('turn'); SND.vib([30, 50, 30]); } break;
           case 'tswap':
             if (e.ok) {

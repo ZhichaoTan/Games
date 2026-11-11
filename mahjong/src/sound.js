@@ -2,7 +2,7 @@
 (function (G) {
   'use strict';
   const KEY = 'mj_snd';
-  const P = Object.assign({ on: true, voice: true, call: false, vib: true }, (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })());
+  const P = Object.assign({ on: true, voice: true, call: false, vib: true, sc: true }, (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })());
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(P)); } catch (e) {} };
   let ctx = null, out = null, nbuf = null;
 
@@ -17,7 +17,7 @@
     const n = Math.floor(ctx.sampleRate * 0.6);
     nbuf = ctx.createBuffer(1, n, ctx.sampleRate);
     const d = nbuf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-    loadSfx();
+    loadSfx(); loadVoice();
     return ctx;
   }
   // ----- 录音：第一次出声时解码 -----
@@ -120,6 +120,37 @@
     try { FX[k](ctx.currentTime + 0.005 + (delay || 0)); } catch (e) {}
   }
 
+  // ----- 四川话播报：录好的四川话（voice_sc.js，微软 Edge 朗读的 zh-CN-sichuan-YunxiNeural 生成），只在中文界面用 -----
+  const VSRC = G.MJ_VOICE_SC || {}, VBUF = {};
+  function loadVoice() {
+    for (const k in VSRC) {
+      try {
+        const bin = atob(VSRC[k]), u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        const r = ctx.decodeAudioData(u8.buffer, b => { VBUF[k] = b; }, () => {});
+        if (r && r.catch) r.catch(() => {});
+      } catch (e) {}
+    }
+  }
+  let vEnd = 0;
+  // 一句接一句地念，不叠在一起；排得太久（快速连打）就跳过这一句
+  function scSay(key, delay) {
+    if (!P.on || !P.sc || !gestured || curLang() !== 'zh' || !ac()) return false;
+    const ks = Object.keys(VBUF).filter(k => k === key || k.startsWith(key + '_'));
+    if (!ks.length) return false;
+    const b = VBUF[ks[Math.floor(Math.random() * ks.length)]];
+    const now = ctx.currentTime + 0.01 + (delay || 0), t0 = Math.max(now, vEnd);
+    if (t0 - now > 0.9) return true;
+    try {
+      const src = ctx.createBufferSource(), g = ctx.createGain();
+      src.buffer = b; g.gain.value = 1.15;
+      src.connect(g); g.connect(out); src.start(t0);
+      vEnd = t0 + b.duration - 0.05;
+    } catch (e) { return false; }
+    return true;
+  }
+  const scReady = () => !!(P.on && P.sc && curLang() === 'zh' && Object.keys(VSRC).length);
+
   // ----- 语音（系统自带的语音，跟着界面语言选中文或英文；没有就不出声） -----
   const SS = G.speechSynthesis;
   const VO = { zh: null, en: null };
@@ -157,5 +188,5 @@
   }
   if (G.document) ['pointerdown', 'touchend', 'keydown'].forEach(k => G.document.addEventListener(k, unlock, { passive: true }));
 
-  G.MJSound = { play, say, vib, unlock, hasVoice, prefs: P, set(k, v) { P[k] = v; save(); if (k === 'on' && v) unlock(); } };
+  G.MJSound = { play, say, scSay, scReady, vib, unlock, hasVoice, prefs: P, set(k, v) { P[k] = v; save(); if (k === 'on' && v) unlock(); } };
 })(typeof window !== 'undefined' ? window : globalThis);

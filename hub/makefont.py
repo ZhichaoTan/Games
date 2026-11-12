@@ -11,7 +11,7 @@ from fontTools import subset
 from fontTools.merge import Merger
 
 here = os.path.dirname(os.path.abspath(__file__))
-TEXT = '今晚玩什么？四川麻将血战德州扑克游戏'
+TEXT = '今晚玩什么？四川麻将血战德州扑克游戏中国象棋楚汉'
 need = {ord(c) for c in TEXT}
 parts = []
 for f in sorted(glob.glob(os.path.join(sys.argv[1], '*-400-normal.woff2'))):

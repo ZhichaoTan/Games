@@ -5,6 +5,7 @@ Table games for phone browsers that you play online with friends. There's no sig
 - **Home page**, with the list of games: https://zhichaotan.github.io/Games/
 - **Midnight Hold'em**: https://zhichaotan.github.io/Games/poker/
 - **Sichuan Mahjong**: https://zhichaotan.github.io/Games/mahjong/
+- **Xiangqi** (Chinese chess): https://zhichaotan.github.io/Games/xiangqi/
 
 Tap a game on the home page to open its lobby, and the "All games" button at the top of each lobby goes back. Each game has its own rooms, so friends can be in different games at the same time. Your name, avatar and language carry over from game to game. Everything is in English by default, and the globe button switches to Chinese.
 
@@ -51,13 +52,28 @@ Four players, Bloody Battle (血战到底) rules, every player for themselves or
 - Tap a tile to select it, then tap it again or drag it up to discard it. You can also slide along your hand to pick a tile. With hints on, a dot marks the tiles that leave you ready, and a selected tile shows what you'd be waiting on and how many of those tiles are left.
 - Autoplay hands your turns to a bot for a while, and "Take over" gives them back.
 
+## Xiangqi
+
+Chinese chess for two: online with a friend, on one phone passed back and forth, or against the computer.
+
+- Online: the host opens a room and sends the four-letter code or the invite link. The host picks who plays Red (or lets it be random) and an optional clock of 10, 20 or 30 minutes each; the sides swap after every game and the room keeps the score. Taking a move back and offering a draw need the other player's agreement. A clock only runs while both players are connected. If either player's page reloads or their connection drops, opening the room again carries on from the same position.
+- Against the computer: seven levels, from a beginner that drops pieces to one that thinks for a few seconds a move. You choose Red, Black or random, can take moves back, ask for a hint, and resume an unfinished game later.
+- Rules: stalemate is a loss for the side that cannot move, the generals may not face each other, perpetual check loses, a position that keeps repeating without check is a draw, and so are sixty moves without a capture or a position where neither side has an attacking piece left.
+- Explore: at any point you can try moves out on the board for both sides without touching the real game, then go back to it.
+- Review: every finished game can be replayed with a chart of Red's winning chances, each move graded (best, good, inaccuracy, mistake, blunder), the engine's best move with the line behind it, and a report with each side's accuracy and key mistakes. From any position in a review you can explore with the engine's candidate moves, or play on from there against the computer.
+- Two engines. The built-in one is part of the page and is ready at once. [Pikafish](https://github.com/official-pikafish/Pikafish), a much stronger engine, is optional: switching it on downloads 48 MB once and keeps it in the browser. It can be the opponent, and it makes hints and reviews far more accurate.
+- In Chinese the pieces carry their characters and moves are written the traditional way (炮二平五). In English the pieces are figurines and moves use WXF notation (C2=5). Settings can switch the pieces either way, and choose a dark or a wooden board.
+- Results and game records are kept in this browser. A save code (Lobby, "Save code") turns them into a piece of text to move to another phone or browser. Save codes from the earlier stand-alone version of this game work too.
+
 ## Build
 
 Each page is one self-contained HTML file that GitHub Pages serves as it is. The sources are next to it, and each build script inlines the fonts, artwork and code.
 
-- Home page: the source is `hub/index.html`. `python3 hub/build.py` writes the root `index.html`. It reuses the fonts, avatars and seal from `poker/src/` and four tile faces from `mahjong/src/tiles.js`.
+- Home page: the source is `hub/index.html`. `python3 hub/build.py` writes the root `index.html`. It reuses the fonts, avatars and seal from `poker/src/`, four tile faces from `mahjong/src/tiles.js`, and the piece font and three figurines from `xiangqi/src/`.
 - Hold'em: the source is in `poker/src/`. `python3 poker/src/build.py` writes `poker/index.html`.
 - Mahjong: the source is in `mahjong/src/`. `python3 mahjong/src/build.py` writes `mahjong/index.html`. It reuses the fonts, PeerJS, avatars and the zoom guard (`nozoom.js`) from `poker/src/`.
+- Xiangqi: the source is in `xiangqi/src/`. `python3 xiangqi/src/build.py` writes `xiangqi/index.html`. The app is `src/app/*.js`, joined in file-name order inside one function. It reuses the fonts, PeerJS, avatars and the zoom guard from `poker/src/`. The Pikafish engine in `xiangqi/pf/` is not inlined: the page fetches it when a player switches it on (`xiangqi/pf/README.md` says how it was built).
+- Xiangqi tests: `node xiangqi/tests/engine.test.js` checks move generation against the known perft counts, and `node xiangqi/dev/i18n-check.js` checks that every string exists in both languages. `xiangqi/dev/` has the Playwright scripts: `solo.js` (a game against the computer by tapping the board, then the result, review and explore screens), `online.js` (two browsers on a local PeerServer: invite link, moves, take-back, draw offer, chat, both sides reconnecting, resignation, rematch with sides swapped, leaving), `pf.js` (Pikafish loads, analyses and plays), `code.js` (save codes, including one in the earlier format), `review.js` and `shot.js` (screenshots), and `makefont.py` (the brush and piece font subsets).
 - Mahjong tests: `node mahjong/tests/engine.test.js` checks the rules and scoring, and `node mahjong/tests/sim.js` plays long bot-only matches.
 - `mahjong/dev/` has the Playwright scripts used to try the game in a headless browser: `play.js` (autoplay screenshots), `human.js` (taps, drags and buttons like a player), `online.js` (four browsers on a local PeerServer, including a dropped connection and a mid-game join), `team.js` (2v2 practice, asking for and answering swaps through the buttons) `online2v2.js` (a 2v2 room in four browsers: choosing a partner, a swap between two people, a dropped partner rejoining) `rules.js` (both void-suit settings, the passed-win notice and the lobby option) `plates.js` (the swaps-left line on the 2v2 name plates, checked against the game state and for overlaps) and `voice.js` (the Sichuan-dialect callouts fire in Chinese mode). It also has the scripts that made the generated files: `maketiles.py` (`mahjong/src/tiles.js`), `makesfx.py` (`mahjong/src/sfx.js`), `makevoice.py` (`mahjong/src/voice_sc.js` from the clips in `dev/voice_sc/`) and `makefont.py` (the brush-font subset). `hub/makefont.py` makes the home page's brush-font subset.
 
@@ -70,6 +86,8 @@ Put it in its own folder at the top of the repo, named after the game (the folde
 - [PeerJS](https://peerjs.com) (MIT) for the peer-to-peer connection.
 - [Fraunces](https://github.com/undercasetype/Fraunces) and [Manrope](https://github.com/sharanda/manrope), SIL Open Font License 1.1 (see `poker/src/fonts/`).
 - [Ma Shan Zheng](https://fonts.google.com/specimen/Ma+Shan+Zheng) for the brush lettering on the mahjong titles and the home page, SIL Open Font License 1.1 (subsets in `mahjong/src/fonts/` and `hub/fonts/`).
+- [Pikafish](https://github.com/official-pikafish/Pikafish) by the Pikafish developers, GNU GPL v3, as the optional xiangqi engine. The WebAssembly build, its licence and the source changes are in `xiangqi/pf/`.
+- [Noto Serif SC](https://fonts.google.com/noto/specimen/Noto+Serif+SC) for the characters on the xiangqi pieces, SIL Open Font License 1.1 (subset in `xiangqi/src/fonts/`, which also holds the game's Ma Shan Zheng subset).
 - Mahjong tile faces: [riichi-mahjong-tiles](https://github.com/FluffyStuff/riichi-mahjong-tiles) by FluffyStuff, public domain (CC0), recoloured slightly. The optimised copies come from the npm package [@johnmorrisdotca/jarajara](https://www.npmjs.com/package/@johnmorrisdotca/jarajara) (MIT, © 2026 John Morris).
 - Mahjong Sichuan-dialect callouts (Chinese mode, menu switch 四川话播报, on by default): generated with the open-source [CosyVoice2-0.5B](https://github.com/FunAudioLLM/CosyVoice) model (Apache 2.0) in its Sichuanese instruct mode.
 - Mahjong table sounds: [Casino Audio](https://kenney.nl/assets/casino-audio) by Kenney, CC0 1.0, in the short cuts shipped with the same jarajara package.

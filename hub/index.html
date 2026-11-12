@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0a0e13">
-<meta name="description" content="Card and tile games to play with friends on your phones: Midnight Hold'em and Sichuan Mahjong. No sign-up, just a room code.">
+<meta name="description" content="Card, tile and board games to play with friends on your phones: Midnight Hold'em, Sichuan Mahjong and Xiangqi (Chinese chess). No sign-up, just a room code.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Games</title>
@@ -149,19 +149,42 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
 .g-mahjong:hover .die.d1{translate:4px -3px;rotate:-14deg}
 .g-mahjong:hover .die.d2{translate:6px 1px;rotate:18deg}
 
+/* ----- Xiangqi: cinnabar lacquer, a corner of the board in gold line, three ivory pieces ----- */
+.g-xiangqi{--glow:rgba(190,60,48,.40);background:linear-gradient(172deg,#6a2026 0%,#3d1218 46%,#1c080c 100%)}
+.g-xiangqi .art::before{background:
+  repeating-linear-gradient(90deg,rgba(232,198,123,.15) 0 1px,transparent 1px 47px) 50% 0,
+  repeating-linear-gradient(0deg,rgba(232,198,123,.15) 0 1px,transparent 1px 47px) 0 23px}
+.g-xiangqi .art .glow{background:radial-gradient(closest-side,rgba(255,214,150,.26),transparent)}
+.xfan{position:absolute;left:50%;top:40px;width:0;height:0}
+.xp{--ps:82px;position:absolute;left:calc(var(--ps)/-2);top:0;width:var(--ps);height:var(--ps);border-radius:50%;display:grid;place-items:center;color:#201a1a;
+  background:radial-gradient(circle at 35% 26%,#fffdf6 0%,#fbf3e2 40%,#efe2c8 78%,#e2d0ad 100%);
+  box-shadow:0 4px 0 #c9b188,0 6.5px 0 #9b8460,0 14px 18px rgba(0,0,0,.5),inset 0 -2px 3px rgba(140,108,58,.2),inset 0 1.5px 1px #fff;
+  transition:rotate .5s cubic-bezier(.2,.8,.2,1),translate .5s cubic-bezier(.2,.8,.2,1)}
+.xp.red{color:#c22a20}
+.xp::before{content:"";position:absolute;inset:7.5%;border-radius:50%;border:3px solid currentColor;opacity:.82}
+.xp span{font:900 44px/1 "HubPiece","Songti SC","STSong","Noto Serif CJK SC",serif;transform:translateY(-1.5%)}
+.xp svg{width:60%;height:60%;display:block}
+.xp.x0{rotate:-13deg;translate:-74px 16px}
+.xp.x1{translate:0 -4px;z-index:2}
+.xp.x2{rotate:12deg;translate:74px 16px}
+.game:active .xp.x0,.g-xiangqi:hover .xp.x0{rotate:-19deg;translate:-84px 18px}
+.game:active .xp.x2,.g-xiangqi:hover .xp.x2{rotate:18deg;translate:84px 18px}
+
 @media (prefers-reduced-motion:no-preference){
-  .pfan,.mfan{animation:float 6s ease-in-out infinite}
+  .pfan,.mfan,.xfan{animation:float 6s ease-in-out infinite}
   .mfan{animation-delay:-3s}
+  .xfan{animation-delay:-1.5s}
   .boot .hero,.boot .game,.boot .more{animation:rise .75s cubic-bezier(.2,.8,.2,1) backwards}
   .boot .game:nth-child(1){animation-delay:.1s}
   .boot .game:nth-child(2){animation-delay:.2s}
   .boot .game:nth-child(3){animation-delay:.3s}
-  .boot .more{animation-delay:.32s}
+  .boot .game:nth-child(4){animation-delay:.4s}
+  .boot .more{animation-delay:.42s}
 }
 @keyframes float{50%{transform:translateY(-5px)}}
 @keyframes rise{from{opacity:0;transform:translateY(18px)}}
 
-.more{display:flex;align-items:center;gap:12px;margin-top:18px;padding:15px 18px;border-radius:20px;border:1.5px dashed rgba(239,232,218,.15);color:var(--mute);font-size:13.5px;font-weight:600}
+.more{display:flex;align-items:center;gap:12px;padding:15px 18px;border-radius:20px;border:1.5px dashed rgba(239,232,218,.15);color:var(--mute);font-size:13.5px;font-weight:600}
 .more svg{flex:none;width:22px;height:22px;color:var(--faint)}
 .foot{margin:26px 6px 0;color:var(--faint);font-size:12.5px;line-height:1.75;text-align:center;text-wrap:balance}
 .foot p{margin:0}
@@ -175,6 +198,17 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
   .list{grid-template-columns:1fr 1fr;gap:22px;margin-top:36px}
   .art{height:206px}
   .hero p{max-width:46ch}
+  /* the "more games" note fills the empty cell beside an odd last card, or takes a row of its own */
+  .list .more:nth-child(odd){grid-column:1/-1}
+  .list .more:nth-child(even){flex-direction:column;justify-content:center;gap:10px;font-size:14.5px}
+  .list .more:nth-child(even) svg{width:30px;height:30px}
+}
+@media (min-width:1180px){
+  .wrap{max-width:1220px}
+  .list{grid-template-columns:repeat(3,1fr)}
+  .list .more:nth-child(n){grid-column:auto;flex-direction:column;justify-content:center;gap:10px;font-size:14.5px}
+  .list .more:nth-child(3n+1){grid-column:1/-1;flex-direction:row;justify-content:flex-start;gap:12px;font-size:13.5px}
+  .list .more:nth-child(3n+2){grid-column:span 2}
 }
 /* phones on their side: a shorter hero so the games show on the first screen */
 @media (max-height:520px) and (min-width:600px){
@@ -202,7 +236,6 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
     <p id="sub"></p>
   </section>
   <section class="list" id="list" aria-label="Games"></section>
-  <div class="more"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#h-more"/></svg><span id="more"></span></div>
   <footer class="foot" id="foot"></footer>
 </main>
 <script>/*@@ART@@*/</script>
@@ -221,6 +254,7 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
   document.body.insertAdjacentHTML('afterbegin', Art.sprite(/*@@SEAL@@*/'') +
     '<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">' +
     /*@@TILES@@*/'' +
+    /*@@XQFIG@@*/'' +
     I('h-people', '<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.4-3.2 2.6-5 5.5-5s5.1 1.8 5.5 5"/><path d="M15.5 5.6a3 3 0 0 1 0 5.8M17.8 14.3c1.6.7 2.6 2.3 2.8 4.7"/>') +
     I('h-online', '<path d="M4.2 9.6a11 11 0 0 1 15.6 0"/><path d="M7.1 12.6a6.8 6.8 0 0 1 9.8 0"/><path d="M10 15.6a2.7 2.7 0 0 1 4 0"/><circle cx="12" cy="18.6" r=".6" fill="currentColor"/>') +
     I('h-bot', '<rect x="5" y="8" width="14" height="11" rx="3.5"/><path d="M12 8V5"/><path d="M9.5 13h.01M14.5 13h.01" stroke-width="2.6"/>') +
@@ -266,6 +300,7 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
   }
 
   const pcard = (cls, rank, suit) => `<div class="pc ${cls}"><span class="r">${rank}</span><svg class="p1" viewBox="0 0 100 100"><use href="#suit-${suit}"/></svg><svg class="p2" viewBox="0 0 100 100"><use href="#suit-${suit}"/></svg></div>`;
+  const xpiece = (cls, ch, fig, zh) => `<div class="xp ${cls}">${zh ? `<span>${ch}</span>` : `<svg viewBox="0 0 24 24"><use href="#xf${fig}"/></svg>`}</div>`;
   const tile = (cls, t) => `<div class="mt ${cls}"><i class="tb"></i><i class="tf">${t == null ? '' : `<svg viewBox="0 0 60 80"><use href="#t${t}"/></svg>`}</i></div>`;
 
   // ----- the games. To add one: give it a folder at the top of the repo, an entry here, and its art below. -----
@@ -286,6 +321,13 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
         `<div class="dice"><div class="die d1">${die(1, 2, 3)}</div><div class="die d2">${die(4, 5, 6)}</div></div>`,
       en: { name: 'Sichuan Mahjong', desc: 'Bloody Battle rules: swap three, pick a void suit, and play on after someone wins. Bots fill any empty seats.', players: '4 players' },
       zh: { name: '四川麻将', desc: '血战到底，换三张，定缺。有人胡了其他人接着打，人不够机器人来凑。', players: '4 人' } },
+    { id: 'xiangqi', href: 'xiangqi/',
+      lock: zh => zh ? `<span class="w"><span class="w1 br">中国象棋</span></span><span class="tseal" aria-hidden="true">楚汉</span>`
+        : `<span class="w"><span class="w1">Xiangqi</span><span class="w2">CHINESE CHESS</span></span>`,
+      // 中文：车、帅、炮三枚棋子；英文页面不放汉字，换成图形棋子
+      art: zh => `<div class="glow"></div><div class="xfan">${xpiece('x0', '車', 4, zh)}${xpiece('red x1', '帥', 0, zh)}${xpiece('red x2', '炮', 5, zh)}</div>`,
+      en: { name: 'Xiangqi (Chinese chess)', desc: 'Chinese chess for two. Play a friend online with a room code, or practise against seven levels of computer, then review the game move by move.', players: '2 players' },
+      zh: { name: '中国象棋', desc: '两个人联机下棋，发个房间码就能开局。也可以跟七档电脑练手，下完还能逐步复盘。', players: '2 人' } },
   ];
 
   const S = {
@@ -323,8 +365,7 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
     $('hd').innerHTML = s.hd.map(l => `<span>${esc(l)}</span>`).join('');
     $('sub').textContent = s.sub;
     $('langLbl').textContent = s.lang;
-    $('list').innerHTML = GAMES.map(card).join('');
-    $('more').textContent = s.more;
+    $('list').innerHTML = GAMES.map(card).join('') + `<div class="more"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#h-more"/></svg><span>${esc(s.more)}</span></div>`;
     $('foot').innerHTML = s.foot.map(l => `<p>${esc(l)}</p>`).join('');
     paintMe();
   }

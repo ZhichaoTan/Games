@@ -1,0 +1,195 @@
+diff --git a/src/Makefile b/src/Makefile
+index 8aaec26..bdc0d9c 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -876,8 +876,18 @@ ifeq ($(lsx),yes)
+ endif
+ 
+ ifeq ($(arch),wasm32)
++ifeq ($(web),yes)
++	# Single-threaded build for a web page: no pthreads (so no SharedArrayBuffer
++	# and no special HTTP headers), one self-contained pikafish.js with the
++	# WebAssembly inside, driven through pf_init() and pf_command() (main.cpp).
++	CXXFLAGS += -DPF_WEB -msimd128 -DUSE_POPCNT -DUSE_SLOPPY_ATOMICS
++	LDFLAGS += -sINITIAL_MEMORY=128MB -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=1GB -sSTACK_SIZE=4MB \
++		-sMODULARIZE -sEXPORT_NAME=Pikafish -sSINGLE_FILE -sENVIRONMENT=web,worker,node \
++		-sEXPORTED_RUNTIME_METHODS=ccall,FS -sFORCE_FILESYSTEM -sEXIT_RUNTIME=0
++else
+ 	CXXFLAGS += -pthread -msimd128 -DUSE_POPCNT -DUSE_SLOPPY_ATOMICS
+ 	LDFLAGS += -pthread -sINITIAL_MEMORY=64MB -sALLOW_MEMORY_GROWTH -sSTACK_SIZE=3MB
++endif
+ 	ifeq ($(relaxedsimd),yes)
+ 		CXXFLAGS += -mrelaxed-simd
+ 	endif
+diff --git a/src/main.cpp b/src/main.cpp
+index 57667d1..10cd4d6 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -28,6 +28,48 @@
+ 
+ using namespace Stockfish;
+ 
++#ifdef PF_WEB
++
++// Web build: no stdin loop. The page calls pf_init() once and then
++// pf_command() with one UCI command line at a time; the engine's replies come
++// back through the Module's print callback. A "go" returns when the search is
++// over (see thread.cpp), so give it a depth, a node count or a move time.
++#include <emscripten/emscripten.h>
++
++namespace {
++std::unique_ptr<UCIEngine> webUci;
++}
++
++extern "C" {
++
++EMSCRIPTEN_KEEPALIVE int pf_init() {
++    if (webUci)
++        return 1;
++
++    std::cout << engine_info() << std::endl;
++
++    Attacks::init();
++    Position::init();
++
++    static char  arg0[] = "pikafish";
++    static char* argv[] = {arg0, nullptr};
++
++    webUci = std::make_unique<UCIEngine>(CommandLine(1, argv));
++    Tune::init(webUci->engine_options());
++    return 1;
++}
++
++EMSCRIPTEN_KEEPALIVE void pf_command(const char* cmd) {
++    if (webUci && cmd)
++        webUci->execute(cmd);
++}
++
++}  // extern "C"
++
++int main() { return 0; }
++
++#else
++
+ #ifdef UNIVERSAL_BINARY
+ namespace Stockfish {
+ 
+@@ -59,3 +101,5 @@ int main(int argc, char* argv[]) {
+ int main(int argc, char* argv[]) { return Stockfish::main(argc, argv); }
+     #endif
+ #endif
++
++#endif  // PF_WEB
+diff --git a/src/thread.cpp b/src/thread.cpp
+index 1f3f813..42bd65a 100644
+--- a/src/thread.cpp
++++ b/src/thread.cpp
+@@ -45,6 +45,48 @@ namespace Stockfish {
+ 
+ // Constructor launches the thread and waits until it goes to sleep
+ // in idle_loop(). Note that 'searching' and 'exit' should be already set.
++#ifdef PF_WEB
++// Web build (single-threaded WebAssembly, no pthreads): there is no native
++// thread. Jobs run at once on the calling thread, so a search has finished
++// by the time start_searching() returns.
++Thread::Thread(Search::SharedState&                   sharedState,
++               std::unique_ptr<Search::SearchManager> sm,
++               usize                                  n,
++               usize                                  numaN,
++               usize                                  totalNumaCount,
++               OptionalThreadToNumaNodeBinder         binder) :
++    idx(n),
++    idxInNuma(numaN),
++    totalNuma(totalNumaCount) {
++
++    searching             = false;
++    this->numaAccessToken = binder();
++    this->worker          = make_unique_large_page<Search::Worker>(
++      sharedState, std::move(sm), n, idxInNuma, totalNuma, this->numaAccessToken);
++}
++
++Thread::~Thread() {}
++
++void Thread::start_searching() {
++    assert(worker != nullptr);
++    worker->start_searching();
++}
++
++void Thread::clear_worker() {
++    assert(worker != nullptr);
++    worker->clear();
++}
++
++void Thread::wait_for_search_finished() {}
++
++void Thread::run_custom_job(std::function<void()> f) { f(); }
++
++void Thread::ensure_network_replicated() { worker->ensure_network_replicated(); }
++
++void Thread::idle_loop() {}
++
++#else
++
+ Thread::Thread(Search::SharedState&                   sharedState,
+                std::unique_ptr<Search::SearchManager> sm,
+                usize                                  n,
+@@ -145,6 +187,8 @@ void Thread::idle_loop() {
+     }
+ }
+ 
++#endif  // PF_WEB
++
+ Search::SearchManager* ThreadPool::main_manager() { return main_thread()->worker->main_manager(); }
+ 
+ u64 ThreadPool::nodes_searched() const { return accumulate(&Search::Worker::nodes); }
+diff --git a/src/uci.cpp b/src/uci.cpp
+index 9fb262c..2d6e3b4 100644
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -104,10 +104,20 @@ void UCIEngine::loop() {
+             && !getline(std::cin, cmd))  // Wait for an input or an end-of-file (EOF) indication
+             cmd = "quit";
+ 
++        token = execute(cmd);
++
++    } while (token != "quit" && cli.argc <= 1);  // The command-line arguments are one-shot
++}
++
++// Runs one UCI command line and returns its first word. loop() calls it for
++// each line of input; the web build calls it once per command (see main.cpp).
++std::string UCIEngine::execute(const std::string& cmd) {
++    std::string token;
++
++    {
+         currentCmd = cmd;
+         std::istringstream is(cmd);
+ 
+-        token.clear();  // Avoid a stale if getline() returns nothing or a blank line
+         is >> token;
+ 
+         if (token == "quit" || token == "stop")
+@@ -185,7 +195,9 @@ void UCIEngine::loop() {
+             sync_cout << "Unknown command: '" << cmd << "'. Type help for more information."
+                       << sync_endl;
+ 
+-    } while (token != "quit" && cli.argc <= 1);  // The command-line arguments are one-shot
++    }
++
++    return token;
+ }
+ 
+ Search::LimitsType UCIEngine::parse_limits(std::istream& is) {
+diff --git a/src/uci.h b/src/uci.h
+index 910fcc9..72e95ba 100644
+--- a/src/uci.h
++++ b/src/uci.h
+@@ -41,7 +41,8 @@ class UCIEngine {
+    public:
+     UCIEngine(CommandLine cli);
+ 
+-    void loop();
++    void        loop();
++    std::string execute(const std::string& cmd);
+ 
+     static int         to_cp(Value v, const Position& pos);
+     static std::string format_score(const Score& s);

@@ -21,7 +21,7 @@ fonts = '\n'.join([
 ])
 app = "(function () {\n'use strict';\n" + '\n'.join(rd(f) for f in sorted(glob.glob(os.path.join(here, 'app', '*.js')))) + '\n})();'
 src = rd(here, 'index.html')
-subs = [('/*@@FONT@@*/', fonts), ('/*@@NOZOOM@@*/', rd(root, 'nozoom.js')), ('/*@@PEERJS@@*/', rd(root, 'peerjs.min.js')), ('/*@@AVATARS@@*/', rd(root, 'art.js')),
+subs = [('/*@@FONT@@*/', fonts), ('/*@@NOZOOM@@*/', rd(root, 'nozoom.js')), ('/*@@PEERJS@@*/', rd(root, 'peerjs.min.js') + '\n' + rd(root, 'keepalive.js')), ('/*@@AVATARS@@*/', rd(root, 'art.js')),
         ('/*@@ENGINE@@*/', rd(here, 'engine.js')), ('/*@@ART@@*/', rd(here, 'art.js')), ('/*@@I18N@@*/', rd(here, 'i18n.js')), ('/*@@APP@@*/', app)]
 for tag, body in subs:
     assert src.count(tag) == 1, tag

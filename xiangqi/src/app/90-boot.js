@@ -36,5 +36,14 @@ const hc = (location.hash || '').replace('#', '').toUpperCase();
 if (/^[A-Z0-9]{4}$/.test(hc)) { setTab('join'); $('joinCode').value = hc; if (myName) setTimeout(() => $('btnJoin').click(), 200); }
 else setTab(['join', 'host', 'solo'].includes(DB.settings.tab) ? DB.settings.tab : 'solo');
 show('lobby');
+// the browser dropped this page in the background and loaded it again: go straight back into the room
+(function () {
+  const live = KeepAlive.marked('xq_live');
+  if (!live || !myName || /^[A-Z0-9]{4}$/.test(hc)) return;
+  const hs = store.get('xq_host'), cs = store.get('xq_client');
+  if (live.kind == 'host' && hs && hs.room && Date.now() - (hs.at || 0) < 12 * 3600e3) startHost({ restore: hs });
+  else if (live.kind == 'client' && cs && cs.code == live.code) startClient(cs.code);
+  else KeepAlive.mark('xq_live', null);
+})();
 // for tests and screenshots
 W.XQAPP = { G, R, X, DB, E, PF, Eng, store, gb, rb, xb, get S() { return S; }, startGame, openReview, notation };

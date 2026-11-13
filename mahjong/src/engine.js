@@ -558,7 +558,7 @@
     actTSBack(s) {
       const R = this.R, O = R.offer;
       if (!R || R.phase !== 'play' || R.stage !== 'offer' || !O || O.from !== s) return 'no';
-      R.offer = null; R.stage = 'discard'; R.tsUsed = s;
+      R.offer = null; R.stage = 'discard';   // 自己撤回的不算问过，这回合还能再问（Zhichao 2026-11-13）
       this.emit('tswap', { s, to: O.to, give: O.give, take: O.take, ok: false, back: true });
       return 'ok';
     }

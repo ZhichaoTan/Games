@@ -313,6 +313,7 @@
     let banterN = tb.T.evn, banterAt = 0;
     function banter() {
       const R = tb.T.R; if (!R || !started) return;
+      if (tb.T.evn < banterN) banterN = 0;
       const evs = R.ev.filter(e => e.n > banterN); banterN = tb.T.evn;
       const hu = evs.find(e => e.k === 'hu'); if (!hu || Date.now() - banterAt < 6000) return;
       const bots = [0, 1, 2, 3].filter(x => tb.T.seats[x] && tb.T.seats[x].bot);
@@ -413,6 +414,7 @@
       const old = tb.T;
       const N = new MJ.Table({ rules: old.rules });
       N.seats = old.seats.map(p => p && Object.assign({}, p, { score: 0 }));
+      N.evn = old.evn;   // 事件编号接着上一场往下数，不然大家的界面会把新一场的事件当成旧的，特效和声音都没了
       tb.T = N; ready.fill(false); timeouts.fill(0);
       N.startRound();
       changed();

@@ -21,6 +21,11 @@
     'font:700 14px/1.2 -apple-system,system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.12);white-space:nowrap}';
   (document.head || root).appendChild(st);
   var zoomed = function () { return !!vv && vv.scale > 1.02; };
+  // The note only shows for a real, visible zoom on a touch screen: a slightly-off scale that iOS can leave behind after the
+  // keyboard or a rotation (Zhichao saw the note at normal size, 2026-11-13), a desktop trackpad pinch, or a focused text field don't count.
+  var touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  var typing = function () { var a = document.activeElement; return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); };
+  var bigZoom = function () { return zoomed() && vv.scale > 1.12 && vv.width < innerWidth * 0.9 && touch && !typing(); };
   var block = function (e) { if (!zoomed() && e.cancelable) e.preventDefault(); };
   document.addEventListener('gesturestart', block, { passive: false });
   document.addEventListener('gesturechange', block, { passive: false });
@@ -46,7 +51,7 @@
       }
       hint.firstChild.textContent = /^zh/.test(root.lang) ? '双指捏合，缩回原来大小' : 'Pinch with two fingers to zoom back out';
       place();
-      timer = setTimeout(function () { if (zoomed()) hint.classList.add('on'); }, 700);
+      timer = setTimeout(function () { if (bigZoom()) { place(); hint.classList.add('on'); } }, 1500);
     } else if (hint) hint.classList.remove('on');
   };
   vv.addEventListener('resize', sync);
@@ -1739,7 +1744,7 @@ var KeepAlive = (function () {
     actTSBack(s) {
       const R = this.R, O = R.offer;
       if (!R || R.phase !== 'play' || R.stage !== 'offer' || !O || O.from !== s) return 'no';
-      R.offer = null; R.stage = 'discard'; R.tsUsed = s;
+      R.offer = null; R.stage = 'discard';   // 自己撤回的不算问过，这回合还能再问（Zhichao 2026-11-13）
       this.emit('tswap', { s, to: O.to, give: O.give, take: O.take, ok: false, back: true });
       return 'ok';
     }
@@ -3285,7 +3290,7 @@ window.MJ_VOICE_CHAT = {"en0f":"SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAA
           if (R.lastDiscard && R.lastDiscard.id === id && i === rv.length - 1) cls += ' last';
           if (id === dropId && Date.now() < dropUntil) cls += ' drop';
           if (R.claimTile && R.claimTile.id === id) cls += ' hl';
-          put(String(id), TY(id), { x: q.x, y: q.y, k: g.rk, r: q.r, pose: 'flat', o: q.o, z: 5 + (rel === 2 ? 30 - Math.floor(i / g.pt) : rel === 0 ? Math.floor(i / g.pt) : 0), cls });
+          put(String(id), TY(id), { x: q.x, y: q.y, k: g.rk, r: q.r, pose: 'flat', o: q.o, z: 5 + (rel === 2 ? 30 - Math.floor(i / g.pt) : rel === 0 ? Math.floor(i / g.pt) : rel === 3 ? i % g.ps : g.ps - i % g.ps), cls });   // 两边：靠下的牌压住上面那张的厚边，左右才对称
         });
       }
       // 换三张：选好的三张扣在面前
@@ -4263,6 +4268,8 @@ window.MJ_VOICE_CHAT = {"en0f":"SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAA
       const R = v.R;
       if (!R) { clearTiles(); renderPlates && Gm && renderPlates(); return; }
       const rk = R.no + ':' + me;
+      // 换了一张新牌桌（再来一场、换房间）事件编号会从头数：跟着从头数，不然这一场的特效全被当成看过的
+      if (nv.evn != null && nv.evn < lastEv) lastEv = (R.ev && R.ev.length) ? Math.max(0, R.ev[0].n - 1) : 0;
       const evs = (R.ev || []).filter(e => e.n > lastEv);
       const gap = evs.length && evs[0].n > lastEv + 1 && lastEv > 0;
       if (rk !== roundKey) {
@@ -4786,6 +4793,7 @@ window.MJ_VOICE_CHAT = {"en0f":"SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAA
     let banterN = tb.T.evn, banterAt = 0;
     function banter() {
       const R = tb.T.R; if (!R || !started) return;
+      if (tb.T.evn < banterN) banterN = 0;
       const evs = R.ev.filter(e => e.n > banterN); banterN = tb.T.evn;
       const hu = evs.find(e => e.k === 'hu'); if (!hu || Date.now() - banterAt < 6000) return;
       const bots = [0, 1, 2, 3].filter(x => tb.T.seats[x] && tb.T.seats[x].bot);
@@ -4886,6 +4894,7 @@ window.MJ_VOICE_CHAT = {"en0f":"SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAA
       const old = tb.T;
       const N = new MJ.Table({ rules: old.rules });
       N.seats = old.seats.map(p => p && Object.assign({}, p, { score: 0 }));
+      N.evn = old.evn;   // 事件编号接着上一场往下数，不然大家的界面会把新一场的事件当成旧的，特效和声音都没了
       tb.T = N; ready.fill(false); timeouts.fill(0);
       N.startRound();
       changed();

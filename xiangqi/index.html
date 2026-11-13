@@ -22,6 +22,11 @@
     'font:700 14px/1.2 -apple-system,system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.12);white-space:nowrap}';
   (document.head || root).appendChild(st);
   var zoomed = function () { return !!vv && vv.scale > 1.02; };
+  // The note only shows for a real, visible zoom on a touch screen: a slightly-off scale that iOS can leave behind after the
+  // keyboard or a rotation (Zhichao saw the note at normal size, 2026-11-13), a desktop trackpad pinch, or a focused text field don't count.
+  var touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  var typing = function () { var a = document.activeElement; return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); };
+  var bigZoom = function () { return zoomed() && vv.scale > 1.12 && vv.width < innerWidth * 0.9 && touch && !typing(); };
   var block = function (e) { if (!zoomed() && e.cancelable) e.preventDefault(); };
   document.addEventListener('gesturestart', block, { passive: false });
   document.addEventListener('gesturechange', block, { passive: false });
@@ -47,7 +52,7 @@
       }
       hint.firstChild.textContent = /^zh/.test(root.lang) ? '双指捏合，缩回原来大小' : 'Pinch with two fingers to zoom back out';
       place();
-      timer = setTimeout(function () { if (zoomed()) hint.classList.add('on'); }, 700);
+      timer = setTimeout(function () { if (bigZoom()) { place(); hint.classList.add('on'); } }, 1500);
     } else if (hint) hint.classList.remove('on');
   };
   vv.addEventListener('resize', sync);
@@ -817,6 +822,7 @@ table.cnt td:first-child{text-align:left}
 //   It has to start from a tap; if the browser refuses, it tries again on the next tap.
 // - onResume(fn): fn({ away, frozen }) when the page comes back. away = ms it was hidden, frozen = longest stretch its timers were stopped.
 // - lost(): total ms the page spent frozen, so turn clocks don't charge a player for time the host was away.
+// - now() / later(fn, ms): a clock and a timer that stand still while the page is frozen.
 // - token(id): a PeerJS token kept per peer id, so a reloaded or rebuilt host page takes its room id straight back from the server.
 // - mark(role) / marked(): a sessionStorage note that this tab is hosting or in a room, so a page the browser discarded reopens the room by itself.
 var KeepAlive = (function () {
@@ -872,6 +878,14 @@ var KeepAlive = (function () {
     release() { want = false; try { audio && audio.pause(); } catch (e) {} try { if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; } } catch (e) {} },
     get holding() { return want && !!audio && !audio.paused; },
     onResume(f) { cbs.push(f); },
+    // a clock and a setTimeout that stand still while the page is frozen (a turn timer shouldn't run out because the host was away)
+    now() { return Date.now() - this.lost(); },
+    later(fn, ms) {
+      const due = this.now() + ms, h = { id: 0, cancel() { clearTimeout(h.id); h.id = -1; } };
+      const go = () => { if (h.id === -1) return; const r = due - KeepAlive.now(); if (r > 20) h.id = setTimeout(go, r); else fn(); };
+      h.id = setTimeout(go, ms);
+      return h;
+    },
     // total ms this page has spent frozen (counting a freeze that just ended but hasn't been noticed yet): turn clocks leave it out
     lost() { const g = Date.now() - last; return lostSum + (g > 3000 ? g - 1000 : 0); },
     token(id) {

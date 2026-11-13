@@ -26,6 +26,11 @@
     'font:700 14px/1.2 -apple-system,system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.12);white-space:nowrap}';
   (document.head || root).appendChild(st);
   var zoomed = function () { return !!vv && vv.scale > 1.02; };
+  // The note only shows for a real, visible zoom on a touch screen: a slightly-off scale that iOS can leave behind after the
+  // keyboard or a rotation (Zhichao saw the note at normal size, 2026-11-13), a desktop trackpad pinch, or a focused text field don't count.
+  var touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  var typing = function () { var a = document.activeElement; return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); };
+  var bigZoom = function () { return zoomed() && vv.scale > 1.12 && vv.width < innerWidth * 0.9 && touch && !typing(); };
   var block = function (e) { if (!zoomed() && e.cancelable) e.preventDefault(); };
   document.addEventListener('gesturestart', block, { passive: false });
   document.addEventListener('gesturechange', block, { passive: false });
@@ -51,7 +56,7 @@
       }
       hint.firstChild.textContent = /^zh/.test(root.lang) ? '双指捏合，缩回原来大小' : 'Pinch with two fingers to zoom back out';
       place();
-      timer = setTimeout(function () { if (zoomed()) hint.classList.add('on'); }, 700);
+      timer = setTimeout(function () { if (bigZoom()) { place(); hint.classList.add('on'); } }, 1500);
     } else if (hint) hint.classList.remove('on');
   };
   vv.addEventListener('resize', sync);

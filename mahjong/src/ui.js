@@ -236,7 +236,7 @@
           if (R.lastDiscard && R.lastDiscard.id === id && i === rv.length - 1) cls += ' last';
           if (id === dropId && Date.now() < dropUntil) cls += ' drop';
           if (R.claimTile && R.claimTile.id === id) cls += ' hl';
-          put(String(id), TY(id), { x: q.x, y: q.y, k: g.rk, r: q.r, pose: 'flat', o: q.o, z: 5 + (rel === 2 ? 30 - Math.floor(i / g.pt) : rel === 0 ? Math.floor(i / g.pt) : 0), cls });
+          put(String(id), TY(id), { x: q.x, y: q.y, k: g.rk, r: q.r, pose: 'flat', o: q.o, z: 5 + (rel === 2 ? 30 - Math.floor(i / g.pt) : rel === 0 ? Math.floor(i / g.pt) : rel === 3 ? i % g.ps : g.ps - i % g.ps), cls });   // 两边：靠下的牌压住上面那张的厚边，左右才对称
         });
       }
       // 换三张：选好的三张扣在面前
@@ -1214,6 +1214,8 @@
       const R = v.R;
       if (!R) { clearTiles(); renderPlates && Gm && renderPlates(); return; }
       const rk = R.no + ':' + me;
+      // 换了一张新牌桌（再来一场、换房间）事件编号会从头数：跟着从头数，不然这一场的特效全被当成看过的
+      if (nv.evn != null && nv.evn < lastEv) lastEv = (R.ev && R.ev.length) ? Math.max(0, R.ev[0].n - 1) : 0;
       const evs = (R.ev || []).filter(e => e.n > lastEv);
       const gap = evs.length && evs[0].n > lastEv + 1 && lastEv > 0;
       if (rk !== roundKey) {

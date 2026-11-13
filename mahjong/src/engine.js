@@ -464,12 +464,22 @@
       if (o.ts) o.tsLeft = R.tsLeft[s];
       if (!R.canSelf) return o;
       const c = counts(R.hands[s]);
-      if (!o.que && isHu(c, R.melds[s].length, R.que[s])) o.hu = true;
+      if (!o.que && isHu(c, R.melds[s].length, R.que[s])) { o.hu = true; o.payers = this.winPayers(s, true); o.dg = this.isDgPao(s, true); }
       if (R.wall.length > 0) {
         for (let t = 0; t < 27; t++) if (c[t] === 4 && SU(t) !== R.que[s]) o.an.push(t);
         for (const m of R.melds[s]) if (m.k === 'peng' && c[m.t] >= 1) o.bu.push(m.t);
       }
       return o;
+    }
+    // 点杠花算点炮：直杠补上来的牌自摸，只有放杠的人给
+    isDgPao(s, zimo) {
+      const R = this.R;
+      return !!(zimo && R.afterKong === s && R.lastKong && R.lastKong.kind === 'ming' && this.rules.dgh === 'pao' && !R.hu[R.lastKong.from] && this.foes(R.lastKong.from, s));
+    }
+    // 这把胡了谁给钱（给界面提前画出来）
+    winPayers(s, zimo, from) {
+      if (this.isDgPao(s, zimo)) return [this.R.lastKong.from];
+      return zimo ? this.active().filter(p => this.foes(p, s)) : [from];
     }
     actZimo(s) {
       const o = this.selfOpts(s); if (!o || !o.hu) return 'no';
@@ -582,7 +592,7 @@
         di: zimo && s !== R.dealer && !R.firstDone[s] && R.claims === 0,
       };
       // 点杠花算点炮：直杠补上来的牌自摸，只有放杠的人给，按点炮算（不加自摸）
-      const dgPao = ctx.gangHua && R.lastKong && R.lastKong.kind === 'ming' && rules.dgh === 'pao' && !R.hu[R.lastKong.from] && this.foes(R.lastKong.from, s);
+      const dgPao = this.isDgPao(s, zimo);
       const f = calcFan(conc, R.melds[s], dgPao ? Object.assign({}, ctx, { zimo: false }) : ctx, rules);
       const base = rules.base;
       let amt = base * Math.pow(2, f.fan);
@@ -678,7 +688,7 @@
       if (R.stage === 'discard' && R.turn === s) return Object.assign({ k: 'turn' }, this.selfOpts(s));
       if (R.stage === 'offer' && R.offer && R.offer.to === s) return { k: 'offer', from: R.offer.from, give: R.offer.give, take: R.offer.take };
       if (R.stage === 'claim' && R.claim && R.claim.opts[s] && !R.claim.resp[s] && this.pending().includes(s))
-        return Object.assign({ k: 'claim', id: R.claim.id, t: R.claim.t, kind: R.claim.kind }, R.claim.opts[s]);
+        return Object.assign({ k: 'claim', id: R.claim.id, t: R.claim.t, kind: R.claim.kind, from: R.claim.from }, R.claim.opts[s]);
       return null;
     }
     // ----- 给某个座位看的画面（藏住别人的手牌） -----

@@ -604,7 +604,8 @@ en: {
   invite:'Join my poker table — room {c}\n{u}',
   connecting:'Finding the table', connectingSub:'Connecting to the host…',
   hostGone:'The host stepped away', hostGoneSub:'We’ll reconnect as soon as they’re back.',
-  notFound:'No table with that code', notFoundSub:'Check the code, or ask the host to open the table first.',
+  notFound:'Can’t reach that table yet', notFoundSub:'If the host just switched apps, you’ll get in as soon as they’re back. Otherwise check the code.',
+  kaTitle:'Hold’em table {c} is open', kaTip:'Your table stays open if you switch apps. In Safari or Chrome, not inside WeChat.',
   netBad:'Connection hiccup', netBadSub:'Reconnecting…', slow:'Taking a while', slowSub:'Trying again…',
   kicked:'You were removed from the table', full:'This table is full — nine seats max.', locked:'The host has locked this table.', cant:'You can’t do that right now.',
   reclaim:'Reopening your table', reclaimSub:'The room code is still being released. One moment…', idTaken:'That room code is busy', idTakenSub:'Go back and open a new table.',
@@ -677,7 +678,8 @@ zh: {
   invite:'来打德州！房间码 {c}\n{u}',
   connecting:'正在找牌桌', connectingSub:'正在连接房主…',
   hostGone:'房主暂时离开了', hostGoneSub:'房主一回来就会自动重连。',
-  notFound:'找不到这个牌桌', notFoundSub:'检查一下房间码，或者让房主先开桌。',
+  notFound:'暂时连不上这个牌桌', notFoundSub:'如果房主刚切出去，房主一回来就会自动进桌；不然请检查房间码。',
+  kaTitle:'德州牌桌 {c} 开着', kaTip:'切到别的应用，牌桌也会一直开着（请用 Safari 或 Chrome，微信里不行）。',
   netBad:'网络不太稳定', netBadSub:'正在重连…', slow:'连接有点慢', slowSub:'正在重试…',
   kicked:'你被房主请出了牌桌', full:'这桌已经坐满了（最多 9 人）。', locked:'房主已经锁桌，暂时不能加入。', cant:'现在不能这样操作。',
   reclaim:'正在恢复牌桌', reclaimSub:'房间码还没释放，稍等几秒…', idTaken:'房间码被占用', idTakenSub:'请回到大厅重新开一桌。',
@@ -746,7 +748,7 @@ const fmt = n => { n = Math.round(n || 0); return Math.abs(n) >= 1e6 ? (n/1e6).t
 // 名牌上的简写：1,500 → 1.5k / 1.5千，12,000 → 12k / 1.2万
 const short = n => { const r = x => String(Math.round(x * 10) / 10); return lang === 'zh' ? (n >= 1e4 ? r(n / 1e4) + '万' : n >= 1e3 ? r(n / 1e3) + '千' : String(n)) : (n >= 1e6 ? r(n / 1e6) + 'M' : n >= 1e3 ? r(n / 1e3) + 'k' : String(n)); };
 const signed = n => (n > 0 ? '+' : n < 0 ? '−' : '') + fmt(Math.abs(n));
-function goLobby(){ try { history.replaceState(null, '', location.pathname + location.search); } catch(e){} location.reload(); }
+function goLobby(){ KeepAlive.mark('pk_live', null); try { history.replaceState(null, '', location.pathname + location.search); } catch(e){} location.reload(); }
 const EMOS = ['😂','😭','😡','😎','🤔','👍','🙏','💰','🔥','😱','🤡','🥳'];
 
 // ============================== 素材 ==============================
@@ -1038,7 +1040,8 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', 
 // ============================== 房主 ==============================
 function startHost(cfg){
   S.mode = 'host'; S.code = cfg.code; S.myId = 'host'; S.solo = !!cfg.solo;
-  const game = new P.Game({ settings: cfg.settings, onChange: () => queueSync() });
+  // 计时用一个房主页面被冻住时不走的钟：房主切到后台再回来，轮到的人不会因此被超时弃牌
+  const game = new P.Game({ settings: cfg.settings, onChange: () => queueSync(), now: () => KeepAlive.now(), schedule: (fn, ms) => KeepAlive.later(fn, ms) });
   const conns = new Map(), seen = new Map();
   let peer = null, syncQueued = false, locked = false;
 
@@ -1071,7 +1074,7 @@ function startHost(cfg){
   // 机器人输光自己补码，头上冒个 💰
   game.onBotRebuy = p => setTimeout(() => broadcastEmote(p.seat, 'e7'), 300);
 
-  const saveData = () => ({ code: S.code, settings: game.settings, handNum: game.handNum, dealerSeat: game.dealerSeat, savedAt: Date.now(),
+  const saveData = () => ({ code: S.code, started: !!game.started, settings: game.settings, handNum: game.handNum, dealerSeat: game.dealerSeat, savedAt: Date.now(),
     players: game.players.filter(p => !p.leaving).map(p => ({ id: p.id, name: p.name, isBot: p.isBot, iq: p.iq, token: p.token, avatar: p.avatar, seat: p.seat, chips: p.chips, rebuys: p.rebuys, loan: p.loan, buyin: p.buyin })) });
   const standings = () => game.players.filter(p => !p.leaving).sort((a, b) => a.seat - b.seat).map(p => ({ id: p.id, n: p.name, c: p.chips, b: p.buyin, l: p.loan, r: p.rebuys, bot: p.isBot ? 1 : 0, av: p.avatar, iq: p.iq }));
   function save(){
@@ -1085,8 +1088,11 @@ function startHost(cfg){
     for (const [pid, c] of conns) if (c.open) { try { c.send({ t: 'state', v: game.view(pid) }); } catch(e){} }
     save();
   }
+  let hbAt = Date.now();
   setInterval(() => {
     const now = Date.now();
+    if (now - hbAt > 6000) { for (const pid of seen.keys()) seen.set(pid, now); }   // 页面刚被冻住过：先别把客人判成掉线
+    hbAt = now;
     for (const [pid, ts] of seen) {
       const p = game.byId(pid);
       if (p && p.connected && now - ts > 15000) { game.setConnected(pid, false); const c = conns.get(pid); if (c) try { c.close(); } catch(e){} conns.delete(pid); }
@@ -1099,14 +1105,14 @@ function startHost(cfg){
   S.rebuy = a => { if (game.rebuy('host', a)) seatRebuy(game.byId('host').chips); };
   S.repay = () => { const a = game.repay('host'); if (a) seatRepay(a, game.byId('host').chips); else toast(t('repayWait')); };
   S.leave = () => {
-    S.closing = true;
+    S.closing = true; KeepAlive.release(); KeepAlive.mark('pk_live', null);
     const me = game.byId('host');
     if (Wal.seat && Wal.seat.code === S.code) { Wal.seat.chips = me ? me.chips : 0; seatSettle(); }
     if (!S.solo) zeroHostSave(S.code);
   };
   // 保存进度：正在打的这一手作废（下的注退回），存下每人的筹码、借款和庄家位置，告诉大家这局存好了，然后收桌
   S.saveLater = () => {
-    S.closing = true; game.started = false; game.voidHand();
+    S.closing = true; KeepAlive.release(); KeepAlive.mark('pk_live', null); game.started = false; game.voidHand();
     const at = Date.now(), snap = standings(), me = game.byId('host');
     store.set('saved', Object.assign(saveData(), { savedAt: at })); store.set('hostsave', null);
     parkSeat({ code: S.code, chips: me ? me.chips : 0, paid: Wal.seat && Wal.seat.code === S.code ? Wal.seat.paid : !Wal.inf, kind: 'host', at, snap });
@@ -1116,7 +1122,7 @@ function startHost(cfg){
   };
   // 结束牌局：这一手作废，每人的筹码换回积分，大家看到最终战绩
   S.endGame = () => {
-    S.closing = true; S.ended = true; game.started = false; game.voidHand();
+    S.closing = true; KeepAlive.release(); KeepAlive.mark('pk_live', null); S.ended = true; game.started = false; game.voidHand();
     const snap = standings(), me = game.byId('host');
     for (const [pid, c] of conns) if (c.open) { const p = game.byId(pid); try { c.send({ t: 'ended', chips: p ? p.chips : 0, snap }); } catch(e){} }
     let got = 0;
@@ -1139,7 +1145,7 @@ function startHost(cfg){
     setIq(pid, iq){ game.setIq(pid, iq); },
     setPace(k){ game.setPace(k); },
     kick(pid){ const c = conns.get(pid), p = game.byId(pid); if (c) { try { c.send({ t: 'kicked', chips: p ? p.chips : 0 }); } catch(e){} setTimeout(() => { try { c.close(); } catch(e){} }, 300); conns.delete(pid); } game.removePlayer(pid); },
-    togglePause(){ game.setPaused(!game.paused); },
+    togglePause(){ clearInterval(holdT); game.setPaused(!game.paused); },
     toggleLock(){ locked = !locked; toast(t(locked ? 'lockedT' : 'unlockedT'), 3200); },
     start(){ game.start(); },
   };
@@ -1182,25 +1188,51 @@ function startHost(cfg){
     else if (msg.t === 'leave') { conns.delete(pid); game.removePlayer(pid); try { conn.send({ t: 'bye' }); } catch(e){} }
   }
   let tries = 0;
+  let opened = false;
   function openPeer(){
-    peer = new Peer(PREFIX + S.code, peerOpts());
-    peer.on('open', () => { tries = 0; setNet(true); if (!cfg.players) toast(t('opened', { c: S.code }), 3600); });
-    peer.on('connection', conn => {
+    if (S.closing) return;
+    const pr = peer = new Peer(PREFIX + S.code, peerOpts(KeepAlive.token(PREFIX + S.code)));
+    pr.on('open', () => { if (pr !== peer) return; tries = 0; setNet(true); if (!opened) { opened = true; toast(t(cfg.players ? 'kaTip' : 'opened', { c: S.code }), 3600); if (!cfg.players) setTimeout(() => toast(t('kaTip'), 4200), 3800); } });
+    pr.on('connection', conn => {
       conn.on('data', m => onData(conn, m));
       conn.on('close', () => { const pid = conn._pid; if (pid && conns.get(pid) === conn) { conns.delete(pid); game.setConnected(pid, false); } });
       conn.on('error', () => {});
     });
-    peer.on('disconnected', () => { setNet(false, 'netBad'); setTimeout(() => { if (peer && !peer.destroyed) { try { peer.reconnect(); } catch(e){} } }, 1500); });
-    peer.on('error', err => {
+    pr.on('disconnected', () => { if (pr !== peer || S.closing) return; setNet(false, 'netBad'); setTimeout(() => { if (pr === peer && !pr.destroyed && pr.disconnected) { try { pr.reconnect(); } catch(e){} } }, 1500); });
+    pr.on('error', err => {
+      if (pr !== peer || S.closing) return;
       if (err.type === 'unavailable-id') {
-        if (++tries < 15) { setNet(false, 'reclaim'); peer.destroy(); setTimeout(openPeer, 3000); }
+        if (++tries < 30) { setNet(false, 'reclaim'); peer.destroy(); setTimeout(openPeer, 3000); }
         else setNet(false, 'idTaken');
       } else if (['network','server-error','socket-error','socket-closed'].includes(err.type)) {
         setNet(false, 'netBad'); setTimeout(() => { if (peer.destroyed) openPeer(); else if (peer.disconnected) try { peer.reconnect(); } catch(e){} }, 3000);
       }
     });
   }
-  if (!S.solo) { setNet(false, 'connecting'); openPeer(); }
+  // 房主刚从后台回来（或页面被重新载入）：牌桌先停住，等之前的朋友连回来（最多 20 秒），免得有人因为房主不在被超时弃牌
+  let holdT = 0;
+  function holdFor(then){
+    clearInterval(holdT);
+    const ids = game.players.filter(p => !p.isBot && p.id !== 'host' && !p.leaving).map(p => p.id), t0 = Date.now();
+    holdT = setInterval(() => {
+      if (S.closing) { clearInterval(holdT); return; }
+      const el = Date.now() - t0;
+      if (el < 2500) return;
+      if (el > 20000 || ids.every(id => { const p = game.byId(id); return !p || p.connected; })) { clearInterval(holdT); then(); }
+    }, 500);
+  }
+  if (cfg.auto && cfg.started) holdFor(() => { if (!S.closing) game.start(); });
+  // 房主切到后台再回来：信令断了就重连（同一个 token 拿回同一个房间号），客人的心跳计时重新算
+  if (!S.solo) KeepAlive.onResume(info => {
+    if (S.closing) return;
+    if (info.frozen > 5000 && game.started && !game.paused) { game.setPaused(true); holdFor(() => { if (game.paused) game.setPaused(false); }); }
+    const now = Date.now();
+    for (const pid of seen.keys()) seen.set(pid, Math.max(seen.get(pid), now - 4000));
+    if (info.away < 3000 && !info.online) return;
+    if (info.frozen > 20000 || !peer || peer.destroyed) { try { peer && peer.destroy(); } catch(e){} openPeer(); }
+    else if (!KeepAlive.live(peer)) { if (peer.disconnected) { try { peer.reconnect(); } catch(e){} } else { try { peer.destroy(); } catch(e){} openPeer(); } }
+  });
+  if (!S.solo) { setNet(false, 'connecting'); KeepAlive.mark('pk_live', { kind: 'host', code: S.code }); KeepAlive.hold(t('kaTitle', { c: S.code })); openPeer(); }
   else { const nb = Math.max(1, Math.min(8, +qs.get('bots') || optOpp())); soloPlan(nb, optIq()).forEach(iq => hostApi.addBot(iq)); game.start(); }
   enterGame();
   sync();
@@ -1214,8 +1246,9 @@ const ICE = [
   { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
   { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp', 'turns:openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' },
 ];
-function peerOpts(){
+function peerOpts(tok){
   const o = { config: { iceServers: ICE, iceCandidatePoolSize: 4 }, debug: 1 };
+  if (tok) o.token = tok;   // 房主固定 token：页面重开或重建连接时马上拿回同一个房间号
   const ph = qs.get('ph');
   if (ph) { const [h, p] = ph.split(':'); Object.assign(o, { host: h, port: +p || 9000, path: '/', secure: false, config: { iceServers: [] } }); }
   return o;
@@ -1225,6 +1258,7 @@ function peerOpts(){
 const cleanSnap = a => Array.isArray(a) ? a.slice(0, 9).map(x => ({ id: String(x.id || ''), n: String(x.n || '').slice(0, 10), c: Math.max(0, x.c | 0), b: Math.max(0, x.b | 0), l: Math.max(0, x.l | 0), r: Math.max(0, x.r | 0), bot: x.bot ? 1 : 0, av: Math.max(0, Math.min(ART.AVATARS.length - 1, x.av | 0)), iq: IQS.includes(x.iq) ? x.iq : 100 })) : null;
 function startClient(code, park){
   S.mode = 'client'; S.code = code;
+  KeepAlive.mark('pk_live', { kind: 'client', code });
   let peer = null, conn = null, lastMsg = 0, everConnected = false, dead = false, retryT = 0, fails = 0;
   S.online = () => !!(conn && conn.open && everConnected && !dead);
   setNet(false, 'connecting');
@@ -1235,7 +1269,7 @@ function startClient(code, park){
   S.rebuy = a => send({ t: 'rebuy', a });
   S.repay = () => send({ t: 'repay' });
   S.leave = () => {
-    dead = true;
+    dead = true; KeepAlive.mark('pk_live', null);
     // 连不上房主（牌局存起来了、房主掉线了）：座位留着，回首页还能回到牌桌或者换回积分
     if (!conn || !conn.open || !everConnected) {
       if (park && !everConnected && Wal.seat && Wal.seat.code === code) { Wal.parked = park; Wal.seat = null; wSave(); }
@@ -2352,7 +2386,17 @@ function gameMM(){
 
 window.addEventListener('resize', () => { if (!$('game').hidden) { layout(); render(true); } });
 window.addEventListener('beforeunload', e => { if (S.mode === 'host' && !S.solo && !S.closing && S.view && S.view.players.length > 1) { e.preventDefault(); e.returnValue = ''; } });
+window.PKAPP = { get S(){ return S; }, get hostApi(){ return hostApi; } };   // 测试用
 applyLang();
+// 浏览器在后台把页面丢掉、回来时重新载入：自动回到原来的牌桌
+(function(){
+  const live = KeepAlive.marked('pk_live');
+  if (!live || !myName || S.mode) return;
+  const sv = store.get('hostsave');
+  if (live.kind === 'host' && sv && sv.code === live.code && Date.now() - sv.savedAt < 12 * 3600e3 && prepSeat(sv.code, true)) startHost(Object.assign({}, sv, { auto: true }));
+  else if (live.kind === 'client' && Wal.seat && Wal.seat.code === live.code) startClient(live.code);
+  else KeepAlive.mark('pk_live', null);
+})();
 })();
 </script>
 </body>

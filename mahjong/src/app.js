@@ -20,8 +20,9 @@
     { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
     { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp', 'turns:openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' },
   ];
-  function peerOpts() {
+  function peerOpts(tok) {
     const o = { config: { iceServers: ICE, iceCandidatePoolSize: 4 }, debug: 1 };
+    if (tok) o.token = tok;   // 房主固定 token：页面重开或重建连接时能马上拿回同一个房间号
     const ph = qs.get('ph');
     if (ph) { const [h, p] = ph.split(':'); Object.assign(o, { host: h, port: +p || 9000, path: '/', secure: false, config: { iceServers: [] } }); }
     return o;
@@ -272,7 +273,7 @@
       let clock = null;
       if (R && R.phase !== 'end' && !paused) {
         const ps = tb.T.pending().filter(x => deadline[x] && !tb.T.seats[x].bot);
-        if (ps.length) clock = { seats: ps, left: Math.max(0, Math.max(...ps.map(x => deadline[x])) - Date.now()) };
+        if (ps.length) clock = { seats: ps, left: Math.max(0, Math.max(...ps.map(x => deadline[x])) - KeepAlive.now()) };
       }
       return { code, solo, started, paused, ready: ready.slice(), auto: autoStartAt ? Math.max(0, autoStartAt - Date.now()) : 0, clock, host: 0, me: s };
     }
@@ -288,7 +289,7 @@
     function save() {
       clearTimeout(saveT);
       saveT = setTimeout(() => {
-        if (closing || !started) return;
+        if (closing || (solo && !started)) return;
         const data = { code, T: tb.T.toJSON(), at: Date.now(), started };
         if (tb.T.over && tb.T.R && tb.T.R.phase === 'end') { store.set(solo ? 'mj_solo' : 'mj_host', null); return; }
         store.set(solo ? 'mj_solo' : 'mj_host', data);
@@ -307,7 +308,7 @@
       if (R.hu[0]) k *= 0.75;
       return (base[0] + Math.random() * (base[1] - base[0])) * k;
     }
-    function clearTimer(s) { if (timers[s]) { clearTimeout(timers[s].id); timers[s] = null; } deadline[s] = 0; }
+    function clearTimer(s) { if (timers[s]) { timers[s].id.cancel(); timers[s] = null; } deadline[s] = 0; }
     function schedule() {
       const Tb = tb.T, R = Tb.R;
       if (!R || !started) return;
@@ -319,18 +320,18 @@
         const p = Tb.seats[s], key = s + ':' + Tb.evn + ':' + R.phase + ':' + R.stage;
         if (timers[s] && timers[s].key === key) continue;
         clearTimer(s);
-        if (p.bot || p.auto) timers[s] = { key, id: setTimeout(() => move(s, key, p.bot ? p.lv : 3, false), think(s)) };
-        else if (!p.conn) timers[s] = { key, id: setTimeout(() => move(s, key, 3, false), 6000) };
+        if (p.bot || p.auto) timers[s] = { key, id: KeepAlive.later(() => move(s, key, p.bot ? p.lv : 3, false), think(s)) };
+        else if (!p.conn) timers[s] = { key, id: KeepAlive.later(() => move(s, key, 3, false), 6000) };
         else if (R.stage === 'offer') {
           // 队友来要牌：20 秒不回就当不换
           const ms = 20000;
-          deadline[s] = Date.now() + ms;
-          timers[s] = { key, id: setTimeout(() => move(s, key, 3, 'offer'), ms + 300) };
+          deadline[s] = KeepAlive.now() + ms;
+          timers[s] = { key, id: KeepAlive.later(() => move(s, key, 3, 'offer'), ms + 300) };
         }
         else if (Tb.rules.timer > 0) {
           const ms = Tb.rules.timer * 1000 * (R.phase === 'play' ? 1 : 2);
-          deadline[s] = Date.now() + ms;
-          timers[s] = { key, id: setTimeout(() => move(s, key, 3, true), ms + 300) };
+          deadline[s] = KeepAlive.now() + ms;
+          timers[s] = { key, id: KeepAlive.later(() => move(s, key, 3, true), ms + 300) };
         }
       }
     }
@@ -417,7 +418,7 @@
       changed();
     };
     S.start = () => start();
-    S.togglePause = () => { paused = !paused; changed(); };
+    S.togglePause = () => { clearInterval(holdT); paused = !paused; changed(); };
     S.setSpeed = sp => { P.speed = sp; saveP(); };
     S.leave = async kind => {
       closing = true;
@@ -431,6 +432,7 @@
         store.set('mj_host', null);
         for (const [s, c] of conns) if (c.open) try { c.send({ t: 'ended', v: tb.T.view(s) }); } catch (e) {}
       }
+      KeepAlive.release(); KeepAlive.mark('mj_live', null);
       await sleep(500);
       try { peer && peer.destroy(); } catch (e) {}
     };
@@ -525,29 +527,56 @@
     let tries = 0;
     function openPeer(first) {
       if (closing) return;
-      peer = new Peer(PREFIX + code, peerOpts());
-      peer.on('open', () => { tries = 0; setNet(true); if (first) overlay(null); if (!started) sync(); });
-      peer.on('connection', conn => {
+      const pr = peer = new Peer(PREFIX + code, peerOpts(KeepAlive.token(PREFIX + code)));
+      pr.on('open', () => { if (pr !== peer) return; tries = 0; setNet(true); if (first) { overlay(null); toast(T('kaTip'), 4200); } if (!started) sync(); });
+      pr.on('connection', conn => {
         conn.on('data', m => onData(conn, m));
         conn.on('close', () => onClose(conn));
         conn.on('error', () => {});
       });
-      peer.on('disconnected', () => { setNet(false); setTimeout(() => { if (peer && !peer.destroyed && !closing) { try { peer.reconnect(); } catch (e) {} } }, 1500); });
-      peer.on('error', err => {
-        if (closing) return;
+      pr.on('disconnected', () => { if (pr !== peer) return; setNet(false); setTimeout(() => { if (pr === peer && !pr.destroyed && pr.disconnected && !closing) { try { pr.reconnect(); } catch (e) {} } }, 1500); });
+      pr.on('error', err => {
+        if (closing || pr !== peer) return;
         if (err.type === 'unavailable-id') {
           if (!restore && first && !started) { try { peer.destroy(); } catch (e) {} code = rid(4); S.code = code; openPeer(true); return; }
-          if (++tries < 15) { setNet(false); try { peer.destroy(); } catch (e) {} setTimeout(() => openPeer(first), 3000); }
+          if (++tries < 30) { setNet(false); try { peer.destroy(); } catch (e) {} setTimeout(() => openPeer(first), 3000); }
           else toast(T('idTaken'));
         } else if (['network', 'server-error', 'socket-error', 'socket-closed'].includes(err.type)) {
           setNet(false); setTimeout(() => { if (closing) return; if (peer.destroyed) openPeer(first); else if (peer.disconnected) try { peer.reconnect(); } catch (e) {} }, 3000);
         }
       });
     }
+    // 房主切到后台再回来：信令断了就重连（同一个 token 拿回同一个房间号），客人的心跳计时重新算
+    // 房主刚从后台回来（或页面被重新载入）：先暂停，等之前的朋友连回来（最多 20 秒），免得有人因为房主不在被电脑代打
+    let holdT = 0;
+    function holdFor() {
+      clearInterval(holdT);
+      const t0 = Date.now(), want = [1, 2, 3].filter(s => tb.T.seats[s] && !tb.T.seats[s].bot);
+      paused = true; changed();
+      holdT = setInterval(() => {
+        if (closing) { clearInterval(holdT); return; }
+        const el = Date.now() - t0;
+        if (el < 2500) return;
+        if (el > 20000 || want.every(s => !tb.T.seats[s] || tb.T.seats[s].bot || tb.T.seats[s].conn)) { clearInterval(holdT); paused = false; changed(); }
+      }, 500);
+    }
+    function revive(info) {
+      if (closing || solo) return;
+      if (info.frozen > 5000 && started && !paused) holdFor();
+      const now = Date.now();
+      for (let s = 0; s < 4; s++) if (conns.has(s)) seen[s] = Math.max(seen[s], now - 4000);
+      if (info.away < 3000 && !info.online) return;
+      if (info.frozen > 20000 || !peer || peer.destroyed) { try { peer && peer.destroy(); } catch (e) {} openPeer(false); }
+      else if (!KeepAlive.live(peer)) { if (peer.disconnected) { try { peer.reconnect(); } catch (e) {} } else { try { peer.destroy(); } catch (e) {} openPeer(false); } }
+    }
+    KeepAlive.onResume(revive);
     // 掉线检测
+    let hbAt = Date.now();
     const hb = setInterval(() => {
       if (closing) { clearInterval(hb); return; }
       const now = Date.now();
+      if (now - hbAt > 6000) { hbAt = now; for (let s = 0; s < 4; s++) seen[s] = now; return; }   // 页面刚被冻住过：先别把客人判成掉线
+      hbAt = now;
       for (const [s, c] of [...conns]) if (now - seen[s] > 11000) { onClose(c); c._s = null; try { c.close(); } catch (e) {} }
       if (tb.T.rules.timer > 0 || autoStartAt) sync();
     }, 3000);
@@ -559,7 +588,10 @@
       changed();
     } else {
       overlay(`<div class="spin"></div><b>${T('opening')}</b>`);
+      KeepAlive.mark('mj_live', { kind: 'host' });
+      KeepAlive.hold(T('kaTitle', { c: code }));
       openPeer(true);
+      if (o.auto && started) holdFor();
       changed();
     }
   }
@@ -574,6 +606,7 @@
   function startClient(code) {
     S = { mode: 'client', code, isHost: false, view: null, room: null };
     store.set('mj_client', { code, at: Date.now() });
+    KeepAlive.mark('mj_live', { kind: 'client', code });
     let peer = null, conn = null, lastMsg = 0, ever = false, dead = false, retryT = 0, fails = 0;
     overlay(`<div class="spin"></div><b>${T('connecting', { c: code })}</b>`, [[T('cancel'), 'glass', () => { dead = true; try { peer && peer.destroy(); } catch (e) {} goLobby(); }]]);
     const send = m => { if (conn && conn.open) { try { conn.send(m); return true; } catch (e) {} } toast(T('netBad')); return false; };
@@ -583,7 +616,7 @@
     S.setAuto = on => send({ t: 'act', a: { k: '_auto', on } });
     S.leave = () => new Promise(res => {
       dead = true;
-      store.set('mj_client', null);
+      store.set('mj_client', null); KeepAlive.mark('mj_live', null);
       if (!conn || !conn.open) { try { peer && peer.destroy(); } catch (e) {} return res(); }
       const done = () => { clearTimeout(tm); S.onBye = null; setTimeout(() => { try { peer && peer.destroy(); } catch (e) {} }, 100); res(); };
       const tm = setTimeout(done, 1200);
@@ -646,6 +679,7 @@
   }
   function setNet(ok) { const d = $('netDot'); if (!d) return; d.hidden = !!ok || !S || S.mode === 'solo'; d.classList.toggle('bad', !ok); }
   function goLobby() {
+    KeepAlive.mark('mj_live', null);
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
     location.reload();
   }
@@ -875,6 +909,14 @@
   show('lobby');
   // 调试：?auto=1 自动开练习（截图测试用）
   if (qs.get('team') != null) { P.rules.team = qs.get('team') === '1'; renderOpts(); }
+  // 浏览器在后台把页面丢掉、回来时重新载入：自动回到原来的房间
+  const live = KeepAlive.marked('mj_live');
+  if (live && myName && !/^[A-Z0-9]{4}$/.test(hc)) {
+    const hs = store.get('mj_host'), cs = store.get('mj_client');
+    if (live.kind === 'host' && hs && hs.T && Date.now() - (hs.at || 0) < 12 * 3600e3) startHost({ solo: false, restore: hs, auto: true });
+    else if (live.kind === 'client' && cs && cs.code === live.code) startClient(cs.code);
+    else KeepAlive.mark('mj_live', null);
+  }
   if (qs.get('autosolo')) { if (!myName) { myName = 'Me'; $('nick').value = myName; } startHost({ solo: true }); }
   W.MJAPP = { get S() { return S; }, ui, store };
 })();

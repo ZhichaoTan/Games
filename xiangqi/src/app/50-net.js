@@ -7,8 +7,9 @@ const ICE = [
   { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
   { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp', 'turns:openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' },
 ];
-function peerOpts() {
+function peerOpts(tok) {
   const o = { config: { iceServers: ICE, iceCandidatePoolSize: 4 }, debug: 1 };
+  if (tok) o.token = tok; // the host keeps one token per room, so a reloaded or rebuilt page takes the room id straight back
   const ph = qs.get('ph'); // a local PeerServer, for tests
   if (ph) { const [h, p] = ph.split(':'); Object.assign(o, { host: h, port: +p || 9000, path: '/', secure: false, config: { iceServers: [] } }); }
   return o;
@@ -21,6 +22,7 @@ function invite(code, share) {
 }
 function setNet(ok) { const d = $('netDot'); d.hidden = !!ok || !S; d.classList.toggle('bad', !ok); }
 function reloadLobby() {
+  KeepAlive.mark('xq_live', null);
   try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
   location.reload();
 }
@@ -58,12 +60,13 @@ function startHost(o) {
   const noteAll = (k, v) => { note(0, k, v); note(1, k, v); };
 
   // clocks: each side's time runs only on its own turn, and only while both players are connected
-  function clkNow() { const l = room.clk.left.slice(); if (clkT0) l[turn()] = Math.max(0, l[turn()] - (Date.now() - clkT0)); return l; }
+  let lost0 = 0; // the host page being frozen in the background doesn't cost anyone time
+  function clkNow() { const l = room.clk.left.slice(); if (clkT0) l[turn()] = Math.max(0, l[turn()] - Math.max(0, Date.now() - clkT0 - (KeepAlive.lost() - lost0))); return l; }
   function clkStop() { clearTimeout(flagT); if (room.clk) { if (clkT0) room.clk.left = clkNow(); room.clk.run = -1; } clkT0 = 0; }
   function clkGo() {
     clkStop();
     if (!room.clk || !room.started || room.over || !guestOn()) return;
-    clkT0 = Date.now(); room.clk.run = turn();
+    clkT0 = Date.now(); lost0 = KeepAlive.lost(); room.clk.run = turn();
     flagT = setTimeout(() => { if (room.over || !clkT0) return; if (clkNow()[turn()] <= 0) { finish({ winner: 1 - turn(), reason: 'time' }); sync(); } else clkGo(); }, room.clk.left[turn()] + 60);
   }
   function view() { const r = JSON.parse(JSON.stringify(room)); if (r.clk) r.clk.left = clkNow(); return r; }
@@ -160,7 +163,7 @@ function startHost(o) {
   };
   S.leave = async () => {
     closing = true; clkStop();
-    store.set('xq_host', null);
+    store.set('xq_host', null); KeepAlive.release(); KeepAlive.mark('xq_live', null);
     send({ t: 'ended' });
     await sleep(400);
     try { peer && peer.destroy(); } catch (e) {}
@@ -215,30 +218,44 @@ function startHost(o) {
   }
   function openPeer(first) {
     if (closing) return;
-    peer = new Peer(PREFIX + code, peerOpts());
-    peer.on('open', () => { tries = 0; setNet(true); if (ovTag == 'net') overlay(null); sync(); });
-    peer.on('connection', c => {
+    const pr = peer = new Peer(PREFIX + code, peerOpts(KeepAlive.token(PREFIX + code)));
+    pr.on('open', () => { if (pr !== peer) return; tries = 0; setNet(true); if (ovTag == 'net') { overlay(null); if (first) toast(T('kaTip'), 4200); } sync(); });
+    pr.on('connection', c => {
       c.on('data', m => onData(c, m));
       c.on('close', () => onClose(c));
       c.on('error', () => {});
     });
-    peer.on('disconnected', () => { setNet(false); setTimeout(() => { if (peer && !peer.destroyed && !closing) { try { peer.reconnect(); } catch (e) {} } }, 1500); });
-    peer.on('error', err => {
-      if (closing) return;
+    pr.on('disconnected', () => { if (pr !== peer) return; setNet(false); setTimeout(() => { if (pr === peer && !pr.destroyed && pr.disconnected && !closing) { try { pr.reconnect(); } catch (e) {} } }, 1500); });
+    pr.on('error', err => {
+      if (closing || pr !== peer) return;
       if (err.type === 'unavailable-id') {
         if (!restore && first && !room.p[1]) { try { peer.destroy(); } catch (e) {} code = rid(4); room.code = code; S.code = code; openPeer(true); return; }
-        if (++tries < 15) { setNet(false); try { peer.destroy(); } catch (e) {} setTimeout(() => openPeer(first), 3000); }
+        if (++tries < 30) { setNet(false); try { peer.destroy(); } catch (e) {} setTimeout(() => openPeer(first), 3000); }
         else toast(T('idTaken'));
       } else if (['network', 'server-error', 'socket-error', 'socket-closed'].includes(err.type)) {
         setNet(false); setTimeout(() => { if (closing) return; if (peer.destroyed) openPeer(first); else if (peer.disconnected) try { peer.reconnect(); } catch (e) {} }, 3000);
       }
     });
   }
+  // back from the background: get the signalling link back (same token, same room id) and give the guest time to reconnect
+  KeepAlive.onResume(info => {
+    if (closing) return;
+    if (conn) seen = Math.max(seen, Date.now() - 4000);
+    if (info.away < 3000 && !info.online) return;
+    if (info.frozen > 20000 || !peer || peer.destroyed) { try { peer && peer.destroy(); } catch (e) {} openPeer(false); }
+    else if (!KeepAlive.live(peer)) { if (peer.disconnected) { try { peer.reconnect(); } catch (e) {} } else { try { peer.destroy(); } catch (e) {} openPeer(false); } }
+  });
+  let hbAt = Date.now();
   const hb = setInterval(() => {
     if (closing) { clearInterval(hb); return; }
+    const now = Date.now();
+    if (now - hbAt > 6000) { hbAt = now; seen = now; return; } // the page was just frozen: don't call the guest gone yet
+    hbAt = now;
     if (conn && Date.now() - seen > 11000) { const c = conn; onClose(c); c._ok = false; try { c.close(); } catch (e) {} }
   }, 3000);
-  overlay(`<div class="spin"></div><b>${T('opening')}</b>`, [[T('cancel'), 'glass', () => { closing = true; store.set('xq_host', restore ? restore : null); try { peer && peer.destroy(); } catch (e) {} reloadLobby(); }]], 'net');
+  overlay(`<div class="spin"></div><b>${T('opening')}</b>`, [[T('cancel'), 'glass', () => { closing = true; KeepAlive.release(); store.set('xq_host', restore ? restore : null); try { peer && peer.destroy(); } catch (e) {} reloadLobby(); }]], 'net');
+  KeepAlive.mark('xq_live', { kind: 'host' });
+  KeepAlive.hold(T('kaTitle', { c: code }));
   openPeer(true);
 }
 
@@ -246,6 +263,7 @@ function startHost(o) {
 function startClient(code) {
   S = { mode: 'client', isHost: false, code, me: 1, room: null, clkAt: 0 };
   store.set('xq_client', { code, at: Date.now() });
+  KeepAlive.mark('xq_live', { kind: 'client', code });
   let peer = null, conn = null, lastMsg = 0, ever = false, dead = false, retryT = 0, fails = 0;
   const quit = () => { dead = true; try { peer && peer.destroy(); } catch (e) {} reloadLobby(); };
   overlay(`<div class="spin"></div><b>${T('connecting', { c: esc(code) })}</b>`, [[T('cancel'), 'glass', quit]], 'net');

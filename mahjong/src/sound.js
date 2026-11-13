@@ -120,9 +120,19 @@
     try { FX[k](ctx.currentTime + 0.005 + (delay || 0)); } catch (e) {}
   }
 
-  // ----- 四川话播报：录好的四川话（voice_sc.js，微软 Edge 朗读的 zh-CN-sichuan-YunxiNeural 生成），只在中文界面用 -----
+  // ----- 四川话播报：录好的四川话（voice_sc.js，CosyVoice2 生成）；英文界面也用（Zhichao：英文模式念中文也行） -----
   const VSRC = G.MJ_VOICE_SC || {}, VBUF = {};
+  // 聊天快捷语：女声 / 男声各一套，中英文各一套（voice_chat.js）
+  const CSRC = G.MJ_VOICE_CHAT || {}, CBUF = {};
   function loadVoice() {
+    for (const k in CSRC) {
+      try {
+        const bin = atob(CSRC[k]), u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        const r = ctx.decodeAudioData(u8.buffer, b => { CBUF[k] = b; }, () => {});
+        if (r && r.catch) r.catch(() => {});
+      } catch (e) {}
+    }
     for (const k in VSRC) {
       try {
         const bin = atob(VSRC[k]), u8 = new Uint8Array(bin.length);
@@ -140,7 +150,7 @@
   }
   // 跟着牌桌念，不拖后：碰杠胡这些马上念（打断正在念的那张牌名）；牌名一张不落，前一句没念完就接着排，排队时念快一点
   function scSay(key, delay) {
-    if (!P.on || !P.voice || !P.sc || !gestured || curLang() !== 'zh' || !ac()) return false;
+    if (!P.on || !P.voice || !P.sc || !gestured || !ac()) return false;
     const ks = Object.keys(VBUF).filter(k => k === key || k.startsWith(key + '_'));
     if (!ks.length) return false;
     const b = VBUF[ks[Math.floor(Math.random() * ks.length)]];
@@ -160,7 +170,21 @@
     } catch (e) { return false; }
     return true;
   }
-  const scReady = () => !!(P.on && P.voice && P.sc && curLang() === 'zh' && Object.keys(VSRC).length);
+  // 玩家发快捷语：按这个人的声音（g = 'f' 女 / 'm' 男）念出来，跟播报分开放，不排队
+  let cCur = null;
+  function chatSay(i, g) {
+    if (!P.on || !P.voice || !gestured || !ac()) return false;
+    const b = CBUF[curLang() + i + (g === 'm' ? 'm' : 'f')]; if (!b) return false;
+    try {
+      if (cCur) { try { cCur.stop(); } catch (e) {} }
+      const src = ctx.createBufferSource(), gn = ctx.createGain();
+      src.buffer = b; gn.gain.value = 1.1;
+      src.connect(gn); gn.connect(out); src.start(ctx.currentTime + 0.01);
+      cCur = src;
+    } catch (e) { return false; }
+    return true;
+  }
+  const scReady = () => !!(P.on && P.voice && P.sc && Object.keys(VSRC).length);
 
   // ----- 语音（系统自带的语音，跟着界面语言选中文或英文；没有就不出声） -----
   const SS = G.speechSynthesis;
@@ -205,5 +229,5 @@
   }
   if (G.document) ['pointerdown', 'touchend', 'keydown'].forEach(k => G.document.addEventListener(k, unlock, { passive: true }));
 
-  G.MJSound = { play, say, scSay, scReady, vib, unlock, hasVoice, prefs: P, set(k, v) { P[k] = v; save(); if (k === 'on') mute(!v); if (k === 'on' && v) unlock(); if (!v && (k === 'on' || k === 'voice' || k === 'sc')) stopVoice(); } };
+  G.MJSound = { play, say, scSay, chatSay, scReady, vib, unlock, hasVoice, prefs: P, set(k, v) { P[k] = v; save(); if (k === 'on') mute(!v); if (k === 'on' && v) unlock(); if (!v && (k === 'on' || k === 'voice' || k === 'sc')) stopVoice(); } };
 })(typeof window !== 'undefined' ? window : globalThis);

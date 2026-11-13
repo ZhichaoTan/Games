@@ -19,6 +19,13 @@
   }
   const fmt = n => (n > 0 ? '+' + n : '' + n);
   const HOW = k => T('how')[k] || '';
+  // 胡牌提示用的小图标：点炮 = 炸弹，自摸 = 自己摸上来的一张牌带金光
+  const IC = {
+    bomb: '<svg class="ic" viewBox="0 0 32 32"><path d="M21.5 9.5q2.6-4.6 6.3-3.4" fill="none" stroke="#d9b072" stroke-width="2" stroke-linecap="round"/><rect x="16.6" y="7.4" width="7.4" height="5.6" rx="1.4" transform="rotate(42 20.3 10.2)" fill="#5d666e" stroke="#15181b" stroke-width="1.2"/><circle cx="14" cy="19" r="10.2" fill="#2a2f35" stroke="#0e1013" stroke-width="1.5"/><ellipse cx="10.4" cy="15" rx="3.4" ry="2.4" transform="rotate(-35 10.4 15)" fill="#fff" opacity=".38"/><path d="M28.4 1.2l1.1 2.9 2.9 1.1-2.9 1.1-1.1 2.9-1.1-2.9-2.9-1.1 2.9-1.1z" fill="#ffd34a"/><circle cx="28.4" cy="5.2" r="1.3" fill="#fff6c8"/></svg>',
+    zimo: '<svg class="ic" viewBox="0 0 32 32"><rect x="5.5" y="9" width="15.5" height="20.5" rx="3.2" fill="#fffaf0" stroke="#7a4a0c" stroke-width="1.6"/><rect x="8.3" y="12" width="9.9" height="14.5" rx="1.6" fill="none" stroke="#e0a339" stroke-width="1.4"/><circle cx="13.25" cy="19.25" r="2.6" fill="#e0503f"/><path d="M24.6 .8l1.7 4.7 4.7 1.7-4.7 1.7-1.7 4.7-1.7-4.7-4.7-1.7 4.7-1.7z" fill="#ffd34a" stroke="#7a4a0c" stroke-width=".9" stroke-linejoin="round"/></svg>',
+  };
+  // 这把胡是不是别人放的（点炮、抢杠、点杠花），是的话返回放的人
+  const feederOf = w => (w && w.from >= 0 && w.from !== w.s ? w.from : -1);
 
   // 安全区（刘海、底部横条）
   let probe = null;
@@ -53,6 +60,7 @@
     const plates = [0, 1, 2, 3].map(() => { const d = div('seat'); root.appendChild(d); return d; });
     const ohands = [0, 1, 2, 3].map(rel => { const d = div('ohand ' + (rel === 2 ? 'top' : rel ? 'side' + (rel === 1 ? ' r' : '') : '')); root.appendChild(d); return d; });
     const stages = [0, 1, 2, 3].map(() => { const d = div('ohand down'); root.appendChild(d); return d; });
+    const huLay = div('hulay'); huLay.hidden = true; root.appendChild(huLay);
     const acts = div('acts'); root.appendChild(acts);
     const gopts = div('gopts'); gopts.hidden = true; root.appendChild(gopts);
     const tip = div('tip'); tip.hidden = true; root.appendChild(tip);
@@ -320,6 +328,7 @@
         if ((tsMode && tsGive === id) || (O && O.from === me && O.give === id)) { y -= g.hh * 0.3; cls += ' sel give'; }
         if (ask && ask.take === id) { y -= g.hh * 0.3; cls += ' sel want'; }
         if (gotIds.has(id) && Date.now() < gotUntil) cls += ' got';
+        if (myTurn && v.opt.hu && id === R.drawn && !v.opt.dg) cls += ' zmT';
         if (myTurn && prefs.hints && tingT && tingT.by[t] && !(hasQ && SU(t) !== R.que[me])) cls += tingT.best === t ? ' mkb' : ' mk';
         const p = { x: cx, y, k: g.hk, r: 0, pose: 'stand', o: 0, z: 10 + idx, cls, hand: true };
         if (Date.now() < dealUntil && !els.has(String(id))) p.delay = 80 + idx * 55;
@@ -586,7 +595,12 @@
         let st = '';
         if (R) {
           const w = R.wins.find(x => x.s === s);
-          if (R.hu[s]) st = `<span class="stat hu">${T(w && w.how === 'zimo' ? 'stZimo' : 'stWon')}</span>`;
+          if (R.hu[s]) {
+            const fd = feederOf(w);
+            st = fd >= 0 && v.seats[fd]
+              ? `<span class="stat hu pao">${IC.bomb}<span class="fav">${avSvg(v.seats[fd], fd)}</span>${T('stWon')}</span>`
+              : `<span class="stat hu zimo">${IC.zimo}${T(w && w.how === 'zimo' ? 'stZimo' : 'stWon')}</span>`;
+          }
           else if (!p.conn && !p.bot) st = `<span class="stat">${T('stOff')}</span>`;
           else if (p.auto && !p.bot) st = `<span class="stat">${T('stAuto')}</span>`;
           else if (R.phase === 'swap') st = `<span class="stat">${T(R.swapDone[s] ? 'stPicked' : 'stPicking')}</span>`;
@@ -651,7 +665,7 @@
       if (o.k === 'claim') {
         if (o.peng) acts.appendChild(btn('peng', T('bPeng'), () => onAct({ k: 'peng' }), o.hu || o.gang ? null : o.t));
         if (o.gang) acts.appendChild(btn('gang', T('bGang'), () => onAct({ k: 'gang' }), o.hu ? null : o.t));
-        if (o.hu) acts.appendChild(btn('hu', T('bHu'), () => onAct({ k: 'hu' }), o.t));
+        if (o.hu) acts.appendChild(huBadge(btn('hu pao', T('bHu'), () => onAct({ k: 'hu' }), o.t), 'pao', o.from != null ? o.from : R.claimTile ? R.claimTile.from : -1));
         acts.appendChild(btn('pass', T('bPass'), () => onAct({ k: 'pass' })));
         SND.vib(o.hu ? [40, 60, 40] : 30);
       } else if (o.k === 'turn') {
@@ -664,7 +678,10 @@
             const r = acts.getBoundingClientRect(), rr = root.getBoundingClientRect();
             Object.assign(gopts.style, { left: Math.max(8, r.right - rr.left - kongs.length * 42 - 16) + 'px', top: (r.top - rr.top - 62) + 'px' });
           }));
-          if (o.hu) acts.appendChild(btn('hu', T('bHu'), () => onAct({ k: 'zimo' })));
+          if (o.hu) {
+            const fed = o.dg && o.payers && o.payers.length === 1;
+            acts.appendChild(huBadge(btn('hu ' + (fed ? 'pao' : 'zimo'), T('bHu'), () => onAct({ k: 'zimo' }), R.drawn != null ? TY(R.drawn) : null), fed ? 'pao' : 'zimo', fed ? o.payers[0] : -1));
+          }
           acts.appendChild(btn('pass', T('bPass'), () => { selfSkip = key; acts._k = ''; renderActs(); }));
           if (o.hu) SND.vib([40, 60, 40]);
         }
@@ -679,6 +696,77 @@
       }
       acts.hidden = !acts.children.length;
       if (!acts.hidden) Object.assign(acts.style, { right: (g.Rr + 4) + 'px', bottom: (g.H - g.handTop + g.hh * 0.42 + 6) + 'px' });
+    }
+    // 胡按钮左上角的小牌子：点炮 = 放炮那家的头像 + 炸弹；自摸 = 金光的牌
+    function huBadge(b, how, from) {
+      const p = from >= 0 ? v.seats[from] : null;
+      b.insertAdjacentHTML('beforeend', how === 'pao' && p
+        ? `<span class="hsrc pao"><span class="av">${avSvg(p, from)}</span>${IC.bomb}</span>`
+        : `<span class="hsrc zimo">${IC.zimo}</span>`);
+      return b;
+    }
+    // 能胡的时候，从要给钱的人那里牵一条线到自己：点炮一条红线（引线 + 炸弹），自摸每家一条金线（金币往自己这边滚）
+    function renderHuHint() {
+      const o = v.opt, R = v.R, g = Gm;
+      let src = null, how = '';
+      if (o && R && R.phase === 'play' && !tsMode && o.hu && !acts.hidden && acts.querySelector('.abtn.hu')) {
+        const cf = o.from != null ? o.from : R.claimTile ? R.claimTile.from : -1;
+        if (o.k === 'claim' && cf >= 0) { src = [cf]; how = 'pao'; }
+        else if (o.k === 'turn' && o.payers && o.payers.length) { src = o.payers.slice(); how = o.dg && src.length === 1 ? 'pao' : 'zimo'; }
+      }
+      plates.forEach((el, rel) => { const s = seatOf(rel); el.classList.toggle('hfeed', !!src && how === 'pao' && src.includes(s)); el.classList.toggle('hpay', !!src && how === 'zimo' && src.includes(s)); });
+      const key = src ? [how, src.join(','), g.W, g.H, me].join('|') : '';
+      if (huLay._k === key) return;
+      huLay._k = key; huLay.innerHTML = '';
+      huLay.hidden = !src;
+      if (!src) return;
+      const b = anchor(0, 'plate'), c = { x: g.box.cx, y: g.box.cy }, f = x => x.toFixed(1);
+      let paths = '', icons = '';
+      src.forEach((s, i) => {
+        const rel = relOf(s); if (!rel) return;
+        const a = anchor(rel, 'plate');
+        const A = g.A;
+        // 线从头像边上出发，往桌子中间弯一点，停在自己头像旁边
+        const k = 0.55, mx = (a.x + b.x) / 2 + (c.x - (a.x + b.x) / 2) * k, my = (a.y + b.y) / 2 + (c.y - (a.y + b.y) / 2) * k;
+        const sh = (p, q, d) => { const L = Math.hypot(q.x - p.x, q.y - p.y) || 1; return { x: p.x + (q.x - p.x) / L * d, y: p.y + (q.y - p.y) / L * d }; };
+        const p0 = sh(a, { x: mx, y: my }, A / 2 + 6), p1 = sh(b, { x: mx, y: my }, g.A0 / 2 + 8);
+        const d = `M${f(p0.x)} ${f(p0.y)}Q${f(mx)} ${f(my)} ${f(p1.x)} ${f(p1.y)}`;
+        paths += `<path class="glow" d="${d}"/><path class="ln" d="${d}"/>`;
+        for (let j = 0; j < (how === 'pao' ? 1 : 2); j++)
+          paths += `<g class="mover"><circle r="${how === 'pao' ? 5.5 : 5}"/><animateMotion dur="${how === 'pao' ? 0.9 : 1.5}s" begin="${(j * 0.75 + i * 0.22).toFixed(2)}s" repeatCount="indefinite" path="${d}"/></g>`;
+        const ia = { x: a.x + (rel === 1 && !g.port ? -1 : 1) * A * 0.46, y: a.y - A * 0.46 };
+        icons += `<span class="hico ${how}" style="left:${f(ia.x)}px;top:${f(ia.y)}px">${how === 'pao' ? IC.bomb : '<i class="cn"></i>'}</span>`;
+      });
+      huLay.className = 'hulay ' + how;
+      huLay.innerHTML = `<svg width="${g.W}" height="${g.H}" viewBox="0 0 ${g.W} ${g.H}">${paths}</svg>${icons}`;
+    }
+    // 胡了：点炮是一颗炸弹从放炮的人那里飞过来炸开；自摸是自己这里一圈金光
+    function bombFly(from, to, delay) {
+      if (!Gm || from === to) return;
+      const a = anchor(relOf(from), 'plate'), b = anchor(relOf(to), 'plate');
+      const lift = Math.min(110, Math.hypot(b.x - a.x, b.y - a.y) * 0.4);
+      setTimeout(() => {
+        const pl = plates[relOf(from)];
+        pl.classList.remove('hshake'); pl.offsetWidth; pl.classList.add('hshake');
+        setTimeout(() => pl.classList.remove('hshake'), 700);
+        fx('hpuff', '', a.x, a.y, 900);
+        const d = div('hbomb', IC.bomb); root.appendChild(d);
+        const mx = (a.x + b.x) / 2, my = Math.min(a.y, b.y) - lift;
+        const an = d.animate([
+          { transform: `translate(${a.x}px,${a.y}px) scale(.5) rotate(0deg)`, opacity: 0 },
+          { transform: `translate(${a.x}px,${a.y - 10}px) scale(1.15) rotate(-20deg)`, opacity: 1, offset: 0.15 },
+          { transform: `translate(${mx}px,${my}px) scale(1.25) rotate(160deg)`, opacity: 1, offset: 0.6 },
+          { transform: `translate(${b.x}px,${b.y}px) scale(.9) rotate(340deg)`, opacity: 1 },
+        ], { duration: 620, easing: 'cubic-bezier(.4,.1,.6,1)' });
+        const land = () => { d.remove(); fx('hboom', '<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>', b.x, b.y, 900); };
+        an.onfinish = land;
+        setTimeout(() => { if (d.isConnected) land(); }, 900);
+      }, delay || 0);
+    }
+    function zimoBurst(s, delay) {
+      if (!Gm) return;
+      const a = anchor(relOf(s), 'plate');
+      setTimeout(() => fx('hstar', '<b></b><b></b>' + IC.zimo, a.x, a.y, 1500), delay || 0);
     }
     function renderBanner() {
       const R = v.R, o = v.opt, g = Gm;
@@ -964,6 +1052,7 @@
             const title = T(e.how === 'zimo' ? (e.items.some(x => x[0] === '杠上开花') ? 'cBloom' : 'cZimo') : e.how === 'rob' ? 'cRob' : 'cHu');
             SND.play('hu', delay / 1000); if (!sc(e.items.some(x => x[0] === '杠上开花') ? 'bloom' : e.items.some(x => x[0] === '抢杠胡') ? 'rob' : e.items.some(x => x[0] === '杠上炮') ? 'pao' : e.how === 'zimo' ? 'zimo' : 'hu', delay / 1000)) SND.say(T(e.how === 'zimo' ? 'vZimo' : 'vHu'));
             setTimeout(() => callout(rel, title, 'c-hu', I18.fan(e.title) + (e.fan ? ' · ' + T('nFan', { n: e.fan }) : ''), 'big'), delay);
+            if (feederOf(e) >= 0) bombFly(feederOf(e), e.s, delay); else zimoBurst(e.s, delay);
             const tot = e.amt * e.payers.length;
             flyMoney(e.s, tot, delay + 500);
             for (const p of e.payers) { flyMoney(p, -e.amt, delay + 500); coins(p, e.s, 5, delay + 250); }
@@ -1103,6 +1192,7 @@
       renderPlates();
       renderCompass();
       renderActs();
+      renderHuHint();
       renderBanner();
       renderTs();
       renderTip();
@@ -1269,7 +1359,9 @@
       else if (inf) sub = inf.hua ? T('hua') : inf.ting ? T('tingMax', { f: inf.max }) : T('noTing');
       if (R.dealer === s) sub = sub ? T('dealerP') + sub : T('dealerW');
       const lines = ledgerLines(v, s);
-      h += `<div class="rp${s === me ? ' me' : ''}"><div class="top"><div class="av">${avSvg(p, s)}</div><div class="nm">${esc(p.name)}${s === me ? T('youS') : ''}<small>${esc(sub)}</small></div><div class="d ${d > 0 ? 'p' : d < 0 ? 'm' : 'z'}">${fmt(d)}</div></div>`;
+      const fd = feederOf(w);
+      const hic = !w ? '' : fd >= 0 && v.seats[fd] ? `<span class="rhow pao">${IC.bomb}<span class="fav">${avSvg(v.seats[fd], fd)}</span></span>` : `<span class="rhow zimo">${IC.zimo}</span>`;
+      h += `<div class="rp${s === me ? ' me' : ''}"><div class="top"><div class="av">${avSvg(p, s)}</div><div class="nm">${esc(p.name)}${s === me ? T('youS') : ''}<small>${hic}${esc(sub)}</small></div><div class="d ${d > 0 ? 'p' : d < 0 ? 'm' : 'z'}">${fmt(d)}</div></div>`;
       if (w) h += `<div class="fanbar">${w.items.map(x => `<i>${esc(I18.fan(x[0]))} ${x[1]}</i>`).join('')}</div>`;
       h += `<div class="hand">${handHTML(v, s)}</div>`;
       if (lines.length) h += `<div class="lines">${lines.map(([k, a]) => `<div><span>${esc(k)}</span><span class="a" style="color:${a > 0 ? '#ffd36b' : '#ff8c7c'}">${fmt(a)}</span></div>`).join('')}</div>`;

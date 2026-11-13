@@ -58,6 +58,9 @@ html[lang=en] .title .w1{font:italic 600 50px/0.98 "Fraunces",Georgia,serif;lett
 .me-av{width:62px;height:62px;border-radius:50%;flex:none;box-shadow:0 0 0 2.5px var(--gold),0 6px 16px rgba(0,0,0,.4)}
 .me-av svg{width:100%;height:100%}
 .fld{flex:1;min-width:0}
+.vrow{display:flex;align-items:center;gap:10px;margin-top:10px}
+.vrow .lbl{margin:0}
+.vrow .seg button{padding:5px 12px}
 .lbl{display:block;font-size:12px;color:var(--ink3);letter-spacing:1px;margin:0 0 6px 2px}
 .inp{width:100%;height:46px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.28);color:var(--ink);padding:0 14px;font-size:16px;outline:none}
 .inp:focus{border-color:rgba(232,198,123,.6)}
@@ -172,6 +175,7 @@ html[lang=en] .title .w1{font:italic 600 50px/0.98 "Fraunces",Georgia,serif;lett
 .ohand.top i{background:linear-gradient(180deg,#f3ead6 0,#e2d5b6 19%,var(--bk3) 21%,var(--bk2) 27%,var(--bk) 50%,var(--bk3) 100%);box-shadow:0 3px 4px rgba(0,0,0,.42),inset 0 -1px 0 rgba(0,0,0,.2)}
 .ohand.side i{background:linear-gradient(90deg,var(--bk3) 0,var(--bk) 30%,var(--bk2) 52%,var(--bk3) 60%,#dccfaf 62%,#f6eedd 82%,#e9dec6 100%);box-shadow:0 2px 3px rgba(0,0,0,.4)}
 .ohand.side.r i{background:linear-gradient(270deg,var(--bk3) 0,var(--bk) 30%,var(--bk2) 52%,var(--bk3) 60%,#dccfaf 62%,#f6eedd 82%,#e9dec6 100%)}
+.ohand.won i{filter:brightness(.78) saturate(.7)}
 .ohand.down i{background:linear-gradient(158deg,var(--bk2),var(--bk) 45%,var(--bk3));box-shadow:0 2px 0 #e6d9be,0 3px 0 #cfc0a0,0 5px 5px rgba(0,0,0,.38)}
 
 /* 座位 */
@@ -536,6 +540,20 @@ html[lang=en] .tip .lab{font-size:14px;font-style:italic;font-weight:700}
 .hstar b+b{animation-delay:.22s;opacity:0}
 @keyframes hstarR{0%{transform:scale(.3);opacity:1}100%{transform:scale(1.9);opacity:0}}
 @keyframes hstarIc{0%{transform:scale(0) rotate(-30deg);opacity:0}25%{transform:scale(1.2) rotate(0);opacity:1}75%{transform:translateY(-14px) scale(1);opacity:1}100%{transform:translateY(-26px) scale(.9);opacity:0}}
+/* 电脑大屏：大厅左右两栏（左边招牌，右边名字和开房），等人页面也放宽一点 */
+@media (min-width:980px) and (min-height:560px){
+  .lob{max-width:1080px;display:grid;grid-template-columns:minmax(0,1fr) 460px;column-gap:72px;align-items:start;padding-top:28px}
+  .lob>.lobtop{grid-column:1/-1}
+  .lob>.hero{grid-column:1;grid-row:2/span 6;position:sticky;top:12vh;padding:7vh 0 0}
+  .lob>:not(.lobtop):not(.hero){grid-column:2}
+  .lob>.box:first-of-type,.lob>#wxTip+.box{margin-top:28px}
+  .hero .fan{transform:scale(1.55);transform-origin:50% 100%;margin-bottom:64px}
+  .hero .title .w1{font-size:84px}
+  html[lang=en] .hero .title .w1{font-size:76px}
+  .hero .seal{font-size:28px;padding:10px 7px}
+  .hero .tagline{font-size:17px;max-width:420px;margin-top:18px}
+  .lob>.foot{text-align:left}
+}
 @media (prefers-reduced-motion:reduce){.hulay .ln,.hico .cn,.hsrc.pao>.ic,.hico.pao .ic,.seat.hfeed .av,.t.zmT .f{animation:none}}
 @media (prefers-reduced-motion:reduce){.t{transition-duration:.01s!important}}
 </style>
@@ -562,7 +580,8 @@ html[lang=en] .tip .lab{font-size:14px;font-style:italic;font-weight:700}
     <div class="box">
       <div class="me-row">
         <div class="me-av" id="meAv"></div>
-        <div class="fld"><label class="lbl" for="nick" data-t="yourName"></label><input id="nick" class="inp" maxlength="10" autocomplete="off" spellcheck="false"></div>
+        <div class="fld"><label class="lbl" for="nick" data-t="yourName"></label><input id="nick" class="inp" maxlength="10" autocomplete="off" spellcheck="false">
+          <div class="vrow"><span class="lbl" data-t="myVoice"></span><div class="seg" id="vSeg"></div></div></div>
       </div>
       <div class="avs" id="avs"></div>
     </div>

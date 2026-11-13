@@ -23,7 +23,7 @@
     tdh: true,         // 天地胡
     base: 1,           // 底分
     rounds: 8,         // 局数，0 = 不限
-    timer: 0,          // 真人每步限时（秒），0 = 不限时
+    timer: 30,         // 真人每步限时（秒），0 = 不限时；到时间自动替他出牌
     team: false,       // 2v2 组队
     tswap: 3,          // 2v2：每人每局能跟队友换几次牌，0 = 不限
     queFirst: false,   // 缺门牌必须先打完（false：什么时候打随你，只是打完才能胡）
@@ -41,7 +41,7 @@
     if ('tdh' in r) o.tdh = !!r.tdh;
     if ([1, 2, 5, 10].includes(+r.base)) o.base = +r.base;
     if ([0, 4, 8, 12, 16].includes(+r.rounds)) o.rounds = +r.rounds;
-    if ([0, 10, 15, 20, 30].includes(+r.timer)) o.timer = +r.timer;
+    if ([0, 10, 15, 20, 30, 45, 60].includes(+r.timer)) o.timer = +r.timer;
     if ('team' in r) o.team = !!r.team;
     if ([0, 1, 2, 3, 5].includes(+r.tswap)) o.tswap = +r.tswap;
     if ('queFirst' in r) o.queFirst = !!r.queFirst;
@@ -698,7 +698,7 @@
       const mate = mine && rules.team ? this.mate(me) : -1;
       const sees = s => s === me || s === mate;   // 自己和队友的牌都看得到
       const v = { rules, roundNo: this.roundNo, over: this.over, dealer: this.dealer, me, hist: this.hist, evn: this.evn };
-      v.seats = this.seats.map(p => p && { id: p.id, name: p.name, av: p.av, bot: !!p.bot, lv: p.lv || 0, score: p.score, conn: p.conn !== false, auto: !!p.auto, ready: !!p.ready });
+      v.seats = this.seats.map(p => p && { id: p.id, name: p.name, av: p.av, g: p.g === 'm' ? 'm' : 'f', bot: !!p.bot, lv: p.lv || 0, score: p.score, conn: p.conn !== false, auto: !!p.auto, ready: !!p.ready });
       if (!R) return v;
       const end = R.phase === 'end';
       const showQue = R.phase === 'play' || end;
@@ -714,8 +714,8 @@
         deltas: R.deltas.slice(),
         lastDiscard: R.lastDiscard,
         claimTile: R.stage === 'claim' && R.claim ? { id: R.claim.id, from: R.claim.from, kind: R.claim.kind } : null,
-        // 胡了的人把牌亮出来（推倒）；一局结束全亮
-        shown: R.hands.map((h, s) => (end || R.hu[s]) ? h.slice() : null),
+        // 血战还没打完时，胡了的人的牌只给自己（和队友）看，别人只看到牌背；一局结束全亮
+        shown: R.hands.map((h, s) => (end || (R.hu[s] && sees(s))) ? h.slice() : null),
         ev: R.ev.map(e => (e.k === 'draw' && !sees(e.s)) ? { n: e.n, k: 'draw', s: e.s, kong: e.kong, left: e.left }
           : (e.k === 'gang' && e.kind === 'an' && !sees(e.s) && !end) ? { n: e.n, k: 'gang', s: e.s, kind: 'an', t: -1 }
           : ((e.k === 'tswap' || e.k === 'tsAsk') && !sees(e.s)) ? { n: e.n, k: e.k, s: e.s, to: e.to, ok: e.ok, back: e.back } : e),

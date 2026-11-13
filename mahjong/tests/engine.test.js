@@ -563,5 +563,27 @@ const TEAM = { team: true };
   console.log(`  2v2：${rounds} 局，平均每局胡 ${(huN / rounds).toFixed(2)} 人，一队两人都胡提前结束 ${(100 * early / rounds).toFixed(1)}%，请求换牌 ${(asks / rounds).toFixed(2)} 次/局，同意 ${(100 * yes / Math.max(1, asks)).toFixed(0)}%，换完自摸占胡牌 ${(100 * swapWins / Math.max(1, huN)).toFixed(0)}%`);
 }
 
+// ---- 血战里胡了的人：牌只给自己（和队友）看，别人看牌背；一局完了才全亮 ----
+{
+  for (const team of [false, true]) {
+    const T = new Table({ rules: { swap: false, team }, seed: 11 });
+    for (let s = 0; s < 4; s++) T.seats[s] = { id: 'p' + s, name: 'P' + s, score: 0, g: s % 2 ? 'm' : 'f' };
+    T.startRound();
+    T.R.hu[1] = 1;
+    const mate = team ? T.mate(1) : -1;
+    for (let me = 0; me < 4; me++) {
+      const sh = T.view(me).R.shown[1];
+      if (me === 1 || me === mate) ok(Array.isArray(sh) && sh.length === T.R.hands[1].length, `胡了的人自己/队友能看到自己的牌 team=${team} me=${me}`);
+      else eq(sh, null, `别人看不到胡了的人的牌 team=${team} me=${me}`);
+    }
+    eq(T.view(0).seats.map(p => p.g), ['f', 'm', 'f', 'm'], '座位带聊天声音');
+    T.R.phase = 'end';
+    ok(Array.isArray(T.view(0).R.shown[1]), '一局结束全亮');
+  }
+  eq(MJ.DEFAULT_RULES.timer, 30, '默认每步限时 30 秒');
+  eq(MJ.cleanRules({ timer: 60 }).timer, 60, '限时可选 60 秒');
+  eq(MJ.cleanRules({ timer: 7 }).timer, 30, '不认识的限时回到默认');
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -80,18 +80,24 @@
     const name = s => (v && v.seats[s] ? v.seats[s].name : '');
 
     // ======================= 几何 =======================
+    // 牌河一行占多宽：牌本身 82 + 侧面厚度 11（60 宽的牌），再留一点缝，不然两行会叠在一起
+    const RW = 1.6, RH = 1.6;
     function computeGeom(need) {
       const W = root.clientWidth || innerWidth, H = root.clientHeight || innerHeight;
       const sf = safe();
       const g = { W, H, sf };
-      const L = Math.max(6, sf.l + 4), Rr = Math.max(6, sf.r + 4);
       const port = H >= W * 1.05;
+      // 电脑大屏：牌放大一点，左右两家往中间收，别把四家摊到屏幕四个角
+      const big = !port && W >= 1000 && H >= 640;
+      const side = big ? Math.max(0, (W - H * 1.2) / 2) : 0;
+      const L = Math.max(6, sf.l + 4) + side, Rr = Math.max(6, sf.r + 4) + side;
+      g.big = big;
       // 2v2：自己和队友的名字牌下面多一行"可换几次"，竖屏时给它让点地方
       const team = !!(v && v.rules && v.rules.team);
       g.port = port; g.L = L; g.Rr = Rr; g.team = team;
       g.tbH = sf.t + 44;
-      g.A0 = clamp(Math.round(Math.min(W, H) * 0.1), 34, 48);
-      g.A = clamp(Math.round(Math.min(W, H) * 0.088), 30, 44);
+      g.A0 = clamp(Math.round(Math.min(W, H) * 0.1), 34, big ? 58 : 48);
+      g.A = clamp(Math.round(Math.min(W, H) * 0.088), 30, big ? 52 : 44);
       const bot = H - Math.max(sf.b, 4) - 6;
       if (port) {
         g.hw = Math.min(54, (W - L - Rr) / 14.4);
@@ -103,7 +109,7 @@
         g.midTop = g.tbH + g.A + 14;
         g.midBot = g.plate0.y - g.A0 / 2 - 6;
       } else {
-        g.hw = Math.min(50, (W - L - Rr - g.A0 - 90) / 14.4, (H * 0.13) * 60 / 82);
+        g.hw = Math.min(big ? 62 : 50, (W - L - Rr - g.A0 - 90) / 14.4, (H * (big ? 0.12 : 0.13)) * 60 / 82);
         g.hh = g.hw * 82 / 60;
         g.handY = bot - g.hh / 2; g.handTop = bot - g.hh;
         g.handL = L + g.A0 + 84; g.handR = W - Rr;
@@ -115,7 +121,7 @@
       g.hk = g.hw / 60;
       g.mw = g.hw * 0.78;                       // 自己碰杠的牌宽
       // 对手的牌
-      g.tw = Math.min(g.hw * 0.62, port ? 21 : 26);   // 对家立着的牌背
+      g.tw = Math.min(g.hw * 0.62, port ? 21 : big ? 32 : 26);   // 对家立着的牌背
       g.colW = port ? Math.max(g.A, 34) + 4 : Math.max(g.A + 8, 56);
       g.colL = L + g.colW / 2; g.colR = W - Rr - g.colW / 2;
       if (port) {
@@ -125,7 +131,7 @@
         // 横屏：左右两家的头像放在上面两个角，牌从头像下面往下排
         g.sidePlateY = g.tbH + g.A / 2 + 6;
         g.stackTop = g.sidePlateY + Math.max(g.A / 2, 27) + 14;   // 名字牌（头像旁边）下面
-        const tw = Math.min(g.hw * 0.62, 26), wMax = 14.5 * tw + 40;
+        const tw = g.tw, wMax = 14.5 * tw + 40;
         g.topRow = { l: W / 2 - wMax / 2, r: W / 2 + wMax / 2 };
       }
       // 矮屏横放：碰杠另起一列，靠里
@@ -140,14 +146,14 @@
       for (let pt = 5; pt <= 12; pt++) for (let ps = 5; ps <= 13; ps++) {
         const rB = Math.max(2, Math.ceil(need.tb[0] / pt)), rT = Math.max(2, Math.ceil(need.tb[1] / pt));
         const rL = Math.max(2, Math.ceil(need.sd[0] / ps)), rR = Math.max(2, Math.ceil(need.sd[1] / ps));
-        const wPer = pt + (rL + rR) * 1.42 + 0.6, hPer = ps + (rB + rT) * 1.5 + 0.6;
-        const rw = Math.min(Wc / wPer, Hc / hPer, port ? 30 : 34);
+        const wPer = pt + (rL + rR) * RW + 0.6, hPer = ps + (rB + rT) * RH + 0.6;
+        const rw = Math.min(Wc / wPer, Hc / hPer, port ? 30 : big ? 40 : 34);
         const sc = rw * (1 - 0.012 * Math.abs(pt - 6) - 0.004 * Math.abs(ps - 9));
         if (!best || sc > best.sc) best = { sc, rw, pt, ps, rB, rT, rL, rR };
       }
       const rw = g.rw = best.rw; g.pt = best.pt; g.ps = best.ps;
       g.rk = rw / 60;
-      g.rowH = rw * 1.5; g.rowW = rw * 1.42;
+      g.rowH = rw * RH; g.rowW = rw * RW;
       g.cap = { tb: [best.rB * best.pt, best.rT * best.pt], sd: [best.rL * best.ps, best.rR * best.ps] };
       const bw = best.pt * rw, bh = best.ps * rw;
       const usedW = bw + (best.rL + best.rR) * g.rowW, usedH = bh + (best.rB + best.rT) * g.rowH;
@@ -261,13 +267,14 @@
         const t = m.t;
         let pose = 'flat';
         if (m.k === 'angang') pose = (j === 3 && (own || t >= 0) && t >= 0) ? 'flat' : 'down';
-        const top = j === 3;
+        const top = j === 3 && !o.line;   // o.line：两边的人杠了就四张排成一列，不叠着放（叠着看着像压住了别的牌）
         const x = basePos.x + (top ? 1 : j) * o.step.dx + (top ? o.up.dx : 0);
         const y = basePos.y + (top ? 1 : j) * o.step.dy + (top ? o.up.dy : 0);
         put(key, pose === 'down' ? -1 : t, { x, y, k: o.w / 60, r: o.rot, pose, o: o.ori, z: (o.z || 6) + (top ? 3 : 0) + (o.zStep ? j * o.zStep : 0) });
       }
       // 补杠/抢杠时，第四张要摆的位置
-      put('mstack' + s + '_' + m.t, -2, { x: basePos.x + o.step.dx + o.up.dx, y: basePos.y + o.step.dy + o.up.dy, k: o.w / 60, r: o.rot, pose: 'flat', o: o.ori, z: (o.z || 6) + 3, virtual: true });
+      const sj = o.line ? 3 : 1, su = o.line ? 0 : 1;
+      put('mstack' + s + '_' + m.t, -2, { x: basePos.x + sj * o.step.dx + su * o.up.dx, y: basePos.y + sj * o.step.dy + su * o.up.dy, k: o.w / 60, r: o.rot, pose: 'flat', o: o.ori, z: (o.z || 6) + 3, virtual: true });
     }
     function myHandOrder() {
       const R = v.R, q = R.que[me];
@@ -352,6 +359,7 @@
       const hidden = shown ? 0 : Math.max(0, R.counts[s] - staged);
       const drawnGap = !shown && R.phase === 'play' && R.turn === s && (R.stage === 'discard' || R.stage === 'offer') && (R.counts[s] % 3 === 2);
       const oh = ohands[rel];
+      oh.classList.toggle('won', !!(R.hu[s] && !shown));   // 胡了的人牌扣着，颜色压暗一点
       // 立着的牌背：用一个元素画一排
       if (rel === 2) {
         const tw = g.tw, th = tw * 1.3;
@@ -403,8 +411,9 @@
       const two = g.two, avail = g.midBot - g.stackTop - 8;
       const sw = Math.min(g.colW * 0.5, g.tw * 0.85), sp = Math.min(g.tw * 0.86, two ? (avail - 6) / 14.4 : (avail - 32) / 22);
       // 亮出来的牌（推倒的手牌、胡的那张、碰杠）横着放，按这一列剩下的长度定大小
-      const units = two ? Math.max(shown ? shown.length + (win ? 1 : 0) : 0, 3 * melds.length + (shown ? 0 : win ? 1 : 0))
-        : (shown ? shown.length : 0) + 3 * melds.length + (win ? 1 : 0);
+      const mU = melds.reduce((a, m) => a + (m.k === 'peng' ? 3 : 4), 0);
+      const units = two ? Math.max(shown ? shown.length + (win ? 1 : 0) : 0, mU + (shown ? 0 : win ? 1 : 0))
+        : (shown ? shown.length : 0) + mU + (win ? 1 : 0);
       const room = two ? avail - melds.length * 5 - 4
         : avail - (shown ? 0 : hidden * sp + (drawnGap ? sp * 0.45 : 0)) - melds.length * 5 - (win ? 4 : 0) - 6;
       const mwS = Math.max(Math.min(sp * 1.1, 14), Math.min(g.rw * 0.92, ((two ? g.innerW : g.colW) - 6) * 60 / 82, units ? room / units : 99));
@@ -430,8 +439,8 @@
       if (two) y = shown || !win ? g.stackTop : y;
       y += two ? 0 : 6;
       melds.forEach((m, i) => {
-        meldTiles(m, s, { x: cxIn, y: y + mwS / 2, i }, put, { w: mwS, rot, ori, step: { dx: 0, dy: mwS }, up: { dx: rel === 1 ? -mwS * 0.35 : mwS * 0.35, dy: 0 }, z: 6 });
-        y += 3 * mwS + 5;
+        meldTiles(m, s, { x: cxIn, y: y + mwS / 2, i }, put, { w: mwS, rot, ori, step: { dx: 0, dy: mwS }, up: { dx: 0, dy: 0 }, line: true, z: 6 });
+        y += (m.k === 'peng' ? 3 : 4) * mwS + 5;
       });
     }
     function setHidden(oh, n, gap, kind, w, h) {

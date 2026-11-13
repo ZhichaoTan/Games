@@ -45,8 +45,14 @@
   let token = store.get('token'); if (!token) { token = rid(16); store.set('token', token); }
   let myName = store.get('name') || '';
   let myAv = store.get('av'); if (myAv == null || !(myAv >= 0 && myAv < AV.AVATARS.length)) myAv = Math.floor(Math.random() * AV.AVATARS.length);
+  // 聊天声音：女声 / 男声，自己选（电脑按名字定）
+  let myG = store.get('vg') === 'm' ? 'm' : 'f';
+  const BOT_M = new Set(['阿杰', '老周', '小林', '大鹏', '老陈', 'Bo', 'Dex', 'Fig', 'Gus']);
+  const genderOf = p => !p ? 'f' : p.bot ? (BOT_M.has(p.name) ? 'm' : 'f') : (p.g === 'm' ? 'm' : 'f');
   const P = Object.assign({ hints: true, speed: 'normal', bot: 3, tab: 'solo', more: false }, store.get('mj_prefs') || {});
   P.rules = MJ.cleanRules(P.rules);
+  // 以前默认不限时；改成默认 30 秒，老存档里的 0 换一次
+  if (!P.tm30) { P.tm30 = 1; if (!P.rules.timer) P.rules.timer = 30; }
   const saveP = () => store.set('mj_prefs', P);
 
   // ---------------- 小工具：提示、遮罩、抽屉 ----------------
@@ -131,6 +137,13 @@
       b.onclick = () => { myAv = i; store.set('av', i); paintMe(); SND.play('tap'); };
       g.appendChild(b);
     });
+    const vs = $('vSeg'); vs.innerHTML = '';
+    for (const k of ['f', 'm']) {
+      const b = document.createElement('button');
+      b.textContent = T(k === 'f' ? 'vF' : 'vM'); b.className = k === myG ? 'on' : '';
+      b.onclick = () => { myG = k; store.set('vg', k); paintMe(); SND.unlock && SND.unlock(); if (!SND.chatSay(Math.random() < 0.5 ? 2 : 3, k)) SND.play('tap'); };
+      vs.appendChild(b);
+    }
   }
   $('nick').value = myName;
   $('nick').addEventListener('input', () => { $('lobErr').textContent = ''; });
@@ -147,7 +160,7 @@
     dgh: { lab: 'oDgh', vals: ['pao', 'zimo'], txt: v => T(v === 'pao' ? 'dPao' : 'dZimo') },
     swap: { lab: 'oSwap', vals: [true, false], txt: v => T(v ? 'on' : 'off') },
     base: { lab: 'oBase', vals: [1, 2, 5, 10], txt: v => String(v) },
-    timer: { lab: 'oTimer', vals: [0, 15, 20, 30], txt: v => (v ? T('tSec', { n: v }) : T('tOff')) },
+    timer: { lab: 'oTimer', vals: [15, 30, 45, 60, 0], txt: v => (v ? T('tSec', { n: v }) : T('tOff')) },
     team: { lab: 'oMode', vals: [false, true], txt: v => T(v ? 'mTeam' : 'mFree') },
     tswap: { lab: 'oTsw', vals: [1, 2, 3, 5, 0], txt: v => (v ? String(v) : T('noLimit')) },
     queFirst: { lab: 'oQue', vals: [false, true], txt: v => T(v ? 'qFirst' : 'qFree') },
@@ -254,7 +267,7 @@
     const tb = { T: T0 };
     const speedOf = () => P.speed;
     const host = T0.seats[0] || {};
-    T0.seats[0] = Object.assign(host, { id: 'host', name: myName, av: myAv, bot: false, lv: 0, token, score: host.score || 0, conn: true, auto: !!host.auto });
+    T0.seats[0] = Object.assign(host, { id: 'host', name: myName, av: myAv, g: myG, bot: false, lv: 0, token, score: host.score || 0, conn: true, auto: !!host.auto });
     for (let s = 1; s < 4; s++) if (T0.seats[s] && !T0.seats[s].bot) T0.seats[s].conn = false;
     const conns = new Map(), seen = [0, 0, 0, 0];
     let started = !!(restore && restore.started), paused = false, peer = null, closing = false;
@@ -295,7 +308,23 @@
         store.set(solo ? 'mj_solo' : 'mj_host', data);
       }, 400);
     }
-    function changed() { schedule(); sync(); save(); }
+    function changed() { schedule(); sync(); save(); banter(); }
+    // 电脑偶尔说句话（有人胡了的时候），快捷语带声音
+    let banterN = tb.T.evn, banterAt = 0;
+    function banter() {
+      const R = tb.T.R; if (!R || !started) return;
+      const evs = R.ev.filter(e => e.n > banterN); banterN = tb.T.evn;
+      const hu = evs.find(e => e.k === 'hu'); if (!hu || Date.now() - banterAt < 6000) return;
+      const bots = [0, 1, 2, 3].filter(x => tb.T.seats[x] && tb.T.seats[x].bot);
+      if (!bots.length) return;
+      let who = -1, p = -1;
+      if (tb.T.seats[hu.s] && tb.T.seats[hu.s].bot && Math.random() < 0.3) { who = hu.s; p = 3; }
+      else if (hu.from >= 0 && tb.T.seats[hu.from] && tb.T.seats[hu.from].bot && Math.random() < 0.35) { who = hu.from; p = Math.random() < 0.5 ? 5 : 4; }
+      else if (Math.random() < 0.3) { const o = bots.filter(x => x !== hu.s); if (o.length) { who = o[Math.floor(Math.random() * o.length)]; p = 6; } }
+      if (who < 0) return;
+      banterAt = Date.now();
+      KeepAlive.later(() => { if (!closing && tb.T.seats[who] && tb.T.seats[who].bot) broadcastChat(who, { p }); }, 1400);
+    }
     // ----- 电脑和计时 -----
     function think(s) {
       const R = tb.T.R, sp = speedOf();
@@ -329,7 +358,7 @@
           timers[s] = { key, id: KeepAlive.later(() => move(s, key, 3, 'offer'), ms + 300) };
         }
         else if (Tb.rules.timer > 0) {
-          const ms = Tb.rules.timer * 1000 * (R.phase === 'play' ? 1 : 2);
+          const ms = R.phase === 'play' ? Tb.rules.timer * 1000 : Math.min(Tb.rules.timer * 2, Math.max(Tb.rules.timer, 45)) * 1000;   // 换三张、定缺多给点时间
           deadline[s] = KeepAlive.now() + ms;
           timers[s] = { key, id: KeepAlive.later(() => move(s, key, 3, true), ms + 300) };
         }
@@ -453,8 +482,8 @@
     // ----- 聊天 -----
     function broadcastChat(s, m) {
       const msg = cleanChat(m); if (!msg) return;
-      ui.bubble(s, msg.emo || msg.text, !!msg.emo);
-      for (const c of conns.values()) if (c.open) try { c.send({ t: 'chat', s, text: msg.text, emo: msg.emo }); } catch (e) {}
+      chatIn(s, msg, tb.T.seats[s]);
+      for (const c of conns.values()) if (c.open) try { c.send({ t: 'chat', s, text: msg.text, emo: msg.emo, p: msg.p }); } catch (e) {}
     }
     function notice(txt) { toast(txt, 2600); for (const c of conns.values()) if (c.open) try { c.send({ t: 'note', text: txt }); } catch (e) {} }
 
@@ -466,17 +495,18 @@
         const name = String(m.name || '').trim().slice(0, 10) || 'Guest';
         const tk = String(m.token || '').slice(0, 40);
         const av = clamp(m.av | 0, 0, AV.AVATARS.length - 1);
+        const g = m.g === 'm' ? 'm' : 'f';
         let s = Tb.seats.findIndex((p, i) => i > 0 && p && !p.bot && p.token === tk);
         if (s < 0) {
           if (!started) s = [1, 2, 3].find(i => !Tb.seats[i]);
           else s = [1, 2, 3].find(i => Tb.seats[i] && Tb.seats[i].bot);
           if (s == null || s < 0) { try { conn.send({ t: 'err', code: 'full' }); } catch (e) {} setTimeout(() => { try { conn.close(); } catch (e) {} }, 600); return; }
           const prev = Tb.seats[s];
-          Tb.seats[s] = { id: 'p' + rid(6), name, av, bot: false, lv: 0, token: tk, score: prev ? prev.score : 0, conn: true, auto: false };
+          Tb.seats[s] = { id: 'p' + rid(6), name, av, g, bot: false, lv: 0, token: tk, score: prev ? prev.score : 0, conn: true, auto: false };
           notice(T(prev ? 'tookOver' : 'joined', { n: name }));
         } else {
           const p = Tb.seats[s]; const back = !p.conn;
-          p.name = name; p.av = av; p.conn = true;
+          p.name = name; p.av = av; p.g = g; p.conn = true;
           if (back && started) notice(T('isBack', { n: name }));
         }
         // 先换上新连接再关旧的：旧连接的 close 可能马上触发，不能把人标成掉线
@@ -595,9 +625,16 @@
       changed();
     }
   }
+  // 收到一句聊天：冒个泡；快捷语按各自的语言显示，再按这个人的声音念出来
+  function chatIn(s, m, seat) {
+    const p = Number.isInteger(m.p) && m.p >= 0 && m.p < T('phrases').length ? m.p : -1;
+    ui.bubble(s, m.emo || (p >= 0 ? T('phrases')[p] : m.text), !!m.emo);
+    if (p >= 0) SND.chatSay(p, genderOf(seat));
+  }
   function cleanChat(m) {
     if (!m) return null;
     if (m.emo && EMOS.includes(m.emo)) return { emo: m.emo };
+    if (Number.isInteger(m.p) && m.p >= 0 && m.p < T('phrases').length) return { p: m.p, text: T('phrases')[m.p] };
     const t = String(m.text || '').replace(/\s+/g, ' ').trim().slice(0, 40);
     return t ? { text: t } : null;
   }
@@ -644,13 +681,13 @@
       conn = peer.connect(PREFIX + code, { reliable: true, serialization: 'json' });
       const c = conn;
       const to = setTimeout(() => { if (c === conn && !c.open) { if (ever) overlayNet(T('slow')); if (++fails % 2 === 0) { try { peer && peer.destroy(); } catch (e) {} } retry(300); } }, 8000);
-      c.on('open', () => { clearTimeout(to); fails = 0; lastMsg = Date.now(); c.send({ t: 'hello', name: myName, av: myAv, token }); });
+      c.on('open', () => { clearTimeout(to); fails = 0; lastMsg = Date.now(); c.send({ t: 'hello', name: myName, av: myAv, g: myG, token }); });
       c.on('data', m => {
         lastMsg = Date.now();
         if (!m || (dead && m.t !== 'bye')) return;
         if (m.t === 'welcome') { ever = true; S.seat = m.seat; setNet(true); overlay(null); }
         else if (m.t === 'state') { setNet(true); if (!$('overlay').hidden && ever) overlay(null); onView(m.v, m.room); }
-        else if (m.t === 'chat') ui.bubble(m.s, m.emo || m.text, !!m.emo);
+        else if (m.t === 'chat') chatIn(m.s, m, S.view && S.view.seats && S.view.seats[m.s]);
         else if (m.t === 'note') toast(String(m.text || '').slice(0, 80), 2600);
         else if (m.t === 'err') {
           if (m.code === 'full') { dead = true; overlay(`<b>${T('full')}</b>`, [[T('backLobby'), 'glass', goLobby]]); store.set('mj_client', null); }
@@ -837,8 +874,8 @@
     h += toggleRow(T('mSound'), SND.prefs.on, null, 'on');
     h += toggleRow(T('mVoice'), SND.prefs.voice, null, 'voice');
     if (SND.prefs.voice) {
-      if (I18.lang === 'zh') h += toggleRow(T('mSc'), SND.prefs.sc, null, 'sc');
-      if (I18.lang !== 'zh' || !SND.prefs.sc) h += toggleRow(T('mCall'), SND.prefs.call, null, 'call');
+      h += toggleRow(T('mSc'), SND.prefs.sc, null, 'sc');
+      if (!SND.prefs.sc) h += toggleRow(T('mCall'), SND.prefs.call, null, 'call');
     }
     if ('vibrate' in navigator) h += toggleRow(T('mVib'), SND.prefs.vib, null, 'vib');
     h += `<div class="mrow"><span class="grow">${T('mLang')}</span><div class="seg"><button data-lang="en" class="${I18.lang === 'en' ? 'on' : ''}">English</button><button data-lang="zh" class="${I18.lang === 'zh' ? 'on' : ''}">中文</button></div></div>`;
@@ -880,11 +917,11 @@
   function showChat() {
     let h = head(T('chat'));
     h += `<div class="emos">${EMOS.map(e => `<button data-e="${e}">${e}</button>`).join('')}</div>`;
-    h += `<div class="phr">${T('phrases').map(p => `<button data-p="${esc(p)}">${esc(p)}</button>`).join('')}</div>`;
+    h += `<div class="phr">${T('phrases').map((p, i) => `<button data-p="${i}">${esc(p)}</button>`).join('')}</div>`;
     h += `<div class="code-row chatrow"><input class="inp" id="chatIn" maxlength="40" placeholder="${esc(T('chatPh'))}"><button class="btn gold" id="chatGo">${T('send')}</button></div>`;
     const sh = sheet(h, { id: 'chat' });
     sh.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { S.chat({ emo: b.dataset.e }); closeSheet(); });
-    sh.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { S.chat({ text: b.dataset.p }); closeSheet(); });
+    sh.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { S.chat({ p: +b.dataset.p }); closeSheet(); });
     const go = () => { const t = $('chatIn').value.trim(); if (t) { S.chat({ text: t }); closeSheet(); } };
     $('chatGo').onclick = go;
     $('chatIn').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });

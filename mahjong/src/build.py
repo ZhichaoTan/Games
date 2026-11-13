@@ -21,7 +21,7 @@ fonts = '\n'.join([
 src = rd(here, 'index.html')
 subs = [('/*@@FONT@@*/', fonts), ('/*@@NOZOOM@@*/', rd(root, 'nozoom.js')), ('/*@@PEERJS@@*/', rd(root, 'peerjs.min.js') + '\n' + rd(root, 'keepalive.js')), ('/*@@AVATARS@@*/', rd(root, 'art.js')),
         ('/*@@GLYPHS@@*/', rd(here, 'glyphs.js')), ('/*@@TILES@@*/', rd(here, 'tiles.js')), ('/*@@ART@@*/', rd(here, 'art.js')), ('/*@@ENGINE@@*/', rd(here, 'engine.js')),
-        ('/*@@AI@@*/', rd(here, 'ai.js')), ('/*@@I18N@@*/', rd(here, 'i18n.js')), ('/*@@SFX@@*/', rd(here, 'sfx.js')), ('/*@@VOICE@@*/', rd(here, 'voice_sc.js')), ('/*@@SOUND@@*/', rd(here, 'sound.js')),
+        ('/*@@AI@@*/', rd(here, 'ai.js')), ('/*@@I18N@@*/', rd(here, 'i18n.js')), ('/*@@SFX@@*/', rd(here, 'sfx.js')), ('/*@@VOICE@@*/', rd(here, 'voice_sc.js') + '\n' + rd(here, 'voice_chat.js')), ('/*@@SOUND@@*/', rd(here, 'sound.js')),
         ('/*@@UI@@*/', rd(here, 'ui.js')), ('/*@@APP@@*/', rd(here, 'app.js'))]
 for tag, body in subs:
     assert src.count(tag) == 1, tag

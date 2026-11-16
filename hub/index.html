@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0a0e13">
-<meta name="description" content="Card, tile and board games to play with friends on your phones: Midnight Hold'em, Sichuan Mahjong and Xiangqi (Chinese chess). No sign-up, just a room code.">
+<meta name="description" content="Card, tile and board games to play with friends on your phones: Midnight Hold'em, Sichuan Mahjong, Xiangqi (Chinese chess) and Cipher (number tiles). No sign-up, just a room code.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Games</title>
@@ -170,16 +170,45 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
 .game:active .xp.x0,.g-xiangqi:hover .xp.x0{rotate:-19deg;translate:-84px 18px}
 .game:active .xp.x2,.g-xiangqi:hover .xp.x2{rotate:18deg;translate:84px 18px}
 
+/* ----- Cipher: lamp-lit walnut, a compass drawing in brass, black and ivory number tiles around a key ----- */
+.g-cipher{--glow:rgba(201,150,72,.42);background:linear-gradient(172deg,#5b3a1f 0%,#33200f 46%,#170d06 100%)}
+.g-cipher .art .cdraft{position:absolute;left:50%;top:50%;width:330px;height:330px;margin:-150px 0 0 -165px;color:#e5be75;opacity:.13;rotate:-8deg}
+.g-cipher .art .glow{background:radial-gradient(closest-side,rgba(255,206,132,.26),transparent)}
+.cfan{position:absolute;left:50%;top:34px;width:0;height:0}
+.ct{--w:54px;position:absolute;left:calc(var(--w)/-2);top:0;width:var(--w);height:calc(var(--w)*1.4);border-radius:calc(var(--w)*.17);display:grid;place-items:center;transform-origin:50% 130%;
+  transition:rotate .5s cubic-bezier(.2,.8,.2,1),translate .5s cubic-bezier(.2,.8,.2,1)}
+.ct.k{background:linear-gradient(162deg,#3c3631 0%,#1e1a17 48%,#0f0d0b 100%);color:#f6ecd6;box-shadow:inset 0 1px 0 rgba(255,255,255,.17),inset 0 0 0 1px rgba(255,228,186,.08),0 4px 0 #050403,0 11px 16px rgba(0,0,0,.55)}
+.ct.w{background:linear-gradient(162deg,#fffdf8 0%,#f4ebda 50%,#e2d4b9 100%);color:#1f1a15;box-shadow:inset 0 1px 0 #fff,inset 0 0 0 1px rgba(120,88,46,.13),0 4px 0 #b29e7e,0 11px 16px rgba(0,0,0,.45)}
+.ct span{font:700 34px/1 var(--display);letter-spacing:-.045em;transform:translateY(-3%)}
+.ct svg{width:44%;height:72%}
+.ct.k svg{color:#e5be75;filter:drop-shadow(0 0 4px rgba(229,190,117,.4))}
+.ct.back::before{content:"";position:absolute;inset:5px;border-radius:7px;border:1px solid rgba(229,190,117,.17)}
+.ct.w.back::before{border-color:rgba(150,108,48,.22)}
+.ct.back svg{width:40%;height:58%;filter:none}
+.ct.k.back svg{color:#070605}
+.ct.w.back svg{color:rgba(120,92,52,.3)}
+.ct.c0{rotate:-17deg;translate:-94px 24px}
+.ct.c1{rotate:-8deg;translate:-48px 7px}
+.ct.c2{--w:60px;translate:0 -4px;z-index:2}
+.ct.c3{rotate:8deg;translate:48px 7px}
+.ct.c4{rotate:17deg;translate:94px 24px}
+.game:active .ct.c0,.g-cipher:hover .ct.c0{rotate:-22deg;translate:-104px 26px}
+.game:active .ct.c1,.g-cipher:hover .ct.c1{rotate:-11deg;translate:-54px 8px}
+.game:active .ct.c3,.g-cipher:hover .ct.c3{rotate:11deg;translate:54px 8px}
+.game:active .ct.c4,.g-cipher:hover .ct.c4{rotate:22deg;translate:104px 26px}
+
 @media (prefers-reduced-motion:no-preference){
-  .pfan,.mfan,.xfan{animation:float 6s ease-in-out infinite}
+  .pfan,.mfan,.xfan,.cfan{animation:float 6s ease-in-out infinite}
   .mfan{animation-delay:-3s}
   .xfan{animation-delay:-1.5s}
+  .cfan{animation-delay:-4.5s}
   .boot .hero,.boot .game,.boot .more{animation:rise .75s cubic-bezier(.2,.8,.2,1) backwards}
   .boot .game:nth-child(1){animation-delay:.1s}
   .boot .game:nth-child(2){animation-delay:.2s}
   .boot .game:nth-child(3){animation-delay:.3s}
   .boot .game:nth-child(4){animation-delay:.4s}
-  .boot .more{animation-delay:.42s}
+  .boot .game:nth-child(5){animation-delay:.5s}
+  .boot .more{animation-delay:.52s}
 }
 @keyframes float{50%{transform:translateY(-5px)}}
 @keyframes rise{from{opacity:0;transform:translateY(18px)}}
@@ -255,6 +284,7 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
     '<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">' +
     /*@@TILES@@*/'' +
     /*@@XQFIG@@*/'' +
+    /*@@CXART@@*/'' +
     I('h-people', '<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.4-3.2 2.6-5 5.5-5s5.1 1.8 5.5 5"/><path d="M15.5 5.6a3 3 0 0 1 0 5.8M17.8 14.3c1.6.7 2.6 2.3 2.8 4.7"/>') +
     I('h-online', '<path d="M4.2 9.6a11 11 0 0 1 15.6 0"/><path d="M7.1 12.6a6.8 6.8 0 0 1 9.8 0"/><path d="M10 15.6a2.7 2.7 0 0 1 4 0"/><circle cx="12" cy="18.6" r=".6" fill="currentColor"/>') +
     I('h-bot', '<rect x="5" y="8" width="14" height="11" rx="3.5"/><path d="M12 8V5"/><path d="M9.5 13h.01M14.5 13h.01" stroke-width="2.6"/>') +
@@ -301,6 +331,7 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
 
   const pcard = (cls, rank, suit) => `<div class="pc ${cls}"><span class="r">${rank}</span><svg class="p1" viewBox="0 0 100 100"><use href="#suit-${suit}"/></svg><svg class="p2" viewBox="0 0 100 100"><use href="#suit-${suit}"/></svg></div>`;
   const xpiece = (cls, ch, fig, zh) => `<div class="xp ${cls}">${zh ? `<span>${ch}</span>` : `<svg viewBox="0 0 24 24"><use href="#xf${fig}"/></svg>`}</div>`;
+  const ctile = (cls, x) => `<div class="ct ${cls}">${x == null ? '<svg viewBox="0 0 24 40"><use href="#cx-hole"/></svg>' : x === 'key' ? '<svg viewBox="0 0 24 40"><use href="#cx-key"/></svg>' : `<span>${x}</span>`}</div>`;
   const tile = (cls, t) => `<div class="mt ${cls}"><i class="tb"></i><i class="tf">${t == null ? '' : `<svg viewBox="0 0 60 80"><use href="#t${t}"/></svg>`}</i></div>`;
 
   // ----- the games. To add one: give it a folder at the top of the repo, an entry here, and its art below. -----
@@ -328,6 +359,13 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
       art: zh => `<div class="glow"></div><div class="xfan">${xpiece('x0', '車', 4, zh)}${xpiece('red x1', '帥', 0, zh)}${xpiece('red x2', '炮', 5, zh)}</div>`,
       en: { name: 'Xiangqi (Chinese chess)', desc: 'Chinese chess for two. Play a friend online with a room code, or practise against seven levels of computer, then review the game move by move.', players: '2 players' },
       zh: { name: '中国象棋', desc: '两个人联机下棋，发个房间码就能开局。也可以跟七档电脑练手，下完还能逐步复盘。', players: '2 人' } },
+    { id: 'cipher', href: 'cipher/',
+      lock: zh => zh ? `<span class="w"><span class="w1 br">数字密码</span></span><span class="tseal" aria-hidden="true">破译</span>`
+        : `<span class="w"><span class="w1">Cipher</span><span class="w2">NUMBER TILES</span></span>`,
+      // 黑白数字牌围着一把钥匙，跟游戏大厅里的那一把一样；牌面只有数字，两种语言通用
+      art: () => `<svg class="cdraft" viewBox="0 0 500 500"><use href="#cx-draft"/></svg><div class="glow"></div><div class="cfan">${ctile('w back c0')}${ctile('k c1', 2)}${ctile('k c2', 'key')}${ctile('w c3', 7)}${ctile('k back c4')}</div>`,
+      en: { name: 'Cipher', desc: 'A deduction game with black and white number tiles. Work out the numbers your friends are hiding before they crack yours. Bots in four levels fill any empty seats.', players: '2–4 players' },
+      zh: { name: '数字密码', desc: '黑白数字牌的推理游戏。猜出朋友藏着的数字，守住自己的。人不够，四档电脑来凑。', players: '2–4 人' } },
   ];
 
   const S = {

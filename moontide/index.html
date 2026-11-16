@@ -1320,8 +1320,7 @@ var KeepAlive = (function () {
     g.cr.push({ id: g.nid++, k: 'shark', at: sp[0] }, { id: g.nid++, k: 'oct', at: sp[1] }, { id: g.nid++, k: 'shark', at: sp[2] });
     g.first = opts.first != null ? opts.first : pick(pl, rnd);
     // placing: one islander at a time, round the table from the first player, then a boat each in the same order.
-    // (The first player moves first, so they need a boat close by too: when the last player placed first, bot matches had the first player
-    // winning far less often than the rest.)
+    // One order for everything: in bot matches the boat order made no measurable difference to who wins.
     const f = pl.indexOf(g.first), order = [];
     const per = g.isl.length / n;
     for (let r = 0; r < per + 1; r++) for (let t = 0; t < n; t++) order.push(pl[(f + t) % n]);

@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Builds the Games home page, the root index.html: inlines the fonts, the zoom guard, the shared artwork
 (poker/src/art.js and seal.svg), the four mahjong tile faces the page draws (from mahjong/src/tiles.js) and the
-three xiangqi pieces (the piece font subset and three figurines from xiangqi/src/)."""
+three xiangqi pieces (the piece font subset and three figurines from xiangqi/src/), and the cipher key, keyhole and compass
+drawing (from cipher/src/art.js)."""
 import base64, json, os, re
 here = os.path.dirname(os.path.abspath(__file__))
 pk = os.path.join(here, '..', 'poker', 'src')
 mj = os.path.join(here, '..', 'mahjong', 'src')
 xq = os.path.join(here, '..', 'xiangqi', 'src')
+cx = os.path.join(here, '..', 'cipher', 'src')
 rd = lambda *p: open(os.path.join(*p), encoding='utf-8').read()
 def font(fam, path, weight, style='normal'):
     b = base64.b64encode(open(path, 'rb').read()).decode()
@@ -30,9 +32,14 @@ cut, cuts = re.search(r"const CUT = '([^']*)', CUTS = '([^']*)'", xart).groups()
 figs = re.findall(r"^    `(.*)`,?$", xart[xart.index('const FIG = ['):xart.index('];', xart.index('const FIG = ['))], re.M)
 assert len(figs) == 7, len(figs)
 xqfig = ''.join('<symbol id="xf%d" viewBox="0 0 24 24"><g fill="currentColor">%s</g></symbol>' % (i, figs[i].replace('${CUTS}', cuts).replace('${CUT}', cut)) for i in (0, 4, 5))
+# the cipher key, keyhole and compass drawing: the symbols cipher/src/art.js makes for the game
+import subprocess
+cxs = subprocess.check_output(['node', '-e', "globalThis.window=globalThis;require(process.argv[1]);process.stdout.write(CXArt.sprite())", os.path.join(cx, 'art.js')]).decode()
+cxart = ''.join(re.findall(r'<symbol id="cx-(?:key|hole|draft)".*?</symbol>', cxs))
+assert cxart.count('<symbol') == 3
 src = rd(here, 'index.html')
 subs = [('/*@@FONTS@@*/', fonts), ('/*@@NOZOOM@@*/', rd(pk, 'nozoom.js')), ('/*@@ART@@*/', rd(pk, 'art.js')),
-        ("/*@@SEAL@@*/''", json.dumps(rd(pk, 'seal.svg'))), ("/*@@TILES@@*/''", json.dumps(tiles)), ("/*@@XQFIG@@*/''", json.dumps(xqfig))]
+        ("/*@@SEAL@@*/''", json.dumps(rd(pk, 'seal.svg'))), ("/*@@TILES@@*/''", json.dumps(tiles)), ("/*@@XQFIG@@*/''", json.dumps(xqfig)), ("/*@@CXART@@*/''", json.dumps(cxart))]
 for tag, body in subs:
     assert src.count(tag) == 1, tag
     src = src.replace(tag, body.replace('</script', '<\\/script'))

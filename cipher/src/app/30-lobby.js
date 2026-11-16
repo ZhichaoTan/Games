@@ -131,7 +131,7 @@ function bindSettings(sh, again) {
     if (k === 'auto') { if (S && S.setAuto) S.setAuto(on); }
     else { SND.set(k, on); if (k === 'on') { paintSound(); if (on) SND.play('tap'); } if (k === 'vib' && on) SND.vib(30); }
   });
-  sh.querySelectorAll('[data-hint]').forEach(b => b.onclick = () => { P.hints = b.dataset.hint; saveP(); SND.play('tap'); UI.refresh(); again(); });
+  sh.querySelectorAll('[data-hint]').forEach(b => b.onclick = () => { P.hints = b.dataset.hint; P.hintsSet = true; saveP(); SND.play('tap'); UI.refresh(); again(); });
   sh.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => { I18.setLang(b.dataset.lang); refreshLang(); again(); });
   sh.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { P.speed = b.dataset.sp; saveP(); SND.play('tap'); again(); });
 }

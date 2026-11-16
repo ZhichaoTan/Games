@@ -75,7 +75,7 @@
         '<p><b>Nothing left to draw:</b> just guess. If you’re wrong, turn up one of your own hidden tiles.</p>' +
         '<h4>Keys</h4><p>A key has no number, so it can stand anywhere in a row; you choose where when you get it. You can guess that a hidden tile is the key.</p>' +
         '<h4>Winning</h4><p>Once all your tiles are face up, you’re out. The last player with a hidden tile wins the round. Every round scores a point for each player you outlast.</p>' +
-        '<h4>Hints</h4><p>When you pick a tile, the number pad greys out what it can’t be. Settings can turn this off, or switch to the exact version that works through the whole table.</p>',
+        '<h4>Hints</h4><p>Hints are off to start with, since working the numbers out is the game. You can switch them on in Settings: Simple greys out the numbers a tile plainly can’t be, and Exact works through the whole table and shows each number’s chance.</p>',
     },
     zh: {
       title: '数字密码', titleA: '数字密码', titleB: '', allGames: '全部游戏', rules: '规则', langBtn: 'English',
@@ -146,7 +146,7 @@
         '<p><b>牌堆摸完了</b>：直接猜。猜错的话，从自己的暗牌里挑一张翻开。</p>' +
         '<h4>钥匙牌</h4><p>钥匙牌没有数字，放在一排里的哪个位置都行，拿到的时候自己决定放哪儿。猜别人的牌时也可以猜“钥匙”。</p>' +
         '<h4>输赢</h4><p>牌全被翻开就出局，最后一个还留着暗牌的人赢下这一局。每局按名次得分：比几个人坚持得久，就得几分。</p>' +
-        '<h4>推理提示</h4><p>选中一张牌时，数字键盘会把它不可能是的数字变灰。设置里可以关掉，或者换成精确模式，把整张桌子都算进去。</p>',
+        '<h4>推理提示</h4><p>推理提示默认是关的，推理本身就是玩法。需要的话可以在设置里打开：简单模式把一眼就能排除的数字变灰，精确模式把整张桌子算一遍，标出每个数字的可能性。</p>',
     },
   };
   const read = () => { try { return JSON.parse(localStorage.getItem('mh_lang')); } catch (e) { return null; } };

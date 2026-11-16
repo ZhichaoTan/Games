@@ -9,6 +9,8 @@ const Q = '?ph=127.0.0.1:9000';
 (async () => {
   const lang = process.argv[2] || 'zh';
   const b = await L.launch();
+  // 'simple' saved without hintsSet is how every preference was stored before hints started off (2026-11-16): it must
+  // come out as off, so the pad never greys out a number or shows a chance
   const prefs = JSON.stringify({ hints: 'simple', speed: 'fast' });
   const A = await L.open(b, { lang, query: Q, name: lang == 'zh' ? '阿超' : 'Zed', ls: { mh_mm_prefs: prefs } });
   await A.evaluate(() => document.querySelector('#tabs [data-tab="host"]').click());
@@ -53,6 +55,7 @@ const Q = '?ph=127.0.0.1:9000';
       if (ph === 'end') return moves;
       for (const p of P) {
         const l = await leakCheck(p); assert.strictEqual(l, '', 'leak: ' + l);
+        assert.strictEqual(await p.evaluate(() => document.querySelectorAll('#dock .pk.no, #dock .pk.wrong, #dock .pk.best, #dock .pk i').length), 0, 'hints showing while off');
         const d = await L.playMove(p, 2).catch(e => { console.log('move failed', e.message.slice(0, 160)); return ''; });
         if (d) { moves++; if (d === 'guess' && shotN < 2) { await p.waitForTimeout(500); await L.shot(p, `online-guess${shotN++}-${lang}`); } }
       }

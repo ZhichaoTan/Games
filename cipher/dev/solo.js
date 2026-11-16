@@ -5,7 +5,7 @@ const L = require('./lib');
 (async () => {
   const [lang = 'zh', opp = 1, w = 390, h = 844, rounds = 2] = process.argv.slice(2);
   const tag = `${lang}-${opp}-${w}`;
-  const b = await L.launch(), p = await L.open(b, { lang, w: +w, h: +h, ls: { mh_mm_prefs: JSON.stringify({ opp: +opp, bot: 2, hints: 'exact', speed: 'fast' }) } });
+  const b = await L.launch(), p = await L.open(b, { lang, w: +w, h: +h, ls: { mh_mm_prefs: JSON.stringify({ opp: +opp, bot: 2, hints: 'exact', hintsSet: true, speed: 'fast' }) } });
   await L.shot(p, `lobby-${tag}`);
   await L.click(p, 'btnSolo');
   await p.waitForTimeout(400); await L.shot(p, `deal-${tag}`);

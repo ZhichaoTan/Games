@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Builds the Games home page, the root index.html: inlines the fonts, the zoom guard, the shared artwork
 (poker/src/art.js and seal.svg), the four mahjong tile faces the page draws (from mahjong/src/tiles.js) and the
-three xiangqi pieces (the piece font subset and three figurines from xiangqi/src/), and the cipher key, keyhole and compass
-drawing (from cipher/src/art.js)."""
+three xiangqi pieces (the piece font subset and three figurines from xiangqi/src/), the cipher key, keyhole and compass
+drawing (from cipher/src/art.js), and the moontide lobby picture (from moontide/src/art.js)."""
 import base64, json, os, re
 here = os.path.dirname(os.path.abspath(__file__))
 pk = os.path.join(here, '..', 'poker', 'src')
@@ -37,9 +37,16 @@ import subprocess
 cxs = subprocess.check_output(['node', '-e', "globalThis.window=globalThis;require(process.argv[1]);process.stdout.write(CXArt.sprite())", os.path.join(cx, 'art.js')]).decode()
 cxart = ''.join(re.findall(r'<symbol id="cx-(?:key|hole|draft)".*?</symbol>', cxs))
 assert cxart.count('<symbol') == 3
+# the moontide picture: the lobby's moonlit corner of the board with its gradients, ids prefixed so they stay its own
+mt = os.path.join(here, '..', 'moontide', 'src')
+mdefs, mscene = subprocess.check_output(['node', '-e', "globalThis.window=globalThis;require(process.argv[1]);process.stdout.write(MTArt.defs()+'@@'+MTArt.scene())", os.path.join(mt, 'art.js')]).decode().split('@@')
+mtart = re.sub(r'(<svg class="scene"[^>]*>)', lambda m: m.group(1) + mdefs.replace('\n', ''), mscene, count=1)
+mtart = re.sub(r'id="([\w-]+)"', r'id="mt-\1"', mtart)
+mtart = re.sub(r'url\(#([\w-]+)\)', r'url(#mt-\1)', mtart)
+assert 'href="#' not in mtart and mtart.count('<svg') == 1, 'the picture stands alone'
 src = rd(here, 'index.html')
 subs = [('/*@@FONTS@@*/', fonts), ('/*@@NOZOOM@@*/', rd(pk, 'nozoom.js')), ('/*@@ART@@*/', rd(pk, 'art.js')),
-        ("/*@@SEAL@@*/''", json.dumps(rd(pk, 'seal.svg'))), ("/*@@TILES@@*/''", json.dumps(tiles)), ("/*@@XQFIG@@*/''", json.dumps(xqfig)), ("/*@@CXART@@*/''", json.dumps(cxart))]
+        ("/*@@SEAL@@*/''", json.dumps(rd(pk, 'seal.svg'))), ("/*@@TILES@@*/''", json.dumps(tiles)), ("/*@@XQFIG@@*/''", json.dumps(xqfig)), ("/*@@CXART@@*/''", json.dumps(cxart)), ("/*@@MTART@@*/''", json.dumps(mtart))]
 for tag, body in subs:
     assert src.count(tag) == 1, tag
     src = src.replace(tag, body.replace('</script', '<\\/script'))

@@ -527,7 +527,7 @@ const TEAM = { team: true };
   eq(AI.decide(T.view(0), 3, MJ.seeded(1)).k, 'zimo', '换完就自摸');
   eq(AI.tsWins(T.view(2)).length >= 0, true, 'tsWins 能算');
 }
-// 机器人队友：玩家来要牌默认都给；只在会拆掉自己的听牌、而对方也换不来胡/听时才拒绝
+// 机器人队友：玩家来要牌一律同意，哪怕拆掉自己的听牌
 {
   const ask = (h2, give, take) => {
     const T = scenario({ hands: ['123m456m789m234s5s9s', FA, h2, FB], rules: TEAM });
@@ -537,7 +537,7 @@ const TEAM = { team: true };
   eq(ask('5s1s1s6s7s8s2m3m4m5m6m7m9m', '9s', '3m'), 'tsyes', '让队友电脑变慢一步也同意');
   eq(ask('5s1s1s6s7s8s2m3m4m5m6m7m9m', '9s', '9m'), 'tsyes', '无关紧要的换牌同意');
   eq(ask('1s1s6s7s8s2m3m4m5m6m7m9m9m', '9s', '6s'), 'tsyes', '听牌了但换完还听，同意');
-  eq(ask('1s1s6s7s8s2m3m4m5m6m7m9m9m', '9s', '3m'), 'tsno', '会拆掉自己的听牌、对方也胡不了，才拒绝');
+  eq(ask('1s1s6s7s8s2m3m4m5m6m7m9m9m', '9s', '3m'), 'tsyes', '会拆掉自己的听牌也同意');
   // 随机局面里，队友电脑对“随便要一张”的同意率
   let n = 0, y = 0; const rnd = MJ.seeded(42);
   for (let g = 0; g < 300; g++) {
@@ -551,7 +551,7 @@ const TEAM = { team: true };
     if (T.act(0, { k: 'tswap', give, take }) !== 'ok') continue;
     n++; if (AI.decide(T.view(2), 3, rnd).k === 'tsyes') y++;
   }
-  ok(n > 200 && y / n >= 0.9, `随便要牌也大多同意（${y}/${n}）`);
+  ok(n > 200 && y === n, `随便要牌也都同意（${y}/${n}）`);
   console.log(`  队友电脑对随机换牌请求同意 ${(100 * y / n).toFixed(0)}%`);
 }
 // 随机 2v2 对局：不卡死、零和、牌守恒、队友之间不给钱

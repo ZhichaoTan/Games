@@ -2547,18 +2547,10 @@ var KeepAlive = (function () {
     const take = pick(R.mateHand, best.t);
     return give == null || take == null ? null : { give, take, win: best.win };
   }
-  // 队友来要牌：默认都给（队友说了算）。只有一种情况不给：我已经听牌，这一换会把我拆散，
-  // 而且对方换完也胡不了、也没因此听牌（拿我的听牌去换他一点点进步不划算）
+  // 队友来要牌：一律同意（Zhichao 的要求：机器人队友从不拒绝）
   function chooseTAnswer(v) {
     const R = v.R, o = v.opt;
-    if (!o || o.k !== 'offer' || !R.mateHand) return false;
-    const c = tsCtx(v, 'mate');
-    const s0 = shanten(c.H, c.nH, c.qH), m0 = shanten(c.M, c.nM, c.qM);
-    const r = tsCheck(c.H, c.nH, c.qH, c.M, c.nM, c.qM, TY(o.give), TY(o.take));
-    if (r.win) return true;
-    const breaksMyTing = m0 <= 0 && r.m > m0;
-    if (!breaksMyTing) return true;
-    return r.s <= 0 && s0 > 0;
+    return !!(o && o.k === 'offer' && R.mateHand);
   }
 
   // 统一入口

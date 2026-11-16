@@ -141,6 +141,7 @@ const UI = (function () {
       if (oppsEl.children[idx] !== b.root) oppsEl.insertBefore(b.root, oppsEl.children[idx] || null);
       b.root.classList.toggle('cur', play && R.cur === s);
       b.root.classList.toggle('out', R.out.includes(s) && !end);
+      b.root.classList.toggle('holding', !!(play && R.cur === s && R.hold && R.rows[s]));
       setHTML(b.plate, plateHTML(v, s));
       const row = R.rows[s];
       if (!row) { b.row.replaceChildren(...ghostEls(R.hand)); b.row.classList.remove('marks'); b.hold.replaceChildren(); }
@@ -177,45 +178,108 @@ const UI = (function () {
       el.setAttribute('aria-label', T(c ? 'White' : 'Black') + ' · ' + n);
     }
   }
-  // tile sizes: as big as the room allows, wrapping a long row onto two lines rather than shrinking it to nothing
-  function fit(n, aw, ah, max) {
-    n = Math.max(1, n);
+  // tile sizes: as big as the room allows, up to max. A long row wraps onto more lines rather than shrinking below what a
+  // finger can tap; the lines of a wrapped row are RGAP apart so the notes under one line clear the next. ah is the height
+  // for the row plus extra(tw), what hangs off it: a raised tile above, the wrong-guess notes below.
+  const RGAP = tw => Math.round(tw * 0.42 + 6);
+  const gapOf = tw => Math.max(3, Math.round(tw * 0.11));
+  const rowH = (tw, lines) => tw * 1.4 * lines + RGAP(tw) * (lines - 1);
+  const notesH = tw => Math.max(tw * 0.4, tw * 0.18 + 11);   // under a tile: .18tw of air, then a line of notes at least 10px tall
+  const liftH = tw => tw * 0.182;                            // a picked tile rises 13% of its height
+  // o.hold: tiles held beside the row (they stand to its right, 12px off, however many lines the row takes);
+  // o.extra(tw): height hanging off the row; o.lines: the most lines allowed
+  const widthOf = (per, tw, hold) => per * tw + (per - 1) * gapOf(tw) + (hold ? 12 + hold * tw + (hold - 1) * gapOf(tw) : 0);
+  function fit(n, aw, ah, max, o) {
+    o = o || {}; n = Math.max(1, n);
+    const extra = o.extra || (() => 0), hold = o.hold || 0;
     let best = null;
-    for (let lines = 1; lines <= 3; lines++) {
+    for (let lines = 1; lines <= (o.lines || 3); lines++) {
       const per = Math.ceil(n / lines);
-      const gap = 5;
-      const tw = Math.min(max, (aw - gap * (per - 1)) / per, (ah - (lines - 1) * 16) / (1.4 * lines));
-      if (!best || tw > best.tw + 1) best = { tw, per, lines };
+      let tw = Math.floor(Math.min(max, (aw - (hold ? 12 : 0)) / (per + hold + 0.11 * (per + hold - 1))));
+      while (tw > 18 && (rowH(tw, lines) + extra(tw) > ah || widthOf(per, tw, hold) > aw)) tw--;
+      // another line only when the tiles would be small on one and clearly bigger on two
+      if (!best || (best.tw < 46 && tw >= best.tw * 1.22)) best = { tw, per, lines };
     }
-    best.tw = Math.max(18, Math.floor(best.tw));
+    best.tw = Math.max(18, best.tw);
     return best;
   }
-  function sizeRow(rowEl, holdEl, f) {
-    const tw = f.tw, gap = Math.max(3, Math.round(tw * 0.11));
-    for (const e of [rowEl, holdEl]) { e.style.setProperty('--tw', tw + 'px'); e.style.setProperty('--gap', gap + 'px'); }
-    rowEl.style.maxWidth = f.lines > 1 ? (f.per * tw + (f.per - 1) * gap + 2) + 'px' : '';
+  // the fewest lines a row of n tiles (and hold tiles beside it) needs at size tw
+  function linesAt(n, aw, tw, hold) {
+    for (let lines = 1; lines < 3; lines++) { const per = Math.ceil(n / lines); if (widthOf(per, tw, hold) <= aw + 0.5) return { tw, per, lines }; }
+    return { tw, per: Math.ceil(n / 3), lines: 3 };
   }
+  function sizeRow(rowEl, holdEl, f) {
+    const tw = f.tw, gap = gapOf(tw);
+    for (const e of [rowEl, holdEl]) { e.style.setProperty('--tw', tw + 'px'); e.style.setProperty('--gap', gap + 'px'); }
+    rowEl.style.setProperty('--rgap', RGAP(tw) + 'px');
+    rowEl.style.maxWidth = f.lines > 1 ? (f.per * tw + (f.per - 1) * gap + 2) + 'px' : '';
+    rowEl.classList.toggle('wrap', f.lines > 1);
+  }
+  // Every row keeps clear of the text around it: above an opponent's row there's room for the tile you pick to rise and
+  // below every row room for the wrong-guess notes, so nothing jumps when they appear. Rows also keep room for a drawn tile
+  // during play, so they don't shrink each time someone draws. Whatever room is left goes partly into those gaps and the
+  // rest between the players. An opponent's name sits above their tiles, or beside them (avatar and name, tiles, score in
+  // one line) when that gives clearly bigger tiles: three opponents on a phone, a desktop. That choice is only looked at
+  // again when the screen, the players or the longest row change, so it never flips back and forth during a turn.
+  let sideOn = false, sideKey = '';
   function layout(v) {
     v = v || V; const R = v && v.R; if (!R) return;
-    const tbl = $('tbl'), padOn = tbl.classList.contains('padon');
-    const W0 = Math.min(tbl.clientWidth, 720) - 20 - 16;
+    const tbl = $('tbl'), padOn = tbl.classList.contains('padon'), play = R.phase === 'play';
+    const vh = innerHeight, wide = innerWidth >= 760 && vh >= 640;
+    const W0 = Math.min(tbl.clientWidth, 720) - 20 - 20;
     if (R.ps.includes(v.me)) {
       const row = $('myRow'), hold = $('myHold');
-      const nHold = hold.children.length, nSlot = row.querySelectorAll('.slot').length;
+      const nHold = Math.max(hold.children.length, play ? 1 : 0), nSlot = row.querySelectorAll('.slot').length;
       const n = row.querySelectorAll('.tile').length + nSlot * 0.6;
-      const f = fit(n + nHold, W0 - (nHold ? 10 : 0), padOn ? 64 : 150, padOn ? 42 : (innerHeight < 700 ? 48 : 54));
+      const cap = wide ? (padOn ? 56 : 64) : padOn ? (vh < 700 ? 42 : vh < 820 ? 48 : 54) : (vh < 700 ? 48 : vh < 820 ? 56 : 62);
+      const f = fit(n, W0, padOn ? (vh < 700 ? 62 : 80) : (vh < 700 ? 110 : 170), cap, { hold: nHold });
       sizeRow(row, hold, f);
+      $('mine').style.setProperty('--mb', Math.round(notesH(f.tw) + (vh < 700 ? 8 : 14)) + 'px');
     }
     const opps = [...blocks.values()];
     if (!opps.length) return;
-    const H = $('opps').clientHeight;
-    const per = (H - 4 * (opps.length - 1)) / opps.length;
+    const H = $('opps').clientHeight - 2, nO = opps.length;
+    const plateH = wide ? 38 : 34, padT = wide ? 10 : 8, avW = wide ? 36 : 32;
+    const per = (H - 6 * (nO - 1)) / nO;
+    const cap = (wide ? [72, 64, 56] : [64, 56, 50])[nO - 1] || 50;
+    // beside a row the name goes under the avatar, in a column as wide as the longest name (at the 12px it has there),
+    // and the score in a column as wide as the widest score
+    let nameW = 0, scoreW = 30;
     for (const b of opps) {
-      const n = b.row.children.length + b.hold.children.length;
-      const marks = b.row.classList.contains('marks') ? 13 : 0;
-      const f = fit(n, W0 - (b.hold.children.length ? 10 : 0), per - 34 - 6 - 14 - marks - 6, opps.length === 1 ? 52 : 46);
-      sizeRow(b.row, b.hold, f);
+      const nm = b.plate.querySelector('.nm b');
+      if (nm) nameW = Math.max(nameW, nm.scrollWidth * 12 / (parseFloat(getComputedStyle(nm).fontSize) || 14));
+      const sc = b.plate.querySelector('.pscore'); if (sc) scoreW = Math.max(scoreW, sc.offsetWidth);
     }
+    nameW = clamp(Math.ceil(nameW) + 4, avW + 10, 64);
+    const above = tw => liftH(tw) + notesH(tw);
+    // rows keep room for a drawn tile during play; beside a row the drawn tile takes the score's place instead
+    const lens = opps.map(b => b.row.children.length), holdOn = play || opps.some(b => b.hold.children.length);
+    const hold = holdOn ? 1 : 0, sideW = tw => W0 - nameW - Math.max(scoreW, tw) - 2 * 10 - 4;
+    const fits = opps.map((b, i) => ({
+      stack: fit(lens[i], W0, per - padT - plateH - 8, cap, { extra: above, hold }),
+      side: fit(lens[i], sideW(cap), per - 12 - 8, cap, { extra: above, lines: 1 }),
+    }));
+    // a side row can't be wider than its column once the drawn tile's column is sized for it
+    for (const x of fits) while (x.side.tw > 18 && x.side.tw * x.side.per + gapOf(x.side.tw) * (x.side.per - 1) > sideW(x.side.tw)) x.side.tw--;
+    const key = [nO, innerWidth, vh, Math.max(...lens)].join(':');
+    if (key !== sideKey) {
+      sideKey = key;
+      const st = Math.min(...fits.map(x => x.stack.tw)), sd = Math.min(...fits.map(x => x.side.tw));
+      sideOn = sideOn ? sd + 3 > st : sd >= st + 4;
+    }
+    // every opponent's tiles the same size: the smallest any of them needs
+    const tw = Math.min(...fits.map(x => (sideOn ? x.side : x.stack).tw));
+    opps.forEach((b, i) => {
+      const f = sideOn ? { tw, per: lens[i], lines: 1 } : linesAt(lens[i], W0, tw, hold);
+      b.root.classList.toggle('side', sideOn);
+      sizeRow(b.row, b.hold, f);
+      const used = rowH(f.tw, f.lines) + above(f.tw) + (sideOn ? 12 + 8 : padT + plateH + 8);
+      const spare = Math.max(0, per - used);
+      b.root.style.setProperty('--pt', Math.round(liftH(f.tw) + 4 + Math.min(sideOn ? 6 : 10, spare * 0.15)) + 'px');
+      b.root.style.setProperty('--pb', Math.round(notesH(f.tw) + 4 + Math.min(8, spare * 0.1)) + 'px');
+      b.root.style.setProperty('--nmw', nameW + 'px');
+      b.root.style.setProperty('--scw', Math.max(scoreW, f.tw) + 'px');
+    });
   }
   function slide(el, from, to, delay, dur) {
     if (!el.animate) return;

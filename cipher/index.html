@@ -129,9 +129,9 @@ svg.ic{width:20px;height:20px;flex:none}
 .tile .by{position:absolute;left:50%;top:-14%;transform:translateX(-50%);width:max(13px,calc(var(--tw)*.3));height:max(13px,calc(var(--tw)*.3));border-radius:50%;overflow:hidden;box-shadow:0 0 0 1.5px rgba(0,0,0,.5);z-index:2;opacity:.95}
 .tile .by svg{width:100%;height:100%;display:block}
 /* wrong guesses, noted under the tile for everyone */
-.tile .bad{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:calc(var(--tw)*.16);display:flex;gap:2px;font:800 10px/1 var(--ui);color:#ff9d88;white-space:nowrap;letter-spacing:-.02em;pointer-events:none}
+.tile .bad{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:calc(var(--tw)*.18);display:flex;gap:max(2px,calc(var(--tw)*.05));font:800 max(10px,calc(var(--tw)*.21))/1 var(--ui);color:#ff9d88;white-space:nowrap;letter-spacing:-.02em;pointer-events:none}
 .tile .bad s{text-decoration-thickness:1.5px}
-.tile .bad .kb{width:7px;height:11px;display:inline-block;vertical-align:-1px}
+.tile .bad .kb{width:.7em;height:1.1em;display:inline-block;vertical-align:-.1em}
 /* in hand: the tile just drawn, not in the row yet */
 .tile.hold .in{animation:holdbob 2.6s ease-in-out infinite;box-shadow:0 0 0 2px rgba(248,229,182,.85),0 0 calc(var(--tw)*.5) rgba(229,190,117,.55),0 calc(var(--tw)*.13) calc(var(--tw)*.24) rgba(0,0,0,.5)}
 @keyframes holdbob{50%{transform:translateY(-6%)}}
@@ -286,10 +286,25 @@ html[lang=en] .title .w1{font:italic 600 58px/.98 var(--display);letter-spacing:
 .netdot{position:absolute;right:5px;top:5px;width:7px;height:7px;border-radius:50%;background:#46d18d;box-shadow:0 0 0 2px rgba(0,0,0,.4)}
 .netdot.bad{background:#ff6b5b}
 .tbl{position:relative;z-index:2;flex:1;min-height:0;width:100%;max-width:640px;display:flex;flex-direction:column;padding:0 max(10px,var(--sar)) 0 max(10px,var(--sal))}
-.opps{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-evenly;gap:4px;padding-top:2px}
-.opp{position:relative;padding:6px 8px 8px;border-radius:18px;transition:background .3s,box-shadow .3s}
+.opps{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-evenly;gap:6px;padding-top:2px}
+.opp{position:relative;padding:8px 10px var(--pb,14px);border-radius:18px;transition:background .3s,box-shadow .3s}
 .opp.cur{background:linear-gradient(180deg,rgba(229,190,117,.1),rgba(229,190,117,.03));box-shadow:inset 0 0 0 1px rgba(229,190,117,.22)}
 .opp.out{opacity:.62}
+/* beside the tiles: the avatar with the name under it, the tiles, the score; for when that leaves room for bigger tiles.
+   Only the tags that change how you read the row stay (out, won, offline, a bot playing for them) */
+.opp.side{display:grid;grid-template-columns:var(--nmw,56px) minmax(0,1fr) var(--scw,34px);grid-template-rows:auto auto;align-items:center;column-gap:10px;row-gap:4px;padding:6px 10px}
+.opp.side>.plate{display:contents}
+.opp.side .av{grid-column:1;grid-row:1;justify-self:center;align-self:end}
+.opp.side .nm{grid-column:1;grid-row:2;align-self:start;align-items:center;text-align:center;width:100%;overflow:hidden}
+.opp.side .nm b{font-size:12px;max-width:100%}
+.opp.side .nm small{justify-content:center;max-width:100%;overflow:hidden}
+.opp.side .nm small>:not(.tagx),.opp.side .nm small>.think{display:none}
+.opp.side .plate>.grow{display:none}
+.opp.side .pscore{grid-column:3;grid-row:1/span 2;justify-self:end}
+.opp.side>.rowwrap{display:contents}
+.opp.side .row{grid-column:2;grid-row:1/span 2;margin:var(--pt,8px) 0 var(--pb,14px)}
+.opp.side .holdslot{grid-column:3;grid-row:1/span 2;justify-self:end;margin:var(--pt,8px) 0 var(--pb,14px)}
+.opp.side.holding .pscore{visibility:hidden}
 .plate{display:flex;align-items:center;gap:8px;min-width:0;height:34px}
 .av{position:relative;width:32px;height:32px;border-radius:50%;flex:none;box-shadow:0 0 0 1.5px rgba(255,255,255,.18),0 3px 8px rgba(0,0,0,.4)}
 .av>svg{width:100%;height:100%;display:block;border-radius:50%}
@@ -307,9 +322,9 @@ html[lang=en] .title .w1{font:italic 600 58px/.98 var(--display);letter-spacing:
 .tagx.off{background:rgba(255,255,255,.08)}
 .pscore{font:700 13px/1 var(--display);color:var(--ink2);padding:4px 8px;border-radius:8px;background:rgba(0,0,0,.22);white-space:nowrap}
 .pscore small{font:600 10px var(--ui);color:var(--ink3);margin-left:2px}
-.rowwrap{position:relative;display:flex;justify-content:center;align-items:flex-end;gap:10px;margin-top:9px;min-height:20px}
+.rowwrap{position:relative;display:flex;justify-content:center;align-items:flex-end;gap:12px;margin-top:var(--pt,12px);min-height:20px}
 .row{position:relative;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-end;gap:var(--gap,5px);row-gap:var(--rgap,14px)}
-.row.marks{padding-bottom:13px}
+.row.wrap{justify-content:flex-start}   /* a wrapped row reads on like a line of text */
 .holdslot{display:flex;align-items:flex-end}
 .holdslot:empty{display:none}
 .bubble{position:absolute;left:0;top:calc(100% + 6px);max-width:62vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#fbf3e2;color:#2a1c12;font-style:normal;font-size:13px;font-weight:700;padding:5px 10px;border-radius:12px;box-shadow:0 6px 16px rgba(0,0,0,.4);opacity:0;transform:translateY(4px) scale(.9);transition:.2s;pointer-events:none;z-index:30}
@@ -319,7 +334,7 @@ html[lang=en] .title .w1{font:italic 600 58px/.98 var(--display);letter-spacing:
 .opp>.bubble{top:2px;left:46px}
 .mine>.bubble{top:auto;bottom:2px;left:46px}
 
-.mid{flex:none;display:flex;align-items:center;justify-content:center;gap:12px;padding:6px 4px 4px;min-height:74px}
+.mid{flex:none;display:flex;align-items:center;justify-content:center;gap:14px;padding:8px 4px 8px;min-height:78px}
 .pile{position:relative;width:52px;height:66px;flex:none;border-radius:12px;transition:transform .2s,opacity .3s}
 .pile .tile{position:absolute;left:6px;--tw:38px}
 .pile .tile:nth-child(1){top:12px}
@@ -343,11 +358,11 @@ html[lang=en] .title .w1{font:italic 600 58px/.98 var(--display);letter-spacing:
 .ticker.flash{animation:tflash .5s}
 @keyframes tflash{from{opacity:0;transform:translateY(5px)}}
 
-.mine{position:relative;flex:none;padding:6px 8px 4px;border-radius:18px;transition:background .3s,box-shadow .3s}
+.mine{position:relative;flex:none;padding:10px 10px 6px;border-radius:18px;transition:background .3s,box-shadow .3s}
 .mine.cur{background:linear-gradient(0deg,rgba(229,190,117,.1),rgba(229,190,117,.03));box-shadow:inset 0 0 0 1px rgba(229,190,117,.22)}
-.mine .rowwrap{margin:0 0 6px}
+.mine .rowwrap{margin:0 0 var(--mb,20px)}
 .mine .plate{height:30px}
-.dock{flex:none;min-height:96px;padding:6px 2px calc(var(--sab) + 10px);display:flex;flex-direction:column;justify-content:flex-end;gap:8px}
+.dock{flex:none;min-height:96px;padding:12px 2px calc(var(--sab) + 12px);display:flex;flex-direction:column;justify-content:center;gap:10px}
 .prompt{display:flex;align-items:center;justify-content:center;gap:8px;min-height:22px;text-align:center;font-size:14px;font-weight:700;color:var(--ink);line-height:1.35;padding:0 6px}
 .prompt.dim{color:var(--ink3);font-weight:600}
 .prompt .sec{font:700 12px var(--ui);color:var(--gold);padding:2px 7px;border-radius:7px;background:rgba(229,190,117,.12);white-space:nowrap}
@@ -471,13 +486,19 @@ html[lang=en] .res-head .big{font:italic 600 42px/1.05 var(--display);letter-spa
 @media (min-width:760px) and (min-height:640px){
   .tbl{max-width:720px}
   .topbar{max-width:720px}
-  .opp{padding:8px 12px 10px}
+  .opp{padding:10px 14px var(--pb,14px)}
   .plate{height:38px}
   .av{width:36px;height:36px}
   .nm b{font-size:15px}
   .pk{height:56px}
   .pk b{font-size:24px}
   .pad{max-width:480px;gap:8px}
+}
+@media (max-height:700px){
+  .pk{height:44px}
+  .dock{padding-top:8px;gap:8px}
+  .mine{padding-top:6px}
+  .mid{min-height:72px;padding:4px}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
@@ -1701,7 +1722,7 @@ var KeepAlive = (function () {
         '<p><b>Nothing left to draw:</b> just guess. If you’re wrong, turn up one of your own hidden tiles.</p>' +
         '<h4>Keys</h4><p>A key has no number, so it can stand anywhere in a row; you choose where when you get it. You can guess that a hidden tile is the key.</p>' +
         '<h4>Winning</h4><p>Once all your tiles are face up, you’re out. The last player with a hidden tile wins the round. Every round scores a point for each player you outlast.</p>' +
-        '<h4>Hints</h4><p>When you pick a tile, the number pad greys out what it can’t be. Settings can turn this off, or switch to the exact version that works through the whole table.</p>',
+        '<h4>Hints</h4><p>Hints are off to start with, since working the numbers out is the game. You can switch them on in Settings: Simple greys out the numbers a tile plainly can’t be, and Exact works through the whole table and shows each number’s chance.</p>',
     },
     zh: {
       title: '数字密码', titleA: '数字密码', titleB: '', allGames: '全部游戏', rules: '规则', langBtn: 'English',
@@ -1772,7 +1793,7 @@ var KeepAlive = (function () {
         '<p><b>牌堆摸完了</b>：直接猜。猜错的话，从自己的暗牌里挑一张翻开。</p>' +
         '<h4>钥匙牌</h4><p>钥匙牌没有数字，放在一排里的哪个位置都行，拿到的时候自己决定放哪儿。猜别人的牌时也可以猜“钥匙”。</p>' +
         '<h4>输赢</h4><p>牌全被翻开就出局，最后一个还留着暗牌的人赢下这一局。每局按名次得分：比几个人坚持得久，就得几分。</p>' +
-        '<h4>推理提示</h4><p>选中一张牌时，数字键盘会把它不可能是的数字变灰。设置里可以关掉，或者换成精确模式，把整张桌子都算进去。</p>',
+        '<h4>推理提示</h4><p>推理提示默认是关的，推理本身就是玩法。需要的话可以在设置里打开：简单模式把一眼就能排除的数字变灰，精确模式把整张桌子算一遍，标出每个数字的可能性。</p>',
     },
   };
   const read = () => { try { return JSON.parse(localStorage.getItem('mh_lang')); } catch (e) { return null; } };
@@ -1993,9 +2014,11 @@ let myName = store.get('name') || '';
 let myAv = store.get('av'); if (myAv == null || !(myAv >= 0 && myAv < AV.AVATARS.length)) { myAv = Math.floor(Math.random() * AV.AVATARS.length); store.set('av', myAv); }
 
 // preferences: hints off / simple / exact, bot speed, the practice table (how many bots, how strong), the last tab, and the rules
-const P = Object.assign({ hints: 'simple', speed: 'normal', bot: 2, opp: 1, tab: 'solo' }, store.get('mm_prefs') || {});
+const P = Object.assign({ hints: 'off', speed: 'normal', bot: 2, opp: 1, tab: 'solo' }, store.get('mm_prefs') || {});
 P.rules = CX.cleanRules(P.rules);
-if (!['off', 'simple', 'exact'].includes(P.hints)) P.hints = 'simple';
+// Hints start off: working the numbers out is the game. Until 2026-11-16 they started on 'simple' and that got saved with
+// the other preferences, so only a choice made in settings (hintsSet) is kept.
+if (!P.hintsSet || !['off', 'simple', 'exact'].includes(P.hints)) P.hints = 'off';
 if (!['fast', 'normal', 'slow'].includes(P.speed)) P.speed = 'normal';
 P.opp = clamp(P.opp | 0 || 1, 1, 3); P.bot = clamp(P.bot | 0, 0, 4);
 const saveP = () => store.set('mm_prefs', P);
@@ -2221,6 +2244,7 @@ const UI = (function () {
       if (oppsEl.children[idx] !== b.root) oppsEl.insertBefore(b.root, oppsEl.children[idx] || null);
       b.root.classList.toggle('cur', play && R.cur === s);
       b.root.classList.toggle('out', R.out.includes(s) && !end);
+      b.root.classList.toggle('holding', !!(play && R.cur === s && R.hold && R.rows[s]));
       setHTML(b.plate, plateHTML(v, s));
       const row = R.rows[s];
       if (!row) { b.row.replaceChildren(...ghostEls(R.hand)); b.row.classList.remove('marks'); b.hold.replaceChildren(); }
@@ -2257,45 +2281,108 @@ const UI = (function () {
       el.setAttribute('aria-label', T(c ? 'White' : 'Black') + ' · ' + n);
     }
   }
-  // tile sizes: as big as the room allows, wrapping a long row onto two lines rather than shrinking it to nothing
-  function fit(n, aw, ah, max) {
-    n = Math.max(1, n);
+  // tile sizes: as big as the room allows, up to max. A long row wraps onto more lines rather than shrinking below what a
+  // finger can tap; the lines of a wrapped row are RGAP apart so the notes under one line clear the next. ah is the height
+  // for the row plus extra(tw), what hangs off it: a raised tile above, the wrong-guess notes below.
+  const RGAP = tw => Math.round(tw * 0.42 + 6);
+  const gapOf = tw => Math.max(3, Math.round(tw * 0.11));
+  const rowH = (tw, lines) => tw * 1.4 * lines + RGAP(tw) * (lines - 1);
+  const notesH = tw => Math.max(tw * 0.4, tw * 0.18 + 11);   // under a tile: .18tw of air, then a line of notes at least 10px tall
+  const liftH = tw => tw * 0.182;                            // a picked tile rises 13% of its height
+  // o.hold: tiles held beside the row (they stand to its right, 12px off, however many lines the row takes);
+  // o.extra(tw): height hanging off the row; o.lines: the most lines allowed
+  const widthOf = (per, tw, hold) => per * tw + (per - 1) * gapOf(tw) + (hold ? 12 + hold * tw + (hold - 1) * gapOf(tw) : 0);
+  function fit(n, aw, ah, max, o) {
+    o = o || {}; n = Math.max(1, n);
+    const extra = o.extra || (() => 0), hold = o.hold || 0;
     let best = null;
-    for (let lines = 1; lines <= 3; lines++) {
+    for (let lines = 1; lines <= (o.lines || 3); lines++) {
       const per = Math.ceil(n / lines);
-      const gap = 5;
-      const tw = Math.min(max, (aw - gap * (per - 1)) / per, (ah - (lines - 1) * 16) / (1.4 * lines));
-      if (!best || tw > best.tw + 1) best = { tw, per, lines };
+      let tw = Math.floor(Math.min(max, (aw - (hold ? 12 : 0)) / (per + hold + 0.11 * (per + hold - 1))));
+      while (tw > 18 && (rowH(tw, lines) + extra(tw) > ah || widthOf(per, tw, hold) > aw)) tw--;
+      // another line only when the tiles would be small on one and clearly bigger on two
+      if (!best || (best.tw < 46 && tw >= best.tw * 1.22)) best = { tw, per, lines };
     }
-    best.tw = Math.max(18, Math.floor(best.tw));
+    best.tw = Math.max(18, best.tw);
     return best;
   }
-  function sizeRow(rowEl, holdEl, f) {
-    const tw = f.tw, gap = Math.max(3, Math.round(tw * 0.11));
-    for (const e of [rowEl, holdEl]) { e.style.setProperty('--tw', tw + 'px'); e.style.setProperty('--gap', gap + 'px'); }
-    rowEl.style.maxWidth = f.lines > 1 ? (f.per * tw + (f.per - 1) * gap + 2) + 'px' : '';
+  // the fewest lines a row of n tiles (and hold tiles beside it) needs at size tw
+  function linesAt(n, aw, tw, hold) {
+    for (let lines = 1; lines < 3; lines++) { const per = Math.ceil(n / lines); if (widthOf(per, tw, hold) <= aw + 0.5) return { tw, per, lines }; }
+    return { tw, per: Math.ceil(n / 3), lines: 3 };
   }
+  function sizeRow(rowEl, holdEl, f) {
+    const tw = f.tw, gap = gapOf(tw);
+    for (const e of [rowEl, holdEl]) { e.style.setProperty('--tw', tw + 'px'); e.style.setProperty('--gap', gap + 'px'); }
+    rowEl.style.setProperty('--rgap', RGAP(tw) + 'px');
+    rowEl.style.maxWidth = f.lines > 1 ? (f.per * tw + (f.per - 1) * gap + 2) + 'px' : '';
+    rowEl.classList.toggle('wrap', f.lines > 1);
+  }
+  // Every row keeps clear of the text around it: above an opponent's row there's room for the tile you pick to rise and
+  // below every row room for the wrong-guess notes, so nothing jumps when they appear. Rows also keep room for a drawn tile
+  // during play, so they don't shrink each time someone draws. Whatever room is left goes partly into those gaps and the
+  // rest between the players. An opponent's name sits above their tiles, or beside them (avatar and name, tiles, score in
+  // one line) when that gives clearly bigger tiles: three opponents on a phone, a desktop. That choice is only looked at
+  // again when the screen, the players or the longest row change, so it never flips back and forth during a turn.
+  let sideOn = false, sideKey = '';
   function layout(v) {
     v = v || V; const R = v && v.R; if (!R) return;
-    const tbl = $('tbl'), padOn = tbl.classList.contains('padon');
-    const W0 = Math.min(tbl.clientWidth, 720) - 20 - 16;
+    const tbl = $('tbl'), padOn = tbl.classList.contains('padon'), play = R.phase === 'play';
+    const vh = innerHeight, wide = innerWidth >= 760 && vh >= 640;
+    const W0 = Math.min(tbl.clientWidth, 720) - 20 - 20;
     if (R.ps.includes(v.me)) {
       const row = $('myRow'), hold = $('myHold');
-      const nHold = hold.children.length, nSlot = row.querySelectorAll('.slot').length;
+      const nHold = Math.max(hold.children.length, play ? 1 : 0), nSlot = row.querySelectorAll('.slot').length;
       const n = row.querySelectorAll('.tile').length + nSlot * 0.6;
-      const f = fit(n + nHold, W0 - (nHold ? 10 : 0), padOn ? 64 : 150, padOn ? 42 : (innerHeight < 700 ? 48 : 54));
+      const cap = wide ? (padOn ? 56 : 64) : padOn ? (vh < 700 ? 42 : vh < 820 ? 48 : 54) : (vh < 700 ? 48 : vh < 820 ? 56 : 62);
+      const f = fit(n, W0, padOn ? (vh < 700 ? 62 : 80) : (vh < 700 ? 110 : 170), cap, { hold: nHold });
       sizeRow(row, hold, f);
+      $('mine').style.setProperty('--mb', Math.round(notesH(f.tw) + (vh < 700 ? 8 : 14)) + 'px');
     }
     const opps = [...blocks.values()];
     if (!opps.length) return;
-    const H = $('opps').clientHeight;
-    const per = (H - 4 * (opps.length - 1)) / opps.length;
+    const H = $('opps').clientHeight - 2, nO = opps.length;
+    const plateH = wide ? 38 : 34, padT = wide ? 10 : 8, avW = wide ? 36 : 32;
+    const per = (H - 6 * (nO - 1)) / nO;
+    const cap = (wide ? [72, 64, 56] : [64, 56, 50])[nO - 1] || 50;
+    // beside a row the name goes under the avatar, in a column as wide as the longest name (at the 12px it has there),
+    // and the score in a column as wide as the widest score
+    let nameW = 0, scoreW = 30;
     for (const b of opps) {
-      const n = b.row.children.length + b.hold.children.length;
-      const marks = b.row.classList.contains('marks') ? 13 : 0;
-      const f = fit(n, W0 - (b.hold.children.length ? 10 : 0), per - 34 - 6 - 14 - marks - 6, opps.length === 1 ? 52 : 46);
-      sizeRow(b.row, b.hold, f);
+      const nm = b.plate.querySelector('.nm b');
+      if (nm) nameW = Math.max(nameW, nm.scrollWidth * 12 / (parseFloat(getComputedStyle(nm).fontSize) || 14));
+      const sc = b.plate.querySelector('.pscore'); if (sc) scoreW = Math.max(scoreW, sc.offsetWidth);
     }
+    nameW = clamp(Math.ceil(nameW) + 4, avW + 10, 64);
+    const above = tw => liftH(tw) + notesH(tw);
+    // rows keep room for a drawn tile during play; beside a row the drawn tile takes the score's place instead
+    const lens = opps.map(b => b.row.children.length), holdOn = play || opps.some(b => b.hold.children.length);
+    const hold = holdOn ? 1 : 0, sideW = tw => W0 - nameW - Math.max(scoreW, tw) - 2 * 10 - 4;
+    const fits = opps.map((b, i) => ({
+      stack: fit(lens[i], W0, per - padT - plateH - 8, cap, { extra: above, hold }),
+      side: fit(lens[i], sideW(cap), per - 12 - 8, cap, { extra: above, lines: 1 }),
+    }));
+    // a side row can't be wider than its column once the drawn tile's column is sized for it
+    for (const x of fits) while (x.side.tw > 18 && x.side.tw * x.side.per + gapOf(x.side.tw) * (x.side.per - 1) > sideW(x.side.tw)) x.side.tw--;
+    const key = [nO, innerWidth, vh, Math.max(...lens)].join(':');
+    if (key !== sideKey) {
+      sideKey = key;
+      const st = Math.min(...fits.map(x => x.stack.tw)), sd = Math.min(...fits.map(x => x.side.tw));
+      sideOn = sideOn ? sd + 3 > st : sd >= st + 4;
+    }
+    // every opponent's tiles the same size: the smallest any of them needs
+    const tw = Math.min(...fits.map(x => (sideOn ? x.side : x.stack).tw));
+    opps.forEach((b, i) => {
+      const f = sideOn ? { tw, per: lens[i], lines: 1 } : linesAt(lens[i], W0, tw, hold);
+      b.root.classList.toggle('side', sideOn);
+      sizeRow(b.row, b.hold, f);
+      const used = rowH(f.tw, f.lines) + above(f.tw) + (sideOn ? 12 + 8 : padT + plateH + 8);
+      const spare = Math.max(0, per - used);
+      b.root.style.setProperty('--pt', Math.round(liftH(f.tw) + 4 + Math.min(sideOn ? 6 : 10, spare * 0.15)) + 'px');
+      b.root.style.setProperty('--pb', Math.round(notesH(f.tw) + 4 + Math.min(8, spare * 0.1)) + 'px');
+      b.root.style.setProperty('--nmw', nameW + 'px');
+      b.root.style.setProperty('--scw', Math.max(scoreW, f.tw) + 'px');
+    });
   }
   function slide(el, from, to, delay, dur) {
     if (!el.animate) return;
@@ -2792,7 +2879,7 @@ function bindSettings(sh, again) {
     if (k === 'auto') { if (S && S.setAuto) S.setAuto(on); }
     else { SND.set(k, on); if (k === 'on') { paintSound(); if (on) SND.play('tap'); } if (k === 'vib' && on) SND.vib(30); }
   });
-  sh.querySelectorAll('[data-hint]').forEach(b => b.onclick = () => { P.hints = b.dataset.hint; saveP(); SND.play('tap'); UI.refresh(); again(); });
+  sh.querySelectorAll('[data-hint]').forEach(b => b.onclick = () => { P.hints = b.dataset.hint; P.hintsSet = true; saveP(); SND.play('tap'); UI.refresh(); again(); });
   sh.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => { I18.setLang(b.dataset.lang); refreshLang(); again(); });
   sh.querySelectorAll('[data-sp]').forEach(b => b.onclick = () => { P.speed = b.dataset.sp; saveP(); SND.play('tap'); again(); });
 }

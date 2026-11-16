@@ -33,9 +33,11 @@ let myName = store.get('name') || '';
 let myAv = store.get('av'); if (myAv == null || !(myAv >= 0 && myAv < AV.AVATARS.length)) { myAv = Math.floor(Math.random() * AV.AVATARS.length); store.set('av', myAv); }
 
 // preferences: hints off / simple / exact, bot speed, the practice table (how many bots, how strong), the last tab, and the rules
-const P = Object.assign({ hints: 'simple', speed: 'normal', bot: 2, opp: 1, tab: 'solo' }, store.get('mm_prefs') || {});
+const P = Object.assign({ hints: 'off', speed: 'normal', bot: 2, opp: 1, tab: 'solo' }, store.get('mm_prefs') || {});
 P.rules = CX.cleanRules(P.rules);
-if (!['off', 'simple', 'exact'].includes(P.hints)) P.hints = 'simple';
+// Hints start off: working the numbers out is the game. Until 2026-11-16 they started on 'simple' and that got saved with
+// the other preferences, so only a choice made in settings (hintsSet) is kept.
+if (!P.hintsSet || !['off', 'simple', 'exact'].includes(P.hints)) P.hints = 'off';
 if (!['fast', 'normal', 'slow'].includes(P.speed)) P.speed = 'normal';
 P.opp = clamp(P.opp | 0 || 1, 1, 3); P.bot = clamp(P.bot | 0, 0, 4);
 const saveP = () => store.set('mm_prefs', P);

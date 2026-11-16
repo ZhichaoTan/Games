@@ -69,11 +69,12 @@ test('new game: island size, one piece of land, pearls, creatures, what lies und
     for (const c of sea) { assert.strictEqual(g.k[c.at], 'S'); assert.ok(!MT.NB[c.at].some(j => g.k[j] === 'L' || g.k[j] === 'H')); }
     // one underside per tile, from the bag for this island size
     assert.deepStrictEqual(land.map(i => g.back[i]).sort(), MT.bagFor(land.length).slice().sort());
-    // placing order: islanders round the table from the first player, then boats from the last player back
+    // placing order: islanders round the table from the first player, then a boat each in the same order
     const f = pl.indexOf(g.first), o = g.place.order, per = MT.PEARLS[n].length;
     assert.strictEqual(o.length, per * n + n);
-    for (let t = 0; t < per * n; t++) assert.strictEqual(o[t], pl[(f + t) % n]);
-    assert.deepStrictEqual(o.slice(per * n), pl.map((_, t) => pl[(f + n - 1 - t) % n]));
+    for (let t = 0; t < o.length; t++) assert.strictEqual(o[t], pl[(f + t) % n]);
+    // a tile sinks every turn, so an island that divides evenly gives everyone the same number of turns
+    assert.strictEqual(MT.LANDS[n] % n, 0);
   }
   const bag = MT.bagFor(32);
   assert.strictEqual(bag.length, 32);
@@ -93,10 +94,10 @@ test('placing: islanders on empty land away from the crab, boats in the water by
   let guard = 0;
   while (MT.placeKind(g) === 'isl' && guard++ < 50) { const m = MT.legal(g)[0]; ok(g, g.turn, m); }
   assert.strictEqual(MT.placeKind(g), 'boat');
-  assert.strictEqual(g.turn, 0, 'boats start from the last player');
+  assert.strictEqual(g.turn, 1, 'boats start from the first player too');
   for (const c of MT.placeCells(g)) { assert.strictEqual(g.k[c], 'S'); assert.ok(MT.NB[c].some(j => g.k[j] === 'L')); }
-  ok(g, 0, MT.legal(g)[0]);
   ok(g, 1, MT.legal(g)[0]);
+  ok(g, 0, MT.legal(g)[0]);
   assert.strictEqual(g.place, null);
   assert.strictEqual(g.phase, 'move'); assert.strictEqual(g.turn, 1); assert.strictEqual(g.steps, MT.STEPS);
   assert.ok(MT.FACES.includes(g.die));
@@ -494,8 +495,11 @@ test('300 random games: always finish, the board always makes sense', () => {
     const n = 2 + seed % 3;
     for (let s = 0; s < n; s++) T.seats[s] = { name: 'p' + s };
     T.start(rnd);
-    let guard = 0;
+    let guard = 0, seen = 0;
+    const turns = {};
     while (!T.g.over && guard++ < 5000) {
+      for (const e of T.g.ev) if (e.n > seen && e.k === 'turn') turns[e.s] = (turns[e.s] || 0) + 1;
+      seen = T.g.evn;
       const L = T.legal();
       assert.ok(L.length, 'something to do in ' + T.g.phase);
       let a = L[Math.floor(rnd() * L.length)];
@@ -515,6 +519,11 @@ test('300 random games: always finish, the board always makes sense', () => {
     }
     assert.ok(T.g.over, 'game ' + seed + ' finished');
     assert.ok(T.g.sunk <= T.g.total);
+    // played to the last tile: one tile a turn, everyone had the same number of turns
+    if (T.g.res.why === 'sunk') {
+      assert.strictEqual(T.g.sunk, T.g.total);
+      for (const s of T.g.pl) assert.strictEqual(turns[s], T.g.total / n, 'turns of seat ' + s + ' in game ' + seed);
+    }
     const total = T.g.res.rows.reduce((p, r) => p + r.of, 0);
     assert.strictEqual(total, T.g.isl.length);
     games++; sunk += T.g.sunk;

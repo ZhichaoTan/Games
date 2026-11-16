@@ -30,8 +30,9 @@
   const BACKS = [['boat', 7], ['shark', 4], ['oct', 3], ['reef', 3], ['dolphin', 3], ['buoy', 3], ['tail', 3], ['none', 4]];
   // pearls per islander, by the number of players: fewer players, more islanders each
   const PEARLS = { 2: [5, 4, 3, 2, 2, 1, 1], 3: [5, 3, 2, 2, 1, 1], 4: [5, 3, 2, 1, 1] };
-  // island size by the number of players: the island is the clock, so a two-player night is shorter
-  const LANDS = { 2: 24, 3: 28, 4: 32 };
+  // island size by the number of players: the island is the clock (a tile sinks every turn), so a two-player night is shorter;
+  // each size divides evenly, so everyone gets the same number of turns
+  const LANDS = { 2: 24, 3: 30, 4: 32 };
   // the tile undersides for an island of n tiles: the 30-tile mix scaled, the rest empty
   function bagFor(n) {
     const out = [];
@@ -360,11 +361,12 @@
     const sp = spread(g, 3, rnd);
     g.cr.push({ id: g.nid++, k: 'shark', at: sp[0] }, { id: g.nid++, k: 'oct', at: sp[1] }, { id: g.nid++, k: 'shark', at: sp[2] });
     g.first = opts.first != null ? opts.first : pick(pl, rnd);
-    // placing: one islander at a time, round the table from the first player; then a boat each, the last player first
+    // placing: one islander at a time, round the table from the first player, then a boat each in the same order.
+    // (The first player moves first, so they need a boat close by too: when the last player placed first, bot matches had the first player
+    // winning far less often than the rest.)
     const f = pl.indexOf(g.first), order = [];
     const per = g.isl.length / n;
-    for (let r = 0; r < per; r++) for (let t = 0; t < n; t++) order.push(pl[(f + t) % n]);
-    for (let t = n - 1; t >= 0; t--) order.push(pl[(f + t) % n]);
+    for (let r = 0; r < per + 1; r++) for (let t = 0; t < n; t++) order.push(pl[(f + t) % n]);
     g.place = { order, i: 0 };
     g.turn = order[0];
     log(g, { k: 'setup', first: g.first });

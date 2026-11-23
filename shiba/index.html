@@ -971,9 +971,9 @@ var KeepAlive = (function () {
 <script>// ===== 快乐柴柴 Shiba Stack · the rules =====
 // The well is 10 wide and 40 tall; the bottom 20 rows are what you see. Seven kinds of block fall one at a time from a
 // shuffled bag of all seven. Rotation follows the usual kick tables, a block locks half a second after it lands (moving or
-// turning it on the ground buys time, up to 15 times), full rows clear, and in a battle every clear of two rows or more
-// sends "bubble rows" to an opponent. Everything here is plain data and numbers, so it runs the same in a browser, on the
-// host for the bots, and in node for the tests.
+// turning it on the ground buys time, up to 15 times), full rows clear, and in a battle every clear of three rows or more
+// at once sends "bubble rows" to an opponent. Everything here is plain data and numbers, so it runs the same in a
+// browser, on the host for the bots, and in node for the tests.
 (function (G) {
   'use strict';
   const W = 10, H = 40, VIS = 20, TOP = H - VIS;    // TOP: the first row you can see
@@ -1009,12 +1009,18 @@ var KeepAlive = (function () {
     '3>0': [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]], '0>3': [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]] };
   const flip = K => { const o = {}; for (const k in K) o[k] = K[k].map(([x, y]) => [x, -y]); return o; };
   const KICKS3 = flip(K3), KICKS4 = flip(K4);
-  // points for a clear (times the level), and rows sent in a battle
+  // points for a clear (times the level), and rows sent in a battle: only a clear of three rows or more at once sends any
   const PTS = { none: [0, 100, 300, 500, 800], mini: [100, 200, 400, 400, 400], full: [400, 800, 1200, 1600, 1600] };
   const PC_PTS = [0, 800, 1200, 1800, 2000];
-  const SEND = { none: [0, 0, 1, 2, 4], mini: [0, 0, 1, 1, 1], full: [0, 2, 4, 6, 6] };
-  const COMBO = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4, 5];
-  const PC_SEND = 10;
+  const SEND = { none: [0, 0, 0, 2, 4], mini: [0, 0, 0, 2, 4], full: [0, 0, 0, 6, 6] };
+  const MIN_SEND = 3, PC_SEND = 10;
+  // rows a clear of n rows sends: 2 for three rows, 4 for four, 6 for a T-Twist triple, one more back-to-back, 10 for an
+  // all clear; one or two rows send nothing (and so cancel nothing)
+  function sendOf(n, ts, btb, pc) {
+    if (n < MIN_SEND) return 0;
+    const a = SEND[ts || 'none'][n] + (btb ? 1 : 0);
+    return pc ? Math.max(a, PC_SEND) : a;
+  }
   // seconds a block takes to fall one row at each level
   const fallSec = L => Math.pow(Math.max(0.01, 0.8 - (L - 1) * 0.007), L - 1);
   const MODES = { marathon: 1, sprint: 1, ultra: 1, versus: 1 };
@@ -1247,8 +1253,7 @@ var KeepAlive = (function () {
       if (pc) { pts += (btb && n === 4 ? 3200 : PC_PTS[n]) * L; this.stats.pcs++; }
       this.score += pts;
       // rows to send in a battle; they cancel bubble rows waiting to come in first
-      let atk = SEND[ts || 'none'][n] + (btb ? 1 : 0) + COMBO[Math.min(this.combo, COMBO.length - 1)];
-      if (pc) atk = Math.max(atk, PC_SEND);
+      const atk = sendOf(n, ts, btb, pc);
       let left = atk;
       while (left > 0 && this.pending.length) {
         const p = this.pending[0], k = Math.min(p.n, left);
@@ -1363,26 +1368,31 @@ var KeepAlive = (function () {
     }
     return rows;
   }
-  G.SB = { W, H, VIS, TOP, BUB, FACE, SHAPES, CELLS, SPAWN_X, SPAWN_Y, KICKS3, KICKS4, PTS, SEND, COMBO, PC_SEND, LOCK_MS, CLEAR_MS, BUBBLE_MS, BUBBLE_CAP,
+  G.SB = { W, H, VIS, TOP, BUB, FACE, SHAPES, CELLS, SPAWN_X, SPAWN_Y, KICKS3, KICKS4, PTS, SEND, MIN_SEND, PC_SEND, sendOf, LOCK_MS, CLEAR_MS, BUBBLE_MS, BUBBLE_CAP,
     SPRINT_LINES, ULTRA_MS, VS_STEP_MS, MAX_LV, fallSec, rnd, Game, unsnap };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>// ===== 快乐柴柴 Shiba Stack · the bots =====
 // A bot looks at every way to drop the block it has (and the one it could swap from hold), scores the well each one
-// leaves (holes, bumps, deep wells, how high it gets) plus what the clear is worth, and plays the best. Better bots look
-// one block further ahead, keep a column open for four-row clears, and play faster. The well is kept as one 10-bit
-// number per row, which keeps all of this quick enough to run three bots on a phone.
+// leaves (holes, bumps, deep wells, how high it gets) plus what the clear is worth, and plays the best. Better bots build
+// higher for four-row clears, slip less, look one block further ahead and play faster. A bot whose block lands before it
+// has finished thinking (late in a battle, when blocks fall fast) plays more carelessly, as a person would. The well is
+// kept as one 10-bit number per row, which keeps all of this quick enough to run three bots on a phone.
 (function (G) {
   'use strict';
   const SB = G.SB, { W, H, CELLS, SPAWN_X, SPAWN_Y } = SB;
   const FULL = (1 << W) - 1;
-  // think: ms per block; noise: how loosely it judges; slip: chance of a careless drop; quad: keeps a column open for four-row clears
+  // think: ms per block; noise: how loosely it judges; slip: chance of a careless drop (one of the drops within margin of the
+  // best); quad: keeps a column open for four-row clears while the stack is under `build` rows (a low build cashes in early,
+  // with three-row clears); look: looks one block ahead. Tuned in tests/sim.js against person-like players: a casual player
+  // beats Rookie most of the time, has an even game with Regular and a hard one with Pro, and Master is for strong players.
   const LV = [null,
-    { ms: 1500, noise: 0.1, slip: 0.12, margin: 20, hold: false, look: false, quad: false },
-    { ms: 900, noise: 0.06, slip: 0.05, margin: 15, hold: true, look: false, quad: false },
-    { ms: 560, noise: 0.03, slip: 0, hold: true, look: true, quad: true },
-    { ms: 330, noise: 0, slip: 0, hold: true, look: true, quad: true },
+    { ms: 3000, noise: 0.08, slip: 0.14, margin: 25, hold: false, look: false, quad: true, build: 5 },
+    { ms: 2000, noise: 0.07, slip: 0.1, margin: 22, hold: false, look: false, quad: true, build: 8 },
+    { ms: 1500, noise: 0.06, slip: 0.08, margin: 20, hold: false, look: false, quad: true, build: 9 },
+    { ms: 1100, noise: 0.04, slip: 0.04, margin: 18, hold: false, look: true, quad: true, build: 10 },
   ];
+  const RUSH = { noise: 0.1, slip: 0.3, margin: 15 };   // added in full when the block lands the moment it appears
   // the cells of each block and turn as row masks: [dy, bits at x = 0], and the x range that keeps every cell inside
   const SHAPE = CELLS.map((rs, t) => rs && rs.map(cs => {
     const rows = new Map();
@@ -1488,21 +1498,22 @@ var KeepAlive = (function () {
     let v = j.v - 4.5 * p.lh;
     const n = p.n;
     if (n) {
-      const safe = o.quad && j.maxH + n + (o.pending || 0) < 12;
+      const safe = o.quad && j.maxH + n + (o.pending || 0) < (o.build || 12);
       if (safe) v += [0, -16, -11, -2, 28][n];
       else v += 3.4 * n + (n === 4 ? 6 : 0);
-      if (o.vs) v += 2.2 * ([0, 0, 1, 2, 4][n] + (n === 4 && o.b2b ? 1 : 0));
+      if (o.vs) v += 2.2 * SB.sendOf(n, null, n === 4 && o.b2b, false);
       if (p.pc) v += 40;
     }
     return { v, p };
   }
-  // pick a drop: { hold, t, r, x, y }
-  function plan(g, lv, rand) {
+  // pick a drop: { hold, t, r, x, y }. rush: 0..1, how much of its thinking time it didn't get
+  function plan(g, lv, rand, rush) {
     rand = rand || Math.random;
-    const L = LV[lv] || LV[2];
+    const L = LV[lv] || LV[2], k = Math.max(0, Math.min(1, rush || 0));
+    const noise = L.noise + k * RUSH.noise, slip = L.slip + k * RUSH.slip, margin = (L.margin || 20) + k * RUSH.margin;
     const c = g.cur; if (!c) return null;
     const R = rowsOf(g.board);
-    const o = { quad: L.quad, vs: g.mode === 'versus', pending: g.pendingRows(), b2b: g.b2b };
+    const o = { quad: L.quad, build: L.build, vs: g.mode === 'versus', pending: g.pendingRows(), b2b: g.b2b };
     const pieces = [{ t: c.t, hold: false, next: g.queue[0] }];
     if (L.hold && !g.holdUsed) {
       const ht = g.holdT || g.queue[0];
@@ -1514,14 +1525,14 @@ var KeepAlive = (function () {
       all.push({ hold: pc.hold, next: pc.next, t: d.t, r: d.r, x: d.x, y: d.y, v: w.v, p: w.p });
     }
     if (!all.length) return { hold: false, t: c.t, r: c.r, x: c.x, y: c.y, v: -1e9 };
-    if (L.noise) for (const a of all) a.v += (rand() - 0.5) * L.noise * (Math.abs(a.v) + 20);
+    if (noise) for (const a of all) a.v += (rand() - 0.5) * noise * (Math.abs(a.v) + 20);
     all.sort((a, b) => b.v - a.v);
     if (L.look) {
       // look one block ahead for the best few
       const top = all.slice(0, 6);
       for (const a of top) {
         let best = -1e9;
-        const o2 = Object.assign({}, o, { pending: a.p.n ? Math.max(0, o.pending - [0, 0, 1, 2, 4][a.p.n]) : o.pending, b2b: a.p.n ? a.p.n === 4 : o.b2b });
+        const o2 = Object.assign({}, o, { pending: Math.max(0, o.pending - SB.sendOf(a.p.n, null, a.p.n === 4 && o.b2b, a.p.pc)), b2b: a.p.n ? a.p.n === 4 : o.b2b });
         for (const d of drops(a.p.N, a.next)) { const w = worth(a.p.N, d, o2); if (w.v > best) best = w.v; }
         const imm = a.v - judge(a.p.N, o).v;   // what the first drop itself was worth, besides the well it left
         a.v2 = imm * 0.5 + (best > -1e9 ? best : a.v);
@@ -1531,14 +1542,15 @@ var KeepAlive = (function () {
     }
     let pick = all[0];
     // a careless moment: some other drop that looked nearly as good
-    if (L.slip && rand() < L.slip) {
-      const base = pick.v2 != null ? pick.v2 : pick.v, near = all.slice(1, 8).filter(a => (a.v2 != null ? a.v2 : a.v) > base - (L.margin || 20));
+    if (slip && rand() < slip) {
+      const base = pick.v2 != null ? pick.v2 : pick.v, near = all.slice(1, 8).filter(a => (a.v2 != null ? a.v2 : a.v) > base - margin);
       if (near.length) pick = near[Math.floor(rand() * near.length)];
     }
     return { hold: pick.hold, t: pick.t, r: pick.r, x: pick.x, y: pick.y, v: pick.v };
   }
-  // carry a plan out with real moves (hold, turn, slide, drop); if the well is in the way it drops wherever it got to
-  function exec(g, p) {
+  // carry a plan out with real moves (hold, turn, slide, then drop unless drop is false); if the well is in the way it stops
+  // wherever it got to
+  function exec(g, p, drop) {
     if (!g.cur || !p) return false;
     if (p.hold && !g.holdUsed) g.hold();
     if (!g.cur) return false;
@@ -1549,33 +1561,35 @@ var KeepAlive = (function () {
       while (g.cur.x < p.x && guard-- > 0 && g.right());
       while (g.cur.x > p.x && guard-- > 0 && g.left());
     }
-    return g.hardDrop();
+    return drop === false ? true : g.hardDrop();
   }
-  // a bot player: call step(dt) as time passes; it waits its thinking time after each new block, then plays it
+  // a bot player: call step(dt) as time passes. For each new block it takes a while to decide (DECIDE of its thinking time),
+  // moves the block into place, and drops it when the thinking time is up. If the block lands first (very fast falling), it
+  // decides at once, and the less time it had the more loosely it plays.
+  const DECIDE = 0.6;
   class Bot {
-    constructor(g, lv, rand) { this.g = g; this.lv = lv; this.rand = rand || Math.random; this.wait = 0; this.plan = null; this.piece = -1; }
+    constructor(g, lv, rand) { this.g = g; this.lv = lv; this.rand = rand || Math.random; this.wait = 0; this.think = 1; this.moved = false; this.piece = -1; }
     step(dt) {
       const g = this.g;
       if (!g.started || g.over) return;
-      const id = g.stats.pieces * 2 + (g.holdUsed ? 1 : 0);
-      if (g.cur && this.piece !== id) {
-        this.piece = id;
-        const L = LV[this.lv] || LV[2];
-        this.wait = L.ms * (0.75 + this.rand() * 0.5);
-        this.plan = null;
-      }
       g.tick(dt);
       if (!g.cur || g.over) return;
-      this.wait -= dt;
-      // with the block about to lock (very fast falling), it plays at once
-      if (this.wait <= 0 || g.lockT > 250) {
-        if (!this.plan) this.plan = plan(g, this.lv, this.rand);
-        exec(g, this.plan);
-        this.plan = null;
+      if (this.piece !== g.stats.pieces) {   // a new block (after a clear it appears during the tick)
+        this.piece = g.stats.pieces;
+        const L = LV[this.lv] || LV[2];
+        this.wait = this.think = L.ms * (0.75 + this.rand() * 0.5);
+        this.moved = false;
       }
+      this.wait -= dt;
+      const landed = g.lockT > 250, moveAt = this.think * (1 - DECIDE);
+      if (!this.moved && (this.wait <= moveAt || landed)) {
+        exec(g, plan(g, this.lv, this.rand, landed ? (this.wait - moveAt) / (this.think * DECIDE) : 0), false);
+        this.moved = true;
+      }
+      if (this.moved && g.cur && (this.wait <= 0 || landed)) g.hardDrop();
     }
   }
-  G.SBAI = { LV, plan, exec, Bot, rowsOf, drops, place, judge };
+  G.SBAI = { LV, RUSH, DECIDE, plan, exec, Bot, rowsOf, drops, place, judge };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>// ===== 快乐柴柴 Shiba Stack · artwork: the shiba, the blocks with faces, the lobby picture, icons =====
@@ -1855,10 +1869,10 @@ var KeepAlive = (function () {
       tabJoin: 'Join', tabHost: 'Host', tabSolo: 'Solo',
       join: 'Join', joinHint: 'Ask a friend to open a room and send you the code',
       create: 'Open a room', start: 'Start', startSolo: 'Play',
-      foot: '2 to 4 players online, or on your own.<br>Clear two rows or more at once to send bubble rows. The last one standing wins.',
+      foot: '2 to 4 players online, or on your own.<br>Clear three rows or more at once to send bubble rows. The last one standing wins.',
       needName: 'Pick a name first', badCode: 'Room codes are four letters or digits',
       mode: { marathon: 'Marathon', sprint: 'Sprint 40', ultra: 'Two Minutes', versus: 'vs Bots' },
-      modeTip: { marathon: 'It speeds up every 10 rows. How far can you get?', sprint: 'Clear 40 rows as fast as you can.', ultra: 'Score all you can in two minutes.', versus: 'A battle against bots. Your clears send them bubble rows.' },
+      modeTip: { marathon: 'It speeds up every 10 rows. How far can you get?', sprint: 'Clear 40 rows as fast as you can.', ultra: 'Score all you can in two minutes.', versus: 'A battle against bots. Clear three rows or more at once to send them bubble rows.' },
       best: 'Best {v}', noBest: 'No record yet',
       oFoes: 'Opponents', oBots: 'Bots', oLevel: 'Start level',
       lv: ['', 'Rookie', 'Regular', 'Pro', 'Master'], lvMix: 'Mixed',
@@ -1868,7 +1882,7 @@ var KeepAlive = (function () {
       invite: 'Come play Shiba Stack with me! Room {c}: {u}',
       seatOpen: 'Open seat', seatWait: 'Waiting for a friend', addBot: 'Add a bot', hostTag: 'Host', youTag: 'You', remove: 'Remove', wins: '{n} wins', win1: '1 win',
       startNeed: 'Add a bot or wait for a friend to start', waitHost: 'Waiting for the host to start…', fillBots: 'Fill with bots',
-      roomSum: 'Clear two rows or more to send bubble rows. Last one standing wins the round.',
+      roomSum: 'Clear three rows or more at once to send bubble rows. Last one standing wins the round.',
       opening: 'Opening the room…', connecting: 'Connecting to room {c}…', notFound: "Can't reach room {c} yet. If the host just switched apps, you'll get in as soon as they're back; otherwise check the code.",
       kaTitle: 'Shiba Stack room {c} is open', kaTip: 'Your room stays open if you switch apps. In Safari or Chrome, not inside WeChat.',
       full: 'The room is full', hostGone: 'The host dropped out. Waiting for them to come back…', netBad: 'Connection hiccup, reconnecting…', slow: 'Slow to connect, trying again…', idTaken: 'That room code is busy. Try again in a moment.',
@@ -1883,7 +1897,7 @@ var KeepAlive = (function () {
       go: 'Go!', paused: 'Paused', tapResume: 'Tap to carry on',
       over: { blockout: 'Game over', lockout: 'Game over', bubbles: 'Game over', done: 'Finished!', time: "Time's up", net: 'Disconnected' },
       newBest: 'New best!', youOut: "You're out", placeN: ['', '1st', '2nd', '3rd', '4th'], watching: 'Watching {n}', tapWatch: 'Tap a board to watch it',
-      autoTarget: 'Your clears go to a random opponent. Tap a board to aim at that player.', aimAt: 'Aiming at {n}', aimAuto: 'Aiming at random',
+      autoTarget: 'Your bubble rows go to a random opponent. Tap a board to aim at that player.', aimAt: 'Aiming at {n}', aimAuto: 'Aiming at random',
       ko: '{n} is out', koBy: '{a} knocked out {n}', youWin: 'You win!', theyWin: '{n} wins!', draw: 'Nobody left standing', roundOver: 'Round over',
       // results
       resScore: 'Score', resLines: 'Rows', resLevel: 'Level', resTime: 'Time', resPieces: 'Blocks', resQuads: 'Quads', resTw: 'T-Twists', resCombo: 'Best combo', resPPS: 'Blocks a second',
@@ -1908,9 +1922,9 @@ var KeepAlive = (function () {
       rCtlKeys: 'Keyboard: ← → move, ↓ soft drop, Space drop, ↑ or X turn, Z turn back, C or Shift hold, Esc pause.',
       rGhostH: 'Helpers', rGhost: 'The dashed outline shows where the block will land. Hold keeps one block for later; you can swap once per block. The next five blocks wait on the right.',
       rScoreH: 'Points', rScore: 'More rows at once score more: 1, 3, 5 or 8 hundred for one to four rows, times the level. A T-Twist (turning the T block into a slot it couldn’t drop into) scores more. Clears in a row add a combo bonus, and two big clears in a row (four rows or T-Twists) score half as much again.',
-      rVsH: 'Battles', rVs: 'Clearing sends bubble rows to an opponent: 2 rows send 1, 3 send 2, 4 send 4, a T-Twist double 4, plus extra for combos and back-to-back. Emptying the whole well (all clear) sends 10. Bubble rows wait a moment beside your well, then come in from the bottom the next time you place a block without clearing. A clear cancels waiting rows first. The last player standing wins the round, and the speed goes up every 30 seconds.',
+      rVsH: 'Battles', rVs: 'Only a clear of three rows or more at once sends bubble rows to an opponent: 3 rows send 2, 4 rows send 4 and a T-Twist triple 6. Two big clears in a row (back-to-back) send 1 more, and if the clear also empties the whole well (all clear) it sends 10. One or two rows send nothing. Bubble rows wait a moment beside your well, then come in from the bottom the next time you place a block without clearing. A clear that sends rows cancels waiting rows first. The last player standing wins the round, and the speed goes up every 30 seconds.',
       rAimH: 'Who gets your rows', rAim: 'With more than one opponent your rows go to a random one. Tap an opponent’s board to aim at them, and tap again to go back to random.',
-      rModesH: 'Solo', rModes: 'Marathon gets faster every 10 rows. Sprint 40 is a race against the clock. Two Minutes is for points. vs Bots is a battle against 1 to 3 bots in four levels: Rookie, Regular, Pro and Master.',
+      rModesH: 'Solo', rModes: 'Marathon gets faster every 10 rows. Sprint 40 is a race against the clock. Two Minutes is for points. vs Bots is a battle against 1 to 3 bots in four levels: Rookie, Regular, Pro and Master. Rookie is the slowest and easiest, Master the hardest.',
     },
     zh: {
       title: '快乐柴柴', titleA: '快乐柴柴', titleB: '方块', allGames: '全部游戏', rules: '规则', langBtn: 'English',
@@ -1920,10 +1934,10 @@ var KeepAlive = (function () {
       tabJoin: '加入房间', tabHost: '开房间', tabSolo: '单人',
       join: '加入', joinHint: '让朋友开个房间，把房间码发给你',
       create: '开房间', start: '开始', startSolo: '开始',
-      foot: '2 到 4 人联机，也能一个人玩。<br>一次消两行以上，就给对手送泡泡行。最后没被顶到头的人赢。',
+      foot: '2 到 4 人联机，也能一个人玩。<br>一次消 3 行以上，就给对手送泡泡行。最后没被顶到头的人赢。',
       needName: '先起个名字吧', badCode: '房间码是 4 位字母或数字',
       mode: { marathon: '经典', sprint: '40 行冲刺', ultra: '两分钟', versus: '打电脑' },
-      modeTip: { marathon: '每消 10 行升一级，越来越快，看你能撑多久。', sprint: '用最短的时间消掉 40 行。', ultra: '两分钟内拿最多的分。', versus: '和电脑对战，你消的行会变成泡泡行送给它们。' },
+      modeTip: { marathon: '每消 10 行升一级，越来越快，看你能撑多久。', sprint: '用最短的时间消掉 40 行。', ultra: '两分钟内拿最多的分。', versus: '和电脑对战。一次消 3 行以上，就给它们送泡泡行。' },
       best: '最好 {v}', noBest: '还没有纪录',
       oFoes: '对手', oBots: '电脑', oLevel: '起始等级',
       lv: ['', '新手', '普通', '高手', '大师'], lvMix: '混合',
@@ -1933,7 +1947,7 @@ var KeepAlive = (function () {
       invite: '来和我玩快乐柴柴吧！房间 {c}：{u}',
       seatOpen: '空位', seatWait: '等朋友来', addBot: '加电脑', hostTag: '房主', youTag: '你', remove: '移走', wins: '赢 {n} 局', win1: '赢 1 局',
       startNeed: '加个电脑，或者等朋友进来，就能开始', waitHost: '等房主开始…', fillBots: '空位都加电脑',
-      roomSum: '一次消两行以上给对手送泡泡行，最后没被顶到头的人赢这一局。',
+      roomSum: '一次消 3 行以上给对手送泡泡行，最后没被顶到头的人赢这一局。',
       opening: '正在开房间…', connecting: '正在连接房间 {c}…', notFound: '暂时连不上房间 {c}。如果房主刚切出去，等房主回来就能进；不然请检查房间码。',
       kaTitle: '快乐柴柴房间 {c} 开着', kaTip: '切到别的应用，房间也不会断。要用 Safari 或 Chrome，微信里不行。',
       full: '房间满了', hostGone: '房主掉线了，等房主回来…', netBad: '网络不稳，正在重连…', slow: '连得有点慢，再试一次…', idTaken: '这个房间码正被占用，等一下再试。',
@@ -1947,7 +1961,7 @@ var KeepAlive = (function () {
       go: '开始！', paused: '暂停', tapResume: '点一下继续',
       over: { blockout: '游戏结束', lockout: '游戏结束', bubbles: '游戏结束', done: '完成！', time: '时间到', net: '断线了' },
       newBest: '新纪录！', youOut: '你出局了', placeN: ['', '第 1 名', '第 2 名', '第 3 名', '第 4 名'], watching: '在看 {n}', tapWatch: '点别人的棋盘，就能观战',
-      autoTarget: '你消的行会随机送给一个对手。点哪个对手的棋盘，就专门送给谁。', aimAt: '瞄准 {n}', aimAuto: '随机送',
+      autoTarget: '你送出的泡泡行会随机给一个对手。点哪个对手的棋盘，就专门送给谁。', aimAt: '瞄准 {n}', aimAuto: '随机送',
       ko: '{n} 出局', koBy: '{a} 把 {n} 顶出局了', youWin: '你赢了！', theyWin: '{n} 赢了！', draw: '大家都出局了', roundOver: '这一局结束',
       resScore: '分数', resLines: '行数', resLevel: '等级', resTime: '时间', resPieces: '方块', resQuads: '四消', resTw: 'T 旋', resCombo: '最多连击', resPPS: '每秒方块',
       again: '再来一局', nextRound: '下一局', toRoom: '房间', results: '结果', peek: '看看棋盘', winLbl: '胜', winsLbl: '胜',
@@ -1969,9 +1983,9 @@ var KeepAlive = (function () {
       rCtlKeys: '键盘：← → 移动，↓ 加速，空格 直落，↑ 或 X 旋转，Z 反转，C 或 Shift 暂存，Esc 暂停。',
       rGhostH: '小帮手', rGhost: '虚线框是方块会落到的位置。暂存可以先放一块留着以后用，每块只能换一次。右边是接下来的 5 块。',
       rScoreH: '分数', rScore: '一次消的行越多分越高：消 1 到 4 行分别是 100、300、500、800 分，再乘等级。T 旋（把 T 形方块转进直接落不进去的缺口）分更高。连续消行有连击加分；连着两次大招（四消或 T 旋消）再多一半。',
-      rVsH: '对战', rVs: '消行会给对手送泡泡行：消 2 行送 1 行，3 行送 2 行，4 行送 4 行，T 旋双消送 4 行；连击和连续大招还会多送。把棋盘清空（全清）送 10 行。泡泡行先在棋盘旁边等一会儿，你下一次放方块没消行时，就从底下顶上来。消行会先抵掉等着的泡泡行。最后没被顶到头的人赢这一局。每过 30 秒速度会变快。',
+      rVsH: '对战', rVs: '一次消 3 行以上，才会给对手送泡泡行：消 3 行送 2 行，消 4 行送 4 行，T 旋三消送 6 行。连续大招（连着两次四消或 T 旋消）再多送 1 行；如果这一下还把棋盘清空了（全清），送 10 行。消 1 行或 2 行不送。泡泡行先在棋盘旁边等一会儿，你下一次放方块没消行时，就从底下顶上来。能送行的消行会先抵掉等着的泡泡行。最后没被顶到头的人赢这一局。每过 30 秒速度会变快。',
       rAimH: '送给谁', rAim: '对手不止一个时，你送的行随机给一个人。点哪个对手的棋盘，就专门送给谁；再点一下，又变回随机。',
-      rModesH: '单人', rModes: '经典模式每消 10 行加速一次。40 行冲刺比谁快。两分钟模式比分数。打电脑是和 1 到 3 个电脑对战，电脑分新手、普通、高手、大师四档。',
+      rModesH: '单人', rModes: '经典模式每消 10 行加速一次。40 行冲刺比谁快。两分钟模式比分数。打电脑是和 1 到 3 个电脑对战，电脑分新手、普通、高手、大师四档：新手最慢，最好赢；大师最难。',
     },
   };
   let lang = 'en';

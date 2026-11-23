@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0a0e13">
-<meta name="description" content="Card, tile and board games to play with friends on your phones: Midnight Hold'em, Sichuan Mahjong, Xiangqi (Chinese chess), Cipher (number tiles) and Moontide (island escape). No sign-up, just a room code.">
+<meta name="description" content="Card, tile and board games to play with friends on your phones: Midnight Hold'em, Sichuan Mahjong, Xiangqi (Chinese chess), Cipher (number tiles), Moontide (island escape) and Shiba Stack (falling blocks). No sign-up, just a room code.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Games</title>
@@ -206,12 +206,25 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
 .mtfan .row{transition:translate .6s cubic-bezier(.2,.8,.2,1)}
 .game:active .mtfan .row,.g-moontide:hover .mtfan .row{translate:5px 0}
 
+/* ----- Shiba Stack: the lobby's picture, a night garden with a tower of sleepy blocks, one falling in, and the shiba ----- */
+.g-shiba{--glow:rgba(242,150,80,.36);background:linear-gradient(172deg,#4b2b60 0%,#2b183d 46%,#130a1d 100%)}
+.g-shiba .art .glow{top:60%;background:radial-gradient(closest-side,rgba(255,196,128,.2),transparent)}
+.sbfan{position:absolute;left:50%;top:2px;width:300px;margin-left:-150px}
+.sbfan .sb-scene{display:block;width:100%;height:auto;overflow:visible}
+.sbfan .sb-fall{transition:translate .6s cubic-bezier(.2,.8,.2,1)}
+.game:active .sbfan .sb-fall,.g-shiba:hover .sbfan .sb-fall{translate:0 10px}
+
 @media (prefers-reduced-motion:no-preference){
-  .pfan,.mfan,.xfan,.cfan,.mtfan{animation:float 6s ease-in-out infinite}
+  .pfan,.mfan,.xfan,.cfan,.mtfan,.sbfan{animation:float 6s ease-in-out infinite}
   .mfan{animation-delay:-3s}
   .xfan{animation-delay:-1.5s}
   .cfan{animation-delay:-4.5s}
   .mtfan{animation-delay:-2.2s}
+  .sbfan{animation-delay:-3.7s}
+  .sbfan .sb-tw,.sbfan .sb-kk{animation:tw 3.2s ease-in-out infinite}
+  .sbfan .sb-fall{animation:sbfall 3.6s cubic-bezier(.45,0,.55,1) infinite}
+  .sbfan .sb-tail{transform-box:fill-box;transform-origin:10% 90%;animation:sbwag 1.1s ease-in-out infinite}
+  .sbfan .sb-blink{transform-box:fill-box;transform-origin:50% 50%;animation:sbblink 5s infinite}
   .mtfan .beam{animation:mtspin 12s linear infinite}
   .mtfan .bob{animation:mtbob 2.6s ease-in-out infinite}
   .mtfan .bob2{animation:mtbob 3.1s ease-in-out -.8s infinite}
@@ -223,12 +236,16 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
   .boot .game:nth-child(4){animation-delay:.4s}
   .boot .game:nth-child(5){animation-delay:.5s}
   .boot .game:nth-child(6){animation-delay:.6s}
-  .boot .more{animation-delay:.62s}
+  .boot .game:nth-child(7){animation-delay:.7s}
+  .boot .more{animation-delay:.72s}
 }
 @keyframes float{50%{transform:translateY(-5px)}}
 @keyframes mtspin{to{transform:rotate(360deg)}}
 @keyframes mtbob{50%{transform:translateY(-.55px)}}
 @keyframes mtfin{0%,100%{transform:translate(0,0)}50%{transform:translate(9px,1px)}}
+@keyframes sbfall{0%,100%{transform:translateY(-3px)}50%{transform:translateY(5px)}}
+@keyframes sbwag{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(9deg)}}
+@keyframes sbblink{0%,94%,100%{transform:scaleY(1)}96.5%{transform:scaleY(.1)}}
 @keyframes rise{from{opacity:0;transform:translateY(18px)}}
 
 .more{display:flex;align-items:center;gap:12px;padding:15px 18px;border-radius:20px;border:1.5px dashed rgba(239,232,218,.15);color:var(--mute);font-size:13.5px;font-weight:600}
@@ -244,6 +261,7 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
   .moon{right:max(60px,var(--sar));top:calc(var(--sat) + 76px);width:72px;height:72px}
   .list{grid-template-columns:1fr 1fr;gap:22px;margin-top:36px}
   .art{height:206px}
+  .sbfan{width:330px;margin-left:-165px}
   .hero p{max-width:46ch}
   /* the "more games" note fills the empty cell beside an odd last card, or takes a row of its own */
   .list .more:nth-child(odd){grid-column:1/-1}
@@ -352,6 +370,8 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
   const ctile = (cls, x) => `<div class="ct ${cls}">${x == null ? '<svg viewBox="0 0 24 40"><use href="#cx-hole"/></svg>' : x === 'key' ? '<svg viewBox="0 0 24 40"><use href="#cx-key"/></svg>' : `<span>${x}</span>`}</div>`;
   // the moontide picture, drawn by moontide/src/art.js (no words in it, so it suits both languages)
   const MTSCENE = /*@@MTART@@*/'';
+  // the shiba picture, drawn by shiba/src/art.js (no words in it either)
+  const SBSCENE = /*@@SBART@@*/'';
   const tile = (cls, t) => `<div class="mt ${cls}"><i class="tb"></i><i class="tf">${t == null ? '' : `<svg viewBox="0 0 60 80"><use href="#t${t}"/></svg>`}</i></div>`;
 
   // ----- the games. To add one: give it a folder at the top of the repo, an entry here, and its art below. -----
@@ -393,6 +413,13 @@ html[lang^=zh] .hero h1{font:400 min(50px,12.6vw)/1.12 var(--brush);letter-spaci
       art: () => `<div class="glow"></div><div class="mtfan">${MTSCENE}</div>`,
       en: { name: 'Moontide', desc: 'The island sinks a tile at a time under the king tide. Swim, row and hitch dolphin rides to the lighthouses, and steer the sharks toward everyone else.', players: '2 to 4 players' },
       zh: { name: '沉岛逃生', desc: '大潮一来，小岛一块一块往下沉。游泳、划船、搭海豚，抢先把人送进灯塔，再把鲨鱼引去追别人。', players: '2 到 4 人' } },
+    { id: 'shiba', href: 'shiba/',
+      lock: zh => zh ? `<span class="w"><span class="w1 br">快乐柴柴</span></span><span class="tseal" aria-hidden="true">方块</span>`
+        : `<span class="w"><span class="w1">Shiba Stack</span><span class="w2">FALLING BLOCKS</span></span>`,
+      // 跟游戏大厅同一幅画：夜里的小院、一摞睡着的方块、一块正往缺口里落，柴犬在旁边看；画里没有字，两种语言通用
+      art: () => `<div class="glow"></div><div class="sbfan">${SBSCENE}</div>`,
+      en: { name: 'Shiba Stack', desc: 'Falling blocks with shiba faces. Play Marathon, Sprint or Two Minutes on your own, or battle friends online and send them bubble rows. Bots in four levels fill any empty seats.', players: '1 to 4 players' },
+      zh: { name: '快乐柴柴', desc: '带柴犬脸的方块一块块落下来。一个人玩经典、40 行冲刺或两分钟，也能联机对战，给朋友送泡泡行。人不够，四档电脑来凑。', players: '1 到 4 人' } },
   ];
 
   const S = {

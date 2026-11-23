@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- The shiba and the blocks in every mood and colour, to look at while drawing. Open it through the local server: http://127.0.0.1:8080/shiba/dev/artboard.html --><html><head><meta charset="utf-8"><style>
+body{margin:0;background:radial-gradient(120% 80% at 50% 0%,#4a2b62 0%,#2a1840 50%,#140b20 100%);color:#fff;font:12px sans-serif;padding:10px}
+.row{display:flex;flex-wrap:wrap;gap:6px}.m{width:118px;text-align:center}.m svg{width:118px;height:118px}
+.scene{width:360px;display:block}
+</style></head><body>
+<div class="row" id="moods"></div>
+<div id="sc"></div>
+<canvas id="cv" width="760" height="300"></canvas>
+<script src="../src/engine.js"></script><script src="../src/art.js"></script>
+<script>
+const A = SBArt;
+let h='';
+for (const m in A.MOODS) h += `<div class="m">${A.shiba('m'+m)}<div>${m}</div></div>`;
+document.getElementById('moods').innerHTML = h;
+document.querySelectorAll('#moods .m').forEach((d,i)=>A.mood(d.querySelector('svg'), Object.keys(A.MOODS)[i]));
+document.getElementById('sc').innerHTML = A.scene('x');
+A.mood(document.querySelector('#sc .shiba'), 'happy');
+const cv = document.getElementById('cv'), x = cv.getContext('2d');
+let s = 46;
+for (let t = 1; t <= 8; t++) { x.drawImage(A.cellImg(t, s), 10 + (t-1)*(s+8), 40); if (t<8) { A.ears(x, t, 10 + (t-1)*(s+8), 40, s); x.drawImage(A.cellImg(t, s), 10 + (t-1)*(s+8), 40); A.face(x, 10 + (t-1)*(s+8), 40, s, ['awake','sleep','squish','worry'][t%4], t%3-1); } }
+s = 23;
+for (let t = 1; t <= 8; t++) { x.drawImage(A.cellImg(t, s), 10 + (t-1)*(s+4), 140); if (t<8) A.face(x, 10 + (t-1)*(s+4), 140, s, t%2?'awake':'sleep', 0); }
+for (let t = 1; t <= 8; t++) x.drawImage(A.cellImg(t, 9), 10 + (t-1)*12, 200);
+</script></body></html>

@@ -30,10 +30,10 @@ const click = (p, id) => p.evaluate(id => document.getElementById(id).click(), i
 const waitFor = (p, fn, arg, ms = 15000) => p.waitForFunction(fn, arg, { timeout: ms });
 // the state of my own well
 const me = p => p.evaluate(() => { const g = SBAPP.U.g; return g ? { started: g.started, over: g.over, why: g.why, won: g.won, pieces: g.stats.pieces, lines: g.lines, score: g.score, level: g.level, cur: !!g.cur, pending: g.pendingRows(), cd: !!SBAPP.U.cd, paused: SBAPP.U.paused } : null; });
-// Play one block with real key presses: the strongest bot picks where it goes, then the keys turn it, slide it and drop it.
-// Returns false when there was nothing to play.
+// Play one block with real key presses: a bot picks where it goes (the strongest one, or o.lv: a level, or the settings of
+// a bot as an object), then the keys turn it, slide it and drop it. Returns false when there was nothing to play.
 async function keyMove(p, o = {}) {
-  const plan = await p.evaluate(lv => { const g = SBAPP.U.g; if (!g || !g.cur || g.over || !g.started || SBAPP.U.cd || SBAPP.U.paused || g.clearing) return null; const pl = SBAI.plan(g, lv); return pl && { hold: pl.hold, t: pl.t, r: pl.r, x: pl.x, cx: g.cur.x, cr: g.cur.r, ct: g.cur.t }; }, o.lv || 4);
+  const plan = await p.evaluate(lv => { const g = SBAPP.U.g; if (!g || !g.cur || g.over || !g.started || SBAPP.U.cd || SBAPP.U.paused || g.clearing) return null; if (typeof lv === 'object') { SBAI.LV[9] = lv; lv = 9; } const pl = SBAI.plan(g, lv); return pl && { hold: pl.hold, t: pl.t, r: pl.r, x: pl.x, cx: g.cur.x, cr: g.cur.r, ct: g.cur.t }; }, o.lv || 4);
   if (!plan) return false;
   const k = async key => { await p.keyboard.press(key); if (o.gap) await p.waitForTimeout(o.gap); };
   if (plan.hold) { await k('c'); }

@@ -43,8 +43,10 @@ const rdOf = p => p.evaluate(() => { const v = SBAPP.S && SBAPP.S.view; return v
     for (const p of P) await L.waitFor(p, n => { const v = SBAPP.S.view; return SBAPP.screen === 'game' && v && v.rd && v.rd.n === n; }, n, 15000);
     for (const p of P) await L.waitFor(p, () => { const g = SBAPP.U.g; return g && g.started && !SBAPP.U.cd; }, null, 15000);
   };
-  // every player places blocks well for a while
-  const playWell = async ms => { const t0 = Date.now(); while (Date.now() - t0 < ms) { for (const p of P) await L.keyMove(p, { lv: 2 }).catch(() => false); await A.waitForTimeout(30); } };
+  // every player places blocks well for a while, the way a bot would that clears rows as they come and keeps its stack low:
+  // people then rarely send rows (only three or more at once do), so they and the bot stay in. until: stop early when true
+  const SAFE = { ms: 0, noise: 0, slip: 0, hold: true, look: false, quad: false };
+  const playWell = async (ms, until) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { for (const p of P) await L.keyMove(p, { lv: SAFE }).catch(() => false); if (until && (await until())) return; await A.waitForTimeout(30); } };
   // drop blocks straight down until this player is out
   const topOut = async p => { for (let i = 0; i < 200; i++) { const m = await L.me(p); if (!m || m.over || !m.started) return; await p.keyboard.press('Space'); await p.waitForTimeout(40); } throw new Error('never topped out'); };
 
@@ -66,6 +68,9 @@ const rdOf = p => p.evaluate(() => { const v = SBAPP.S && SBAPP.S.view; return v
   await L.waitFor(C, () => !!document.querySelector('#opps .opp[data-s="1"] .bub'), null, 5000);
   await A.waitForTimeout(150); await L.shot(A, `online-chat-host-${lang}`); await L.shot(C, `online-chat-guest-${lang}`);
   await playWell(9000);
+  // play on until bubble rows have reached a person (the Master bot's four-row clears at least)
+  const hit = async () => { const r = await rdOf(A); const n = await Promise.all(P.map(p => p.evaluate(() => SBAPP.U.g.stats.recv))); return Object.values(r.st).some(s => s.sent > 0) && n.some(x => x > 0); };
+  await playWell(45000, hit);
   // pictures of the other wells reach everyone
   for (const p of P) {
     const have = await p.evaluate(() => Object.keys(SBAPP.S.snaps || {}).map(Number).sort());
@@ -80,6 +85,8 @@ const rdOf = p => p.evaluate(() => { const v = SBAPP.S && SBAPP.S.view; return v
   assert.ok(recv.some(x => x > 0), 'no bubble rows reached a person');
   await L.shot(A, `online-play-host-${lang}`); await L.shot(B, `online-play-guest-${lang}`);
   // a guest's page reloads in the middle of the round: that well is gone, so they're out, and they watch the rest
+  const pre = await rdOf(A);
+  assert.ok(pre.phase === 'play' && !pre.st[2].out, 'the guest was already out before the reload: ' + JSON.stringify(pre));
   await C.reload(); await C.waitForTimeout(400);
   await L.waitFor(C, () => SBAPP.S && SBAPP.S.mode === 'client' && SBAPP.screen === 'game' && SBAPP.S.view && SBAPP.S.view.me === 2, null, 20000);
   await L.waitFor(A, () => SBAPP.S.view.rd.st[2].out && SBAPP.S.view.rd.st[2].why === 'net', null, 10000);

@@ -1,7 +1,7 @@
 // The rules, checked on hand-made wells:  node shiba/tests/engine.test.js
 globalThis.window = globalThis;
-require('../src/engine.js');
-const SB = globalThis.SB, { W, H, TOP, BUB, FACE } = SB;
+require('../src/engine.js'); require('../src/ai.js');
+const SB = globalThis.SB, AI = globalThis.SBAI, { W, H, TOP, BUB, FACE } = SB;
 let pass = 0, fail = 0;
 function ok(c, msg) { if (c) pass++; else { fail++; console.log('FAIL', msg); } }
 function eq(a, b, msg) { const A = JSON.stringify(a), B = JSON.stringify(b); if (A === B) pass++; else { fail++; console.log('FAIL', msg, '\n  got     ', A, '\n  expected', B); } }
@@ -106,7 +106,7 @@ test('T twist double', () => {
   g.hardDrop();
   const c = lastEv(g, 'clear');
   ok(c && c.n === 2 && c.ts === 'full', 'a T twist double: ' + JSON.stringify(c));
-  eq(c.atk, 4, 'sends 4');
+  eq(c.atk, 0, 'two rows: sends nothing');
   eq(c.pts, 1200, 'scores 1200 at level 1');
   ok(g.b2b, 'starts a back-to-back');
 });
@@ -130,7 +130,16 @@ test('a plain T drop is not a twist', () => {
   g.hardDrop();
   const c = lastEv(g, 'clear');
   ok(c && c.n === 2 && !c.ts, 'just a double');
-  eq(c.atk, 1, 'a double sends 1');
+  eq(c.atk, 0, 'a double sends nothing');
+});
+
+test('only three rows or more at once send rows', () => {
+  const f = (n, ts, b2b, pc) => SB.sendOf(n, ts, b2b, pc);
+  eq([f(0), f(1), f(2), f(3), f(4)], [0, 0, 0, 2, 4], 'one or two rows send nothing, three send 2, four send 4');
+  eq([f(1, 'full'), f(2, 'full'), f(3, 'full')], [0, 0, 6], 'a T-Twist sends only as a triple, 6');
+  eq([f(1, 'mini'), f(2, 'mini'), f(3, 'mini')], [0, 0, 2], 'a mini twist counts as a plain clear');
+  eq([f(4, null, true), f(3, 'full', true), f(2, 'full', true)], [5, 7, 0], 'back-to-back adds one to a clear that sends');
+  eq([f(4, null, false, true), f(3, null, false, true), f(2, null, false, true), f(1, null, false, true)], [10, 10, 0, 0], 'an all clear sends 10 when three rows or more go');
 });
 
 test('quads, back-to-back, combos, all clear', () => {
@@ -152,7 +161,7 @@ test('quads, back-to-back, combos, all clear', () => {
   const g2 = well(['XXXXXXXX..', 'XXXXXXXX..', 'XXXXXXXX..', 'XXXXXXXX..', 'XXXXXXXX..', 'XXXXXXXX..', 'XXXXXXXXX.']);
   const sends = [];
   for (let i = 0; i < 3; i++) { g2.cur = { t: 2, x: 8, y: 20, r: 0 }; g2.hardDrop(); sends.push(lastEv(g2, 'clear').atk); g2.tick(SB.CLEAR_MS + 1); }
-  eq(sends, [1, 1, 2], 'doubles send 1, 1, then 2 with the combo');
+  eq(sends, [0, 0, 0], 'doubles send nothing, in a combo too');
   eq(g2.combo, 2, 'combo count');
   g2.cur = { t: 2, x: 0, y: 20, r: 0 }; g2.hardDrop();
   eq(g2.combo, -1, 'a block that clears nothing ends the combo');
@@ -186,6 +195,14 @@ test('bubble rows come in, and clears cancel them', () => {
   g3.cur = { t: 1, x: 7, y: 20, r: 1 }; g3.hardDrop();
   const c = lastEv(g3, 'clear');
   eq([c.atk, c.cancel, c.send, g3.pendingRows()], [SB.PC_SEND, 3, SB.PC_SEND - 3, 0], 'quad + all clear: 3 cancelled, the rest sent');
+  // a double cancels nothing; the rows still wait and come in with the next block that clears nothing
+  const g5 = well(['XXXXXXXX..', 'XXXXXXXX..']);
+  g5.addBubbles(3, 4); g5.tick(SB.BUBBLE_MS);
+  g5.cur = { t: 2, x: 8, y: 20, r: 0 }; g5.hardDrop();
+  const c5 = lastEv(g5, 'clear');
+  eq([c5.n, c5.atk, c5.cancel, g5.pendingRows()], [2, 0, 0, 3], 'a double: nothing cancelled, three still waiting');
+  g5.tick(SB.CLEAR_MS + 1); g5.cur = { t: 2, x: 0, y: 20, r: 0 }; g5.hardDrop();
+  eq([g5.pendingRows(), g5.height()], [0, 5], 'they come in under the next block');
   // being pushed over the top ends the game
   const g4 = well([]); for (let y = 2; y < H; y++) for (let x = 0; x < W; x++) if (x !== y % W) g4.board[y * W + x] = 1;
   g4.addBubbles(4); g4.pending[0].t = 0; g4.cur = null;
@@ -291,6 +308,29 @@ test('random play never breaks the well', () => {
     for (let i = 0; i < W * H; i++) { const v = g.board[i]; if (!(v === 0 || v === BUB || ((v & 15) >= 1 && (v & 15) <= 7))) { fail++; console.log('FAIL bad cell', v); return; } }
   }
   pass++;
+});
+
+test('bots take their time over every block, also right after a clear', () => {
+  // four rows ready for a four-row clear: the bot clears now and then; at level 1 its blocks never land before it is done
+  const g = well(['XXXXXXXXX.', 'XXXXXXXXX.', 'XXXXXXXXX.', 'XXXXXXXXX.'], { seed: 3 });
+  const lv = 2, bot = new AI.Bot(g, lv, () => 0.5), think = AI.LV[lv].ms;   // rand 0.5: exactly its thinking time
+  const locks = [];
+  let t = 0;
+  while (t < 28000 && !g.over) {
+    bot.step(16); t += 16;
+    for (const e of g.ev) if (e.k === 'lock') locks.push({ t, n: e.n });
+    g.ev.length = 0;
+  }
+  ok(locks.some(l => l.n > 0), 'it cleared rows: ' + JSON.stringify(locks));
+  let gaps = [];
+  for (let i = 1; i < locks.length; i++) gaps.push(locks[i].t - locks[i - 1].t);
+  ok(locks.length >= 8 && gaps.every(d => d >= think - 32), 'a block every ' + think + ' ms at least: ' + gaps.join(' '));
+  // a block that lands before the bot is done (very fast falling): it plays at once instead of waiting
+  const f = well([], { seed: 5 }); f.level = 15; f.time = 7 * 60000;
+  const fb = new AI.Bot(f, 1, () => 0.5);
+  let n = 0;
+  for (let i = 0; i < 500 && !f.over; i++) { fb.step(16); n += f.ev.filter(e => e.k === 'lock').length; f.ev.length = 0; }
+  ok(n >= 8, 'at top speed the slowest bot keeps up: ' + n + ' blocks in 8 s');
 });
 
 console.log(`${pass} passed, ${fail} failed`);

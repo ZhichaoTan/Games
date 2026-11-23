@@ -1,9 +1,9 @@
 // ===== 快乐柴柴 Shiba Stack · the rules =====
 // The well is 10 wide and 40 tall; the bottom 20 rows are what you see. Seven kinds of block fall one at a time from a
 // shuffled bag of all seven. Rotation follows the usual kick tables, a block locks half a second after it lands (moving or
-// turning it on the ground buys time, up to 15 times), full rows clear, and in a battle every clear of two rows or more
-// sends "bubble rows" to an opponent. Everything here is plain data and numbers, so it runs the same in a browser, on the
-// host for the bots, and in node for the tests.
+// turning it on the ground buys time, up to 15 times), full rows clear, and in a battle every clear of three rows or more
+// at once sends "bubble rows" to an opponent. Everything here is plain data and numbers, so it runs the same in a
+// browser, on the host for the bots, and in node for the tests.
 (function (G) {
   'use strict';
   const W = 10, H = 40, VIS = 20, TOP = H - VIS;    // TOP: the first row you can see
@@ -39,12 +39,18 @@
     '3>0': [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]], '0>3': [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]] };
   const flip = K => { const o = {}; for (const k in K) o[k] = K[k].map(([x, y]) => [x, -y]); return o; };
   const KICKS3 = flip(K3), KICKS4 = flip(K4);
-  // points for a clear (times the level), and rows sent in a battle
+  // points for a clear (times the level), and rows sent in a battle: only a clear of three rows or more at once sends any
   const PTS = { none: [0, 100, 300, 500, 800], mini: [100, 200, 400, 400, 400], full: [400, 800, 1200, 1600, 1600] };
   const PC_PTS = [0, 800, 1200, 1800, 2000];
-  const SEND = { none: [0, 0, 1, 2, 4], mini: [0, 0, 1, 1, 1], full: [0, 2, 4, 6, 6] };
-  const COMBO = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4, 5];
-  const PC_SEND = 10;
+  const SEND = { none: [0, 0, 0, 2, 4], mini: [0, 0, 0, 2, 4], full: [0, 0, 0, 6, 6] };
+  const MIN_SEND = 3, PC_SEND = 10;
+  // rows a clear of n rows sends: 2 for three rows, 4 for four, 6 for a T-Twist triple, one more back-to-back, 10 for an
+  // all clear; one or two rows send nothing (and so cancel nothing)
+  function sendOf(n, ts, btb, pc) {
+    if (n < MIN_SEND) return 0;
+    const a = SEND[ts || 'none'][n] + (btb ? 1 : 0);
+    return pc ? Math.max(a, PC_SEND) : a;
+  }
   // seconds a block takes to fall one row at each level
   const fallSec = L => Math.pow(Math.max(0.01, 0.8 - (L - 1) * 0.007), L - 1);
   const MODES = { marathon: 1, sprint: 1, ultra: 1, versus: 1 };
@@ -277,8 +283,7 @@
       if (pc) { pts += (btb && n === 4 ? 3200 : PC_PTS[n]) * L; this.stats.pcs++; }
       this.score += pts;
       // rows to send in a battle; they cancel bubble rows waiting to come in first
-      let atk = SEND[ts || 'none'][n] + (btb ? 1 : 0) + COMBO[Math.min(this.combo, COMBO.length - 1)];
-      if (pc) atk = Math.max(atk, PC_SEND);
+      const atk = sendOf(n, ts, btb, pc);
       let left = atk;
       while (left > 0 && this.pending.length) {
         const p = this.pending[0], k = Math.min(p.n, left);
@@ -393,6 +398,6 @@
     }
     return rows;
   }
-  G.SB = { W, H, VIS, TOP, BUB, FACE, SHAPES, CELLS, SPAWN_X, SPAWN_Y, KICKS3, KICKS4, PTS, SEND, COMBO, PC_SEND, LOCK_MS, CLEAR_MS, BUBBLE_MS, BUBBLE_CAP,
+  G.SB = { W, H, VIS, TOP, BUB, FACE, SHAPES, CELLS, SPAWN_X, SPAWN_Y, KICKS3, KICKS4, PTS, SEND, MIN_SEND, PC_SEND, sendOf, LOCK_MS, CLEAR_MS, BUBBLE_MS, BUBBLE_CAP,
     SPRINT_LINES, ULTRA_MS, VS_STEP_MS, MAX_LV, fallSec, rnd, Game, unsnap };
 })(typeof window !== 'undefined' ? window : globalThis);

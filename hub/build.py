@@ -2,7 +2,8 @@
 """Builds the Games home page, the root index.html: inlines the fonts, the zoom guard, the shared artwork
 (poker/src/art.js and seal.svg), the four mahjong tile faces the page draws (from mahjong/src/tiles.js) and the
 three xiangqi pieces (the piece font subset and three figurines from xiangqi/src/), the cipher key, keyhole and compass
-drawing (from cipher/src/art.js), and the moontide and shiba lobby pictures (from moontide/src/art.js and shiba/src/art.js)."""
+drawing (from cipher/src/art.js), the moontide and shiba lobby pictures (from moontide/src/art.js and shiba/src/art.js),
+and the Puffy Pals card picture (match/src/art.js with the animals from match/src/critters.js)."""
 import base64, json, os, re
 here = os.path.dirname(os.path.abspath(__file__))
 pk = os.path.join(here, '..', 'poker', 'src')
@@ -52,9 +53,17 @@ sbart = re.sub(r'id="([\w-]+)"', r'id="sb-\1"', sbart)
 sbart = re.sub(r'url\(#([\w-]+)\)', r'url(#sb-\1)', sbart)
 sbart = re.sub(r'class="([^"]+)"', lambda m: 'class="%s"' % ' '.join('sb-' + c for c in m.group(1).split()), sbart)
 assert 'href="#' not in sbart and sbart.count('<svg') == 2, 'the picture stands alone'
+# the Puffy Pals picture: a little board at night, three chicks lined up to pop, the piglet peeking over; ids and class names
+# prefixed so they stay its own
+mx = os.path.join(here, '..', 'match', 'src')
+mxart = subprocess.check_output(['node', '-e', "globalThis.window=globalThis;require(process.argv[1]);require(process.argv[2]);process.stdout.write(MMArt.hub('hub'))", os.path.join(mx, 'critters.js'), os.path.join(mx, 'art.js')]).decode()
+mxart = re.sub(r'id="([\w-]+)"', r'id="mx-\1"', mxart)
+mxart = re.sub(r'url\(#([\w-]+)\)', r'url(#mx-\1)', mxart)
+mxart = re.sub(r'class="([^"]+)"', lambda m: 'class="%s"' % ' '.join('mx-' + c for c in m.group(1).split()), mxart)
+assert 'href="#' not in mxart and mxart.count('<svg') == 1, 'the picture stands alone'
 src = rd(here, 'index.html')
 subs = [('/*@@FONTS@@*/', fonts), ('/*@@NOZOOM@@*/', rd(pk, 'nozoom.js')), ('/*@@ART@@*/', rd(pk, 'art.js')),
-        ("/*@@SEAL@@*/''", json.dumps(rd(pk, 'seal.svg'))), ("/*@@TILES@@*/''", json.dumps(tiles)), ("/*@@XQFIG@@*/''", json.dumps(xqfig)), ("/*@@CXART@@*/''", json.dumps(cxart)), ("/*@@MTART@@*/''", json.dumps(mtart)), ("/*@@SBART@@*/''", json.dumps(sbart))]
+        ("/*@@SEAL@@*/''", json.dumps(rd(pk, 'seal.svg'))), ("/*@@TILES@@*/''", json.dumps(tiles)), ("/*@@XQFIG@@*/''", json.dumps(xqfig)), ("/*@@CXART@@*/''", json.dumps(cxart)), ("/*@@MTART@@*/''", json.dumps(mtart)), ("/*@@SBART@@*/''", json.dumps(sbart)), ("/*@@MXART@@*/''", json.dumps(mxart))]
 for tag, body in subs:
     assert src.count(tag) == 1, tag
     src = src.replace(tag, body.replace('</script', '<\\/script'))
